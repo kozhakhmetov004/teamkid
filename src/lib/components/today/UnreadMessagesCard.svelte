@@ -29,7 +29,7 @@
 				{#each threads as t (t.threadId)}
 					<li>
 						<a
-							href="/messages/{t.threadId}"
+							href="/messages?thread={t.threadId}"
 							class="-mx-2 block rounded-lg px-2 py-2 hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
 						>
 							<span class="flex items-center justify-between gap-2">
