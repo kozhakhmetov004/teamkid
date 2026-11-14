@@ -7,15 +7,23 @@
 	let {
 		class: className = '',
 		bob = true,
-		label = 'Pebble the turtle, smiling'
-	}: { class?: string; bob?: boolean; label?: string } = $props();
+		label = 'Pebble the turtle, smiling',
+		decorative = false
+	}: {
+		class?: string;
+		bob?: boolean;
+		label?: string;
+		/** Hide from assistive tech (e.g. inside Pebble3D, whose wrapper carries the label). */
+		decorative?: boolean;
+	} = $props();
 </script>
 
 <svg
 	viewBox="0 0 220 220"
 	class="{className} {bob ? 'pebble-bob' : ''}"
-	role="img"
-	aria-label={label}
+	role={decorative ? undefined : 'img'}
+	aria-label={decorative ? undefined : label}
+	aria-hidden={decorative ? 'true' : undefined}
 >
 	<!-- feet -->
 	<ellipse cx="62" cy="182" rx="20" ry="13" fill="#8cc152" />
