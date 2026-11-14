@@ -336,14 +336,20 @@ export type Database = {
 					child_id: string | null;
 					created_at: string;
 					currency: string;
-					description: string | null;
 					family_id: string;
 					id: string;
+					note: string | null;
 					paid_by: string;
 					receipt_path: string | null;
+					reimbursed_at: string | null;
+					responded_at: string | null;
+					responded_by: string | null;
+					resubmit_of: string | null;
 					spent_on: string;
 					split: NonNullable<Json>;
 					status: string;
+					status_note: string | null;
+					title: string;
 				};
 				ComputedFields: never;
 				Insert: {
@@ -352,14 +358,20 @@ export type Database = {
 					child_id?: string | null;
 					created_at?: string;
 					currency?: string;
-					description?: string | null;
 					family_id: string;
 					id?: string;
+					note?: string | null;
 					paid_by: string;
 					receipt_path?: string | null;
+					reimbursed_at?: string | null;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					resubmit_of?: string | null;
 					spent_on?: string;
 					split?: NonNullable<Json>;
 					status?: string;
+					status_note?: string | null;
+					title: string;
 				};
 				Update: {
 					amount_cents?: number;
@@ -367,14 +379,20 @@ export type Database = {
 					child_id?: string | null;
 					created_at?: string;
 					currency?: string;
-					description?: string | null;
 					family_id?: string;
 					id?: string;
+					note?: string | null;
 					paid_by?: string;
 					receipt_path?: string | null;
+					reimbursed_at?: string | null;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					resubmit_of?: string | null;
 					spent_on?: string;
 					split?: NonNullable<Json>;
 					status?: string;
+					status_note?: string | null;
+					title?: string;
 				};
 				Relationships: [
 					{
@@ -396,6 +414,20 @@ export type Database = {
 						columns: ['paid_by'];
 						isOneToOne: false;
 						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expenses_responded_by_fkey';
+						columns: ['responded_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expenses_resubmit_of_fkey';
+						columns: ['resubmit_of'];
+						isOneToOne: false;
+						referencedRelation: 'expenses';
 						referencedColumns: ['id'];
 					}
 				];
@@ -1140,8 +1172,8 @@ export type Database = {
 			v_spending_by_category: {
 				Row: {
 					category: string;
-					expense_count: number | null;
 					family_id: string;
+					items: number | null;
 					month: string | null;
 					total_cents: number | null;
 				};
@@ -1246,6 +1278,36 @@ export type Database = {
 					p_template: string;
 				};
 				Returns: string;
+			};
+			respond_to_expense: {
+				Args: { p_action: string; p_expense_id: string; p_note?: string };
+				Returns: {
+					amount_cents: number;
+					category: string;
+					child_id: string | null;
+					created_at: string;
+					currency: string;
+					family_id: string;
+					id: string;
+					note: string | null;
+					paid_by: string;
+					receipt_path: string | null;
+					reimbursed_at: string | null;
+					responded_at: string | null;
+					responded_by: string | null;
+					resubmit_of: string | null;
+					spent_on: string;
+					split: NonNullable<Json>;
+					status: string;
+					status_note: string | null;
+					title: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'expenses';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
 			};
 			respond_to_swap: {
 				Args: { p_action: string; p_swap_id: string; p_tz?: string };

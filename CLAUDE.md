@@ -6,6 +6,7 @@ Read README.md for product, architecture, data model and safety rules.
 
 - Member 1: src/routes/(parent)/{calendar,messages,expenses,documents}, src/lib/components/{calendar,messages,expenses}
 - Member 1 (landing): src/routes/(marketing)/** (public /, /privacy, /terms), src/lib/components/landing/**, static/landing/**
+- Member 1 (P2): src/lib/expenses/**, src/lib/storage/upload.ts, src/lib/server/storageVerify.ts (shared helper), src/lib/components/{documents,analytics/SpendingChart.svelte}, src/lib/components/pebble/**
 - Member 2: src/routes/(kid)/**, src/lib/components/{kids,insights}, src/lib/components/analytics/MyTimeCard.svelte,
   src/lib/kids/**, src/lib/server/insights/**
 - Member 3: src/lib/server/ai/**, src/routes/api/**, src/routes/(parent)/{plan,billing}

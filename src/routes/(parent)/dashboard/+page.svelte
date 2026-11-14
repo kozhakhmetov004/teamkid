@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
+	import SpendingChart from '#lib/components/analytics/SpendingChart.svelte';
+	import BalanceCard from '#lib/components/expenses/BalanceCard.svelte';
 	import BriefingCard from '#lib/components/today/BriefingCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
 	import NextHandover from '#lib/components/today/NextHandover.svelte';
@@ -20,16 +22,6 @@
 	let swapOpen = $state(false);
 
 	const childName = $derived(data.child?.first_name ?? 'your child');
-	const money = (cents: number) =>
-		new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
-	const monthLabel = (iso: string | null) =>
-		iso
-			? new Intl.DateTimeFormat('en-US', {
-					month: 'long',
-					year: 'numeric',
-					timeZone: 'UTC'
-				}).format(new Date(iso))
-			: 'This month';
 
 	// Send the browser's time zone to the server once, then reload the data in it.
 	onMount(() => {
@@ -120,32 +112,11 @@
 	<div class="grid gap-4 md:grid-cols-2">
 		<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)" />
 
-		<DashboardSlot name="spending" title="Spending" owner="Member 1 (P2)">
-			<Card.Root class="h-full">
-				<Card.Header>
-					<Card.Title>Spending</Card.Title>
-					<Card.Description
-						>{monthLabel(data.slots.spending.month)} · same numbers for both parents</Card.Description
-					>
-				</Card.Header>
-				<Card.Content>
-					{#if data.slots.spending.rows.length === 0}
-						<p class="text-sm text-muted-foreground">No expenses logged yet.</p>
-					{:else}
-						<ul class="space-y-1 text-sm">
-							{#each data.slots.spending.rows as row (row.category)}
-								<li class="flex justify-between">
-									<span class="capitalize">{row.category}</span>
-									<span class="tabular-nums">{money(row.totalCents)}</span>
-								</li>
-							{/each}
-						</ul>
-						<p class="mt-2 text-right text-sm font-semibold tabular-nums">
-							Total {money(data.slots.spending.totalCents)}
-						</p>
-					{/if}
-				</Card.Content>
-			</Card.Root>
+		<DashboardSlot name="spending" title="Spending" owner="Member 1">
+			<div class="grid gap-4">
+				<SpendingChart months={data.slots.chart} compact />
+				<BalanceCard text={data.slots.balance.text} items={data.slots.balance.items} compact />
+			</div>
 		</DashboardSlot>
 
 		<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">

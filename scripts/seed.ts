@@ -333,54 +333,61 @@ async function seedCarter() {
 	}
 
 	if (await isEmpty('expenses', 'family_id', family.id)) {
+		// ~15 expenses over the last 3 months (dates relative to this week, never in
+		// the future) so the spending chart and the balance look real.
+		const half = { payer_share_pct: 50, other_share_pct: 50 };
+		const exp = (
+			offset: number,
+			payer: string,
+			cents: number,
+			category: string,
+			title: string,
+			status: 'pending' | 'approved' | 'disputed' | 'reimbursed',
+			extra: Record<string, unknown> = {}
+		) => ({
+			family_id: family.id,
+			child_id: lily,
+			paid_by: payer,
+			amount_cents: cents,
+			category,
+			title,
+			spent_on: isoDate(day(offset)),
+			split: half,
+			status,
+			...(status === 'approved' || status === 'reimbursed'
+				? {
+						responded_by: payer === mom ? dad : mom,
+						responded_at: day(offset + 1, 9).toISOString()
+					}
+				: {}),
+			...(status === 'reimbursed' ? { reimbursed_at: day(offset + 3, 9).toISOString() } : {}),
+			...extra
+		});
 		check(
-			await db.from('expenses').insert([
-				{
-					family_id: family.id,
-					child_id: lily,
-					paid_by: mom,
-					amount_cents: 12000,
-					category: 'activities',
-					description: 'Swim class (month)',
-					spent_on: isoDate(day(-10))
-				},
-				{
-					family_id: family.id,
-					child_id: lily,
-					paid_by: dad,
-					amount_cents: 4550,
-					category: 'clothing',
-					description: 'Rain boots + jacket',
-					spent_on: isoDate(day(-6))
-				},
-				{
-					family_id: family.id,
-					child_id: lily,
-					paid_by: mom,
-					amount_cents: 2500,
-					category: 'medical',
-					description: 'Pediatrician co-pay',
-					spent_on: isoDate(day(-4))
-				},
-				{
-					family_id: family.id,
-					child_id: lily,
-					paid_by: dad,
-					amount_cents: 3899,
-					category: 'education',
-					description: 'School supplies',
-					spent_on: isoDate(day(-2))
-				},
-				{
-					family_id: family.id,
-					child_id: lily,
-					paid_by: mom,
-					amount_cents: 32000,
-					category: 'childcare',
-					description: 'After-school care',
-					spent_on: isoDate(day(-1))
-				}
-			]),
+			await db.from('expenses').insert(
+				[
+					exp(-1, dad, 3800, 'entertainment', 'Zoo tickets', 'pending'),
+					exp(-3, mom, 32000, 'childcare', 'After-school care', 'approved'),
+					exp(-5, mom, 2500, 'medical', 'Pediatrician co-pay', 'approved'),
+					exp(-8, dad, 3899, 'school', 'School supplies', 'approved'),
+					exp(-10, mom, 12000, 'activities', 'Swim class (month)', 'pending'),
+					exp(-12, dad, 4550, 'clothing', 'Rain boots + jacket', 'disputed', {
+						status_note: 'I think we agreed on the cheaper pair?',
+						responded_by: mom,
+						responded_at: day(-11, 10).toISOString()
+					}),
+					exp(-20, mom, 2400, 'entertainment', 'Movie night', 'approved'),
+					exp(-25, dad, 6000, 'medical', 'Dentist check-up', 'approved'),
+					exp(-30, dad, 9500, 'activities', 'Soccer registration', 'reimbursed'),
+					exp(-34, mom, 7999, 'clothing', 'Winter coat', 'approved'),
+					exp(-40, mom, 1500, 'school', 'Field trip', 'approved'),
+					exp(-50, dad, 2500, 'entertainment', 'Birthday party gift', 'approved'),
+					exp(-62, mom, 32000, 'childcare', 'After-school care', 'approved'),
+					exp(-66, mom, 4500, 'medical', 'Eye exam', 'approved'),
+					exp(-72, dad, 11000, 'activities', 'Piano lessons', 'approved')
+				],
+				{ defaultToNull: false }
+			),
 			'expenses'
 		);
 	}
@@ -516,7 +523,7 @@ async function seedDiaz() {
 				paid_by: ana,
 				amount_cents: 5000,
 				category: 'activities',
-				description: 'Soccer fee'
+				title: 'Soccer fee'
 			}),
 			'diaz expense'
 		);

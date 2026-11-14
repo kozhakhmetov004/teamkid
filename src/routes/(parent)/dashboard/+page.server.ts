@@ -8,6 +8,9 @@
  */
 import { suggestForParent } from '#lib/server/ai/parentSuggestion.js';
 import { requireParent } from '#lib/server/guards.js';
+import { balanceText, computeBalance } from '#lib/expenses/balance.js';
+import { buildChartMonths } from '#lib/expenses/chart.js';
+import { loadBalanceRows, loadSpendingRows, shiftMonth } from '../expenses/expenses.server.js';
 import {
 	addDays,
 	buildBriefing,
@@ -42,8 +45,7 @@ export const load: PageServerLoad = async (event) => {
 	// Wide enough window for any time zone: yesterday .. +15 days.
 	const from = new Date(now.getTime() - 2 * DAY_MS).toISOString();
 	const to = new Date(now.getTime() + 16 * DAY_MS).toISOString();
-	const monthStart = `${today.slice(0, 7)}-01`;
-	const prevMonthStart = addDays(monthStart, -1).slice(0, 7) + '-01';
+	const currentMonth = today.slice(0, 7);
 
 	const [
 		parents,
@@ -55,6 +57,7 @@ export const load: PageServerLoad = async (event) => {
 		unread,
 		recent,
 		spending,
+		balanceRows,
 		myTime
 	] = await Promise.all([
 		sb
@@ -108,12 +111,9 @@ export const load: PageServerLoad = async (event) => {
 			.eq('family_id', familyId)
 			.order('created_at', { ascending: false })
 			.limit(20),
-		// Slot defaults (P2 replaces these cards).
-		sb
-			.from('v_spending_by_category')
-			.select('month, category, total_cents')
-			.eq('family_id', familyId)
-			.gte('month', prevMonthStart),
+		// Shared spending (last 3 months) + balance input; identical for both parents.
+		loadSpendingRows(sb, familyId, shiftMonth(currentMonth, -2)),
+		loadBalanceRows(sb, familyId),
 		sb.from('v_parent_time').select('child_id, month, outings_count, avg_rating, top_activities')
 	]);
 
@@ -216,13 +216,8 @@ export const load: PageServerLoad = async (event) => {
 		if (latestPerThread.length === 3) break;
 	}
 
-	// ---- slot defaults (spending / my time) -------------------------------------
-	const months = [...new Set((spending.data ?? []).map((r) => r.month))].sort().reverse();
-	const spendMonth = months[0] ?? null;
-	const spendRows = (spending.data ?? [])
-		.filter((r) => r.month === spendMonth)
-		.map((r) => ({ category: r.category ?? 'other', totalCents: Number(r.total_cents ?? 0) }))
-		.sort((a, b) => b.totalCents - a.totalCents);
+	// ---- slots: spending chart + balance (shared) / my time ----------------------
+	const balance = computeBalance(balanceRows, member.member_id);
 	const timeRows = (myTime.data ?? []).filter((r) => !child || r.child_id === child.id);
 	const outings = timeRows.reduce((n, r) => n + (r.outings_count ?? 0), 0);
 	const rated = timeRows.filter((r) => r.avg_rating !== null);
@@ -263,10 +258,10 @@ export const load: PageServerLoad = async (event) => {
 		swapWindow: { min: today, max: addDays(today, 60) },
 		unread: { count: unreadCount, threads: latestPerThread },
 		slots: {
-			spending: {
-				month: spendMonth,
-				rows: spendRows,
-				totalCents: spendRows.reduce((s, r) => s + r.totalCents, 0)
+			chart: buildChartMonths(spending, currentMonth),
+			balance: {
+				text: balanceText(balance, other?.display_name ?? 'your co-parent'),
+				items: balance.items
 			},
 			myTime: {
 				outings,
