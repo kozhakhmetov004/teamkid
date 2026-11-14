@@ -6,7 +6,6 @@
  *
  * Re-runs on `invalidate('app:today')` (live updates from the page).
  */
-import { suggestForParent } from '#lib/server/ai/parentSuggestion.js';
 import { requireParent } from '#lib/server/guards.js';
 import { balanceText, computeBalance } from '#lib/expenses/balance.js';
 import { buildChartMonths } from '#lib/expenses/chart.js';
@@ -57,8 +56,7 @@ export const load: PageServerLoad = async (event) => {
 		unread,
 		recent,
 		spending,
-		balanceRows,
-		myTime
+		balanceRows
 	] = await Promise.all([
 		sb
 			.from('members')
@@ -113,8 +111,7 @@ export const load: PageServerLoad = async (event) => {
 			.limit(20),
 		// Shared spending (last 3 months) + balance input; identical for both parents.
 		loadSpendingRows(sb, familyId, shiftMonth(currentMonth, -2)),
-		loadBalanceRows(sb, familyId),
-		sb.from('v_parent_time').select('child_id, month, outings_count, avg_rating, top_activities')
+		loadBalanceRows(sb, familyId)
 	]);
 
 	// ---- people -------------------------------------------------------------
@@ -216,19 +213,8 @@ export const load: PageServerLoad = async (event) => {
 		if (latestPerThread.length === 3) break;
 	}
 
-	// ---- slots: spending chart + balance (shared) / my time ----------------------
+	// ---- slots: spending + balance (shared); insight and My time load themselves --
 	const balance = computeBalance(balanceRows, member.member_id);
-	const timeRows = (myTime.data ?? []).filter((r) => !child || r.child_id === child.id);
-	const outings = timeRows.reduce((n, r) => n + (r.outings_count ?? 0), 0);
-	const rated = timeRows.filter((r) => r.avg_rating !== null);
-	const ratedCount = rated.reduce((n, r) => n + (r.outings_count ?? 0), 0);
-	const avgRating = ratedCount
-		? Math.round(
-				(rated.reduce((s, r) => s + Number(r.avg_rating) * (r.outings_count ?? 0), 0) /
-					ratedCount) *
-					10
-			) / 10
-		: null;
 
 	return {
 		tz,
@@ -262,12 +248,6 @@ export const load: PageServerLoad = async (event) => {
 			balance: {
 				text: balanceText(balance, other?.display_name ?? 'your co-parent'),
 				items: balance.items
-			},
-			myTime: {
-				outings,
-				avgRating,
-				topActivities: [...new Set(timeRows.flatMap((r) => r.top_activities ?? []))].slice(0, 3),
-				suggestion: child ? (await suggestForParent(member.member_id, child.id)).suggestion : null
 			}
 		}
 	};
