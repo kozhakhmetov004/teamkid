@@ -1271,6 +1271,7 @@ export type Database = {
 				};
 			};
 			safe_tz: { Args: { p_tz: string }; Returns: string };
+			storage_family_id: { Args: { object_name: string }; Returns: string };
 		};
 		Enums: {
 			child_mode: 'pet' | 'teen';
