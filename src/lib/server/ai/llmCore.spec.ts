@@ -111,11 +111,17 @@ describe('fake provider', () => {
 	it('uses the fake value for pattern-constrained schemas', async () => {
 		const demo = {
 			template: '2-2-3',
+			templateQuote: null,
 			startDate: '2026-01-05',
+			startDateQuote: null,
+			firstParentLabel: 'Mother',
+			firstParentQuote: null,
 			exchangeTime: '17:00',
-			startingHome: 'A',
-			holidayRules: [],
-			confidence: 0.9
+			exchangePlace: null,
+			exchangeQuote: null,
+			holidays: [],
+			confidence: { template: 0.9, startDate: 0.9, exchange: 0.9 },
+			warnings: []
 		} as const;
 		const ask = createAsk(fakeComplete(demo));
 		await expect(ask({ system: 's', prompt: 'p', json: PlanExtraction })).resolves.toEqual(demo);

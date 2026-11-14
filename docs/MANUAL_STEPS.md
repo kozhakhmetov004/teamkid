@@ -121,7 +121,44 @@ pnpm exec tsx --env-file=.env.cloud scripts/test-rls.ts   # RLS check against th
 3. Lily: `/kid-login`, `TURTLE-1234` + `1234` → `/pebble`.
 4. Mom opens `/pebble` → sent back to `/dashboard`; Lily opens `/dashboard` → sent to `/pebble`.
 
-## 8. Local notes
+## 8. Before the demo (parenting-plan import)
+
+The sample plan `static/demo/parenting-plan-carter.pdf` (2-2-3, Mother first, 5:00 pm) must be
+in the same phase as the seeded custody nights, or **Apply** flips the calendar. The seed has no
+fixed date: it starts on the **Monday (UTC) of the week it runs**.
+
+1. **Seed the cloud project** (step 6) if it isn't seeded yet. Re-running the seed doesn't change
+   an existing schedule.
+2. **Read the seeded start date** (read only): Dashboard → Table Editor → `custody_schedules` →
+   the **oldest** Carter row → `start_date` (a Monday). Or in the SQL Editor:
+   ```sql
+   select s.start_date from custody_schedules s join families f on f.id = s.family_id
+   where f.name = 'Carter family' order by s.created_at limit 1;
+   ```
+3. **Regenerate the PDF with that Monday** (UTC date, as stored):
+   ```bash
+   pnpm exec tsx scripts/make-sample-plan.ts --start=<start_date>
+   git diff --stat static/demo     # empty => the committed PDF already matches
+   ```
+4. If the PDF changed: commit it, PR → merge to `main` so Vercel redeploys. Open
+   `https://<your-app>.vercel.app/demo/parenting-plan-carter.pdf` and check page 1 says
+   "starting Monday, <start_date>". Download that copy to the demo laptop for the upload.
+5. **Env vars on Vercel** (Production): `LLM_API_KEY`, `LLM_MODEL_FAST` (e.g. `claude-haiku-5-5`),
+   `LLM_MODEL_SMART` (e.g. `claude-sonnet-5-5`). Without a key the import shows the built-in demo
+   extraction instead of reading the PDF.
+6. **Time zone**: on the demo laptop, open **`/dashboard` once in each browser** before importing.
+   It sets the `tz` cookie; without it, Apply uses UTC and 5:00 pm lands at the wrong local hour.
+7. **Check Today**: Mom's and Dad's `/dashboard` agree on who has Lily tonight, matching week 1
+   (Mon–Tue Mom, Wed–Thu Dad, Fri–Sun Mom) or week 2 of the PDF.
+8. **Rehearse the import once** as Mom: upload the PDF → review shows 2-2-3, Mother, 5:00 pm,
+   Oakwood Elementary, 4 holidays (page 3) and a right-of-first-refusal warning → **Apply** →
+   `/calendar` shows the same nights on Mom's and Dad's screens. Apply replaces only future custody
+   nights, so a rehearsal is harmless (it adds a schedule row and audit rows, which are records).
+   Limits: 5 PDF reads per parent per hour (per server instance; a redeploy resets them).
+9. **Warm up** 1–2 minutes before going on stage: open `/api/health` (expect `"db":true`), then
+   send one test rewrite in Messages.
+
+## 9. Local notes
 
 - First time: `pnpm db:start`, then `pnpm env:local` (writes `.env` from `supabase status` + a fresh
   `KID_AUTH_SECRET`), `pnpm db:seed`, `pnpm dev`.
