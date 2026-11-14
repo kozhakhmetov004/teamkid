@@ -155,15 +155,17 @@ async function main() {
 	);
 	const momDash = await mom.get('/dashboard');
 	const momHtml = await momDash.text();
-	check(momDash.status === 200 && momHtml.includes('Hi, Mom'), 'Mom sees her dashboard');
 	check(
-		momHtml.includes("Lily's week") && momHtml.includes('into forts and animals'),
-		'dashboard shows the weekly insight'
+		momDash.status === 200 && /Good (morning|afternoon|evening), Mom/.test(momHtml),
+		'Mom sees her Today page'
 	);
 	check(
-		momHtml.includes('Build a blanket fort') && !momHtml.includes('Biscuit'),
-		'dashboard shows shared wishes only'
+		momHtml.includes("Today's briefing") &&
+			momHtml.includes('This week') &&
+			momHtml.includes('data-slot="insights"'),
+		'Today shows briefing, week strip and the insights slot'
 	);
+	check(!momHtml.includes('Biscuit'), "Today never shows the child's unshared wishes");
 	check(
 		momHtml.includes('Spending') && momHtml.includes('My time with Lily'),
 		'dashboard shows spending + private time cards'
