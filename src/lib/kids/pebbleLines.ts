@@ -86,6 +86,20 @@ export const CHECKIN_PROMPTS = {
 	energy: 'Thanks! How much energy do you have?'
 } as const;
 
+/** Pebble during the wish cards (fixed deck text only, never typed words). */
+export const WISH_LINES = {
+	start: 'Let’s play wish cards! Pick the one you like best.',
+	skip: 'Something else? No problem! Here’s another card.',
+	sharedYes: 'Okay! I’ll tell Mom and Dad. You can change your mind any time.',
+	sharedNo: 'Okay, that one is just for us. That’s totally fine!',
+	done: 'Thanks for playing! Those were great wishes.',
+	end: 'You saw all my cards! Great wishes today.'
+} as const;
+
+export function wishAsk(ask: string): string {
+	return `Want me to tell Mom and Dad you’d love to ${ask}?`;
+}
+
 /** Words Pebble must never use with a child (checked by tests). */
 export const BANNED_WORDS = [
 	'streak',

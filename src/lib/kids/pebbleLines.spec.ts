@@ -8,8 +8,11 @@ import {
 	greeting,
 	progressOf,
 	rewardLine,
-	type DayProgress
+	type DayProgress,
+	WISH_LINES,
+	wishAsk
 } from './pebbleLines.js';
+import { WISH_DECK } from './wishDeck.js';
 import { BIG_FEELINGS, CHECKIN_MOODS } from './moods.js';
 import type { PartOfDay } from './time.js';
 
@@ -22,7 +25,9 @@ function allLines(): string[] {
 		customizeThanks('Shelly'),
 		rewardLine('Stars'),
 		...Object.values(MOOD_REPLIES),
-		...Object.values(CHECKIN_PROMPTS)
+		...Object.values(CHECKIN_PROMPTS),
+		...Object.values(WISH_LINES),
+		...WISH_DECK.flatMap((card) => card.options.map((o) => wishAsk(o.ask)))
 	];
 	for (const part of parts)
 		for (const progress of progresses)

@@ -15,6 +15,7 @@ import {
 	hashPin,
 	verifyPin
 } from '../src/lib/server/kidAuth.js';
+import { computeInsight } from '../src/lib/kids/insightRules.js';
 import { DEMO } from './lib/demo.js';
 import { adminClient, KID_AUTH_SECRET } from './lib/env.js';
 
@@ -408,58 +409,47 @@ async function seedCarter() {
 		);
 	}
 
+	// Kids' space: earlier THIS UTC week, never in the future (on a Monday that means
+	// earlier today), so the live demo check-in still changes the insight card.
+	const earlierThisWeek = (fraction: number) =>
+		new Date(MONDAY.getTime() + (Date.now() - MONDAY.getTime()) * fraction).toISOString();
+	const seedCheckins = [
+		{ child_id: lily, mood: 'happy', energy: 4, created_at: earlierThisWeek(0.3) },
+		{ child_id: lily, mood: 'calm', energy: 3, created_at: earlierThisWeek(0.6) }
+	];
 	if (await isEmpty('mood_checkins', 'child_id', lily)) {
-		check(
-			await db.from('mood_checkins').insert([
-				{ child_id: lily, mood: 'happy', energy: 4, created_at: day(-3, 18).toISOString() },
-				{ child_id: lily, mood: 'tired', energy: 2, created_at: day(-2, 19).toISOString() },
-				{ child_id: lily, mood: 'calm', energy: 3, created_at: day(-1, 18).toISOString() }
-			]),
-			'mood check-ins'
-		);
+		check(await db.from('mood_checkins').insert(seedCheckins), 'mood check-ins');
 	}
 
+	// Not shared: the demo shares the zoo live. The puppy stays private.
+	const seedWishes = [
+		{ prompt: 'If we had a free Saturday…', interest: 'Go to the zoo' },
+		{ prompt: 'What would you build?', interest: 'Build a blanket fort' },
+		{ prompt: 'What is your secret wish?', interest: 'A puppy named Biscuit' }
+	].map((w, i) => ({
+		...w,
+		family_id: family.id,
+		child_id: lily,
+		shared_with_parents: false,
+		created_at: earlierThisWeek(0.2 + i * 0.1)
+	}));
 	if (await isEmpty('wish_cards', 'child_id', lily)) {
-		check(
-			await db.from('wish_cards').insert([
-				{
-					family_id: family.id,
-					child_id: lily,
-					prompt: 'Where would you go on an adventure?',
-					interest: 'Go to the zoo',
-					shared_with_parents: true,
-					shared_at: day(-1).toISOString()
-				},
-				{
-					family_id: family.id,
-					child_id: lily,
-					prompt: 'What would you build?',
-					interest: 'Build a blanket fort',
-					shared_with_parents: true,
-					shared_at: day(-1).toISOString()
-				},
-				{
-					family_id: family.id,
-					child_id: lily,
-					prompt: 'What is your secret wish?',
-					interest: 'A puppy named Biscuit',
-					shared_with_parents: false
-				}
-			]),
-			'wish cards'
-		);
+		check(await db.from('wish_cards').insert(seedWishes), 'wish cards');
 	}
 
+	// Same rules as the app's insight builder.
+	const insight = computeInsight(seedCheckins, seedWishes);
 	check(
 		await db.from('weekly_insights').upsert(
 			{
 				family_id: family.id,
 				child_id: lily,
 				week_start: isoDate(MONDAY),
-				mood_trend: 'a_bit_tired',
-				interests: ['animals', 'forts'],
-				summary: 'A bit tired this week; into forts and animals.',
-				gentle_flag: false
+				mood_trend: insight.moodTrend,
+				interests: insight.interests,
+				summary: insight.summary,
+				gentle_flag: insight.gentleFlag,
+				created_at: earlierThisWeek(0.6)
 			},
 			{ onConflict: 'child_id,week_start' }
 		),
