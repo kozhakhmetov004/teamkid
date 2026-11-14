@@ -267,6 +267,9 @@ export type Database = {
 					family_id: string;
 					home: string | null;
 					id: string;
+					kind: string;
+					notes: string | null;
+					place: string | null;
 					source: string;
 					starts_at: string;
 					title: string;
@@ -280,6 +283,9 @@ export type Database = {
 					family_id: string;
 					home?: string | null;
 					id?: string;
+					kind?: string;
+					notes?: string | null;
+					place?: string | null;
 					source?: string;
 					starts_at: string;
 					title: string;
@@ -292,6 +298,9 @@ export type Database = {
 					family_id?: string;
 					home?: string | null;
 					id?: string;
+					kind?: string;
+					notes?: string | null;
+					place?: string | null;
 					source?: string;
 					starts_at?: string;
 					title?: string;

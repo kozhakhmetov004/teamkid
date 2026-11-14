@@ -262,8 +262,8 @@ async function seedCarter() {
 	}
 
 	if (await isEmpty('events', 'family_id', family.id)) {
-		// 2-2-3: Mon-Tue A (Mom), Wed-Thu B (Dad), Fri-Sun A (Mom)
-		const homes: ('A' | 'B')[] = ['A', 'A', 'B', 'B', 'A', 'A', 'A'];
+		// 2-2-3 over two weeks: A A B B A A A | B B A A B B B (A = Mom, B = Dad)
+		const homes = [...'AABBAAABBAABBB'] as ('A' | 'B')[];
 		const nights = homes.map((home, i) => ({
 			family_id: family.id,
 			child_id: lily,
@@ -271,6 +271,7 @@ async function seedCarter() {
 			starts_at: day(i, 17).toISOString(),
 			ends_at: day(i + 1, 8).toISOString(),
 			home,
+			kind: 'custody',
 			source: 'manual',
 			created_by: mom
 		}));
@@ -281,6 +282,8 @@ async function seedCarter() {
 					family_id: family.id,
 					child_id: lily,
 					title: 'Swim class',
+					kind: 'activity',
+					place: 'Riverside Pool',
 					starts_at: day(2, 16).toISOString(),
 					ends_at: day(2, 17).toISOString(),
 					home: 'B',
@@ -291,6 +294,7 @@ async function seedCarter() {
 					family_id: family.id,
 					child_id: null,
 					title: 'School picture day',
+					kind: 'school',
 					starts_at: day(3, 9).toISOString(),
 					ends_at: day(3, 10).toISOString(),
 					home: null,
