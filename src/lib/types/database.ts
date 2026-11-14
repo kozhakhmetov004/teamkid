@@ -267,6 +267,9 @@ export type Database = {
 					family_id: string;
 					home: string | null;
 					id: string;
+					kind: string;
+					notes: string | null;
+					place: string | null;
 					source: string;
 					starts_at: string;
 					title: string;
@@ -280,6 +283,9 @@ export type Database = {
 					family_id: string;
 					home?: string | null;
 					id?: string;
+					kind?: string;
+					notes?: string | null;
+					place?: string | null;
 					source?: string;
 					starts_at: string;
 					title: string;
@@ -292,6 +298,9 @@ export type Database = {
 					family_id?: string;
 					home?: string | null;
 					id?: string;
+					kind?: string;
+					notes?: string | null;
+					place?: string | null;
 					source?: string;
 					starts_at?: string;
 					title?: string;
@@ -1156,6 +1165,34 @@ export type Database = {
 					member_id: string;
 				}[];
 			};
+			counter_swap: {
+				Args: {
+					p_note?: string;
+					p_original_date: string;
+					p_proposed_date?: string;
+					p_swap_id: string;
+				};
+				Returns: {
+					child_id: string | null;
+					counter_of: string | null;
+					created_at: string;
+					family_id: string;
+					id: string;
+					note: string | null;
+					original_date: string;
+					proposed_date: string | null;
+					requested_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					status: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'swap_requests';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
 			create_family: {
 				Args: { p_display_name: string; p_family_name: string };
 				Returns: {
@@ -1194,7 +1231,46 @@ export type Database = {
 					role: Database['public']['Enums']['member_role'];
 				}[];
 			};
+			parent_member_in_family: { Args: { fid: string }; Returns: string };
 			purge_old_kid_chat: { Args: Record<PropertyKey, never>; Returns: number };
+			replace_custody_schedule: {
+				Args: {
+					p_blocks: Json;
+					p_exchange_time: string;
+					p_family_id: string;
+					p_first_home: string;
+					p_from: string;
+					p_rules?: Json;
+					p_source?: string;
+					p_start_date: string;
+					p_template: string;
+				};
+				Returns: string;
+			};
+			respond_to_swap: {
+				Args: { p_action: string; p_swap_id: string; p_tz?: string };
+				Returns: {
+					child_id: string | null;
+					counter_of: string | null;
+					created_at: string;
+					family_id: string;
+					id: string;
+					note: string | null;
+					original_date: string;
+					proposed_date: string | null;
+					requested_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					status: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'swap_requests';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
+			safe_tz: { Args: { p_tz: string }; Returns: string };
 		};
 		Enums: {
 			child_mode: 'pet' | 'teen';

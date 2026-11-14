@@ -1,41 +1,62 @@
 /**
- * Dashboard placeholder: four cards reading seed data with simple RLS-protected
- * queries, so each workstream can see its data flow end to end.
+ * Today (parent home). One load, parallel RLS-protected queries as the
+ * signed-in parent. Everything is formatted here in the parent's time zone
+ * (cookie `tz`, set by the page; UTC until then), so the components only
+ * render strings and SSR/hydration always match.
+ *
+ * Re-runs on `invalidate('app:today')` (live updates from the page).
  */
 import { suggestForParent } from '#lib/server/ai/parentSuggestion.js';
 import { requireParent } from '#lib/server/guards.js';
+import {
+	addDays,
+	buildBriefing,
+	custodyLine as buildCustodyLine,
+	custodyNow,
+	greetingFor,
+	localDate,
+	localHour,
+	longDate,
+	relativeDay,
+	safeTimeZone,
+	shortDate,
+	timeLabel,
+	weekStrip,
+	type CustodyBlock,
+	type Home
+} from '#lib/custody/today.js';
 import type { PageServerLoad } from './$types';
 
-function mondayUtc(d = new Date()): Date {
-	const m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-	m.setUTCDate(m.getUTCDate() - ((m.getUTCDay() || 7) - 1));
-	return m;
-}
-
-// Server-side formatting in UTC avoids SSR/hydration mismatches. Real
-// time-zone handling belongs to the calendar feature.
-const dayFmt = new Intl.DateTimeFormat('en-US', {
-	weekday: 'short',
-	month: 'short',
-	day: 'numeric',
-	timeZone: 'UTC'
-});
-const timeFmt = new Intl.DateTimeFormat('en-US', {
-	hour: 'numeric',
-	minute: '2-digit',
-	timeZone: 'UTC'
-});
+const DAY_MS = 86_400_000;
 
 export const load: PageServerLoad = async (event) => {
 	const { member } = await requireParent(event);
+	event.depends('app:today');
+
+	const tz = safeTimeZone(event.cookies.get('tz'));
+	const now = new Date();
+	const today = localDate(now, tz);
 	const sb = event.locals.supabase;
 	const familyId = member.family_id;
 
-	const monday = mondayUtc();
-	const nextMonday = new Date(monday.getTime() + 7 * 86_400_000);
-	const prevMonthStart = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth() - 1, 1));
+	// Wide enough window for any time zone: yesterday .. +15 days.
+	const from = new Date(now.getTime() - 2 * DAY_MS).toISOString();
+	const to = new Date(now.getTime() + 16 * DAY_MS).toISOString();
+	const monthStart = `${today.slice(0, 7)}-01`;
+	const prevMonthStart = addDays(monthStart, -1).slice(0, 7) + '-01';
 
-	const [parents, children, events, insights, wishes, spending, myTime] = await Promise.all([
+	const [
+		parents,
+		children,
+		events,
+		lastCustody,
+		schedule,
+		swaps,
+		unread,
+		recent,
+		spending,
+		myTime
+	] = await Promise.all([
 		sb
 			.from('members')
 			.select('id, display_name, home')
@@ -48,87 +69,211 @@ export const load: PageServerLoad = async (event) => {
 			.order('created_at'),
 		sb
 			.from('events')
-			.select('id, title, starts_at, ends_at, home')
+			.select('id, title, starts_at, ends_at, home, kind, place, child_id')
 			.eq('family_id', familyId)
-			.gte('starts_at', monday.toISOString())
-			.lt('starts_at', nextMonday.toISOString())
+			.gte('starts_at', from)
+			.lt('starts_at', to)
 			.order('starts_at'),
+		// The custody block in force before the window (e.g. a long stretch).
 		sb
-			.from('weekly_insights')
-			.select('child_id, week_start, mood_trend, interests, summary, gentle_flag')
+			.from('events')
+			.select('starts_at, ends_at, home')
 			.eq('family_id', familyId)
-			.order('week_start', { ascending: false })
-			.limit(5),
-		// RLS returns only wish cards the child chose to share.
+			.eq('kind', 'custody')
+			.lt('starts_at', from)
+			.order('starts_at', { ascending: false })
+			.limit(1),
 		sb
-			.from('wish_cards')
-			.select('id, child_id, interest')
+			.from('custody_schedules')
+			.select('template, exchange_time, rules')
 			.eq('family_id', familyId)
 			.order('created_at', { ascending: false })
-			.limit(6),
+			.limit(1)
+			.maybeSingle(),
+		sb
+			.from('swap_requests')
+			.select('id, requested_by, original_date, proposed_date, note, created_at')
+			.eq('family_id', familyId)
+			.eq('status', 'pending')
+			.order('created_at'),
+		sb
+			.from('messages')
+			.select('id', { count: 'exact', head: true })
+			.eq('family_id', familyId)
+			.is('first_read_at', null)
+			.neq('sender_id', member.member_id),
+		sb
+			.from('messages')
+			.select('id, thread_id, sender_id, body, created_at, first_read_at, threads(topic)')
+			.eq('family_id', familyId)
+			.order('created_at', { ascending: false })
+			.limit(20),
+		// Slot defaults (P2 replaces these cards).
 		sb
 			.from('v_spending_by_category')
 			.select('month, category, total_cents')
 			.eq('family_id', familyId)
-			.gte('month', prevMonthStart.toISOString().slice(0, 10)),
-		// Private: the view only ever returns the signed-in parent's own outings.
+			.gte('month', prevMonthStart),
 		sb.from('v_parent_time').select('child_id, month, outings_count, avg_rating, top_activities')
 	]);
 
-	const homeName = (home: string | null) =>
-		parents.data?.find((p) => p.home === home)?.display_name ?? (home ? `Home ${home}` : 'Both');
+	// ---- people -------------------------------------------------------------
+	const parentRows = parents.data ?? [];
+	const other = parentRows.find((p) => p.id !== member.member_id) ?? null;
+	const myHome = member.home;
+	const nameOf = (home: Home) =>
+		home === myHome
+			? 'You'
+			: (parentRows.find((p) => p.home === home)?.display_name ?? `Home ${home}`);
+	const nameById = (id: string) =>
+		id === member.member_id
+			? 'You'
+			: (parentRows.find((p) => p.id === id)?.display_name ?? 'Your co-parent');
+	const child = children.data?.[0] ?? null;
+	const childName = child?.first_name ?? 'Your child';
 
-	const firstChild = children.data?.[0] ?? null;
+	// ---- custody --------------------------------------------------------------
+	const eventRows = events.data ?? [];
+	const isCustody = (e: { kind: string; home: string | null }) => e.kind === 'custody' && !!e.home;
+	const blocks: CustodyBlock[] = [...(lastCustody.data ?? []), ...eventRows.filter(isCustody)].map(
+		(e) => ({ starts_at: e.starts_at, ends_at: e.ends_at, home: e.home as Home })
+	);
+	const { home: homeNow, handover } = custodyNow(blocks, now);
+	const lineText = buildCustodyLine({
+		childName,
+		home: homeNow,
+		handover,
+		myHome,
+		nameOf: (h) => (h === myHome ? 'you' : nameOf(h)),
+		today,
+		tz
+	});
 
-	// Spending: most recent month that has data.
+	// ---- events ---------------------------------------------------------------
+	const others = eventRows.filter((e) => !isCustody(e));
+	const todayEvents = others
+		.filter((e) => localDate(e.starts_at, tz) === today)
+		.map((e) => ({
+			id: e.id,
+			time: timeLabel(e.starts_at, tz),
+			title: e.title,
+			place: e.place,
+			kind: e.kind
+		}));
+	const strip = weekStrip(blocks, others, today, tz).map((d) => ({
+		...d,
+		label: d.home ? nameOf(d.home) : 'Not set',
+		mine: d.home ? d.home === myHome : null
+	}));
+
+	const rules = (schedule.data?.rules ?? {}) as { exchange_place?: unknown };
+	const nextHandover = handover
+		? {
+				day: relativeDay(localDate(handover.at, tz), today),
+				date: shortDate(localDate(handover.at, tz)),
+				time: timeLabel(handover.at, tz),
+				place: typeof rules.exchange_place === 'string' ? rules.exchange_place : null,
+				from: nameOf(handover.from),
+				to: nameOf(handover.to),
+				youDropOff: handover.from === myHome
+			}
+		: null;
+
+	// ---- swaps ----------------------------------------------------------------
+	const swapRows = (swaps.data ?? []).map((s) => ({
+		id: s.id,
+		fromMe: s.requested_by === member.member_id,
+		requester: nameById(s.requested_by),
+		original: shortDate(s.original_date),
+		proposed: s.proposed_date ? shortDate(s.proposed_date) : null,
+		originalDate: s.original_date,
+		proposedDate: s.proposed_date,
+		note: s.note
+	}));
+	const swapsFromOther = swapRows.filter((s) => !s.fromMe).length;
+	// "Request a swap" pre-fill: my next night to give, their next night to take.
+	const upcoming = weekStrip(blocks, [], today, tz, 14);
+	const swapPrefill = {
+		original: upcoming.find((d) => d.home && d.home === myHome)?.date ?? '',
+		proposed: upcoming.find((d) => d.home && d.home !== myHome)?.date ?? ''
+	};
+
+	// ---- messages -------------------------------------------------------------
+	const unreadCount = unread.count ?? 0;
+	const seenThreads = new Set<string>();
+	const latestPerThread = [];
+	for (const m of recent.data ?? []) {
+		if (seenThreads.has(m.thread_id)) continue;
+		seenThreads.add(m.thread_id);
+		latestPerThread.push({
+			threadId: m.thread_id,
+			topic: m.threads?.topic ?? 'Messages',
+			from: nameById(m.sender_id),
+			snippet: m.body.length > 90 ? `${m.body.slice(0, 87)}…` : m.body,
+			when: `${relativeDay(localDate(m.created_at, tz), today)} ${timeLabel(m.created_at, tz)}`,
+			unread: m.sender_id !== member.member_id && !m.first_read_at
+		});
+		if (latestPerThread.length === 3) break;
+	}
+
+	// ---- slot defaults (spending / my time) -------------------------------------
 	const months = [...new Set((spending.data ?? []).map((r) => r.month))].sort().reverse();
 	const spendMonth = months[0] ?? null;
 	const spendRows = (spending.data ?? [])
 		.filter((r) => r.month === spendMonth)
 		.map((r) => ({ category: r.category ?? 'other', totalCents: Number(r.total_cents ?? 0) }))
 		.sort((a, b) => b.totalCents - a.totalCents);
-
-	// My time: last two months for the first child.
-	const timeRows = (myTime.data ?? []).filter((r) => !firstChild || r.child_id === firstChild.id);
+	const timeRows = (myTime.data ?? []).filter((r) => !child || r.child_id === child.id);
 	const outings = timeRows.reduce((n, r) => n + (r.outings_count ?? 0), 0);
-	const ratings = timeRows.filter((r) => r.avg_rating !== null);
-	const avgRating = ratings.length
+	const rated = timeRows.filter((r) => r.avg_rating !== null);
+	const ratedCount = rated.reduce((n, r) => n + (r.outings_count ?? 0), 0);
+	const avgRating = ratedCount
 		? Math.round(
-				(ratings.reduce((s, r) => s + Number(r.avg_rating) * (r.outings_count ?? 0), 0) /
-					Math.max(
-						1,
-						ratings.reduce((n, r) => n + (r.outings_count ?? 0), 0)
-					)) *
+				(rated.reduce((s, r) => s + Number(r.avg_rating) * (r.outings_count ?? 0), 0) /
+					ratedCount) *
 					10
 			) / 10
 		: null;
-	const topActivities = [...new Set(timeRows.flatMap((r) => r.top_activities ?? []))].slice(0, 3);
 
 	return {
-		child: firstChild,
-		week: (events.data ?? []).map((e) => ({
-			id: e.id,
-			day: dayFmt.format(new Date(e.starts_at)),
-			time: timeFmt.format(new Date(e.starts_at)),
-			title: e.title,
-			home: e.home ? homeName(e.home) : null
-		})),
-		insight: insights.data?.find((i) => i.child_id === firstChild?.id) ?? null,
-		sharedWishes: (wishes.data ?? [])
-			.filter((w) => w.child_id === firstChild?.id)
-			.map((w) => w.interest),
-		spending: {
-			month: spendMonth,
-			rows: spendRows,
-			totalCents: spendRows.reduce((s, r) => s + r.totalCents, 0)
+		tz,
+		header: {
+			greeting: greetingFor(localHour(now, tz)),
+			name: member.display_name,
+			date: longDate(today),
+			custodyLine: lineText
 		},
-		myTime: {
-			outings,
-			avgRating,
-			topActivities,
-			suggestion: firstChild
-				? (await suggestForParent(member.member_id, firstChild.id)).suggestion
-				: null
+		briefing: buildBriefing({
+			custodyLine: lineText,
+			otherName: other?.display_name ?? null,
+			swapsFromOther,
+			swapsWaiting: swapRows.length - swapsFromOther,
+			unread: unreadCount,
+			firstEvent: todayEvents[0] ? { title: todayEvents[0].title, time: todayEvents[0].time } : null
+		}),
+		child,
+		hasCoParent: other !== null,
+		otherName: other?.display_name ?? null,
+		strip,
+		todayEvents,
+		nextHandover,
+		swaps: swapRows,
+		swapPrefill,
+		canSwap: other !== null && !!myHome,
+		swapWindow: { min: today, max: addDays(today, 60) },
+		unread: { count: unreadCount, threads: latestPerThread },
+		slots: {
+			spending: {
+				month: spendMonth,
+				rows: spendRows,
+				totalCents: spendRows.reduce((s, r) => s + r.totalCents, 0)
+			},
+			myTime: {
+				outings,
+				avgRating,
+				topActivities: [...new Set(timeRows.flatMap((r) => r.top_activities ?? []))].slice(0, 3),
+				suggestion: child ? (await suggestForParent(member.member_id, child.id)).suggestion : null
+			}
 		}
 	};
 };
