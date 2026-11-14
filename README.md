@@ -5,6 +5,8 @@
 
 Built for **Business Cup 2.0** (24-hour build). Audience: US parents aged 25–45. B2C, web only.
 
+**Stack in one line:** SvelteKit (frontend + backend) on Vercel, Supabase (Postgres, Auth, Storage, Realtime), an LLM API, and Stripe.
+
 ---
 
 ## Table of contents
@@ -15,7 +17,7 @@ Built for **Business Cup 2.0** (24-hour build). Audience: US parents aged 25–4
 4. [Tech stack](#tech-stack)
 5. [Repository structure](#repository-structure)
 6. [Data model](#data-model)
-7. [API endpoints (FastAPI)](#api-endpoints-fastapi)
+7. [Server endpoints](#server-endpoints)
 8. [Child safety and privacy rules](#child-safety-and-privacy-rules)
 9. [Getting started (local)](#getting-started-local)
 10. [Environment variables](#environment-variables)
@@ -73,40 +75,38 @@ TeamKid has three parts:
 
 ## Architecture
 
+One SvelteKit app does both the UI and the server work. One Vercel project, one Supabase project.
+
 ```
-                         ┌──────────────────────────────┐
-                         │          Browser             │
-                         │  SvelteKit app (web/)        │
-                         │  • Parent workspace          │
-                         │  • Kids' space (Pebble)      │
-                         └──────┬───────────────┬───────┘
-                                │               │
-            Supabase JS client  │               │  fetch /api/* with Supabase JWT
-     (auth, CRUD, realtime,     │               │
-      storage, protected by RLS)│               ▼
-                                │     ┌────────────────────────┐
-                                │     │  FastAPI (api/)        │
-                                │     │  Vercel Python runtime │
-                                │     │  • AI features         │
-                                │     │  • PDF parsing         │
-                                │     │  • Stripe webhooks     │
-                                │     │  • Weekly insight job  │
-                                │     └───┬──────────┬─────────┘
-                                ▼         ▼          ▼
-                     ┌────────────────────────┐   ┌──────────────────────┐
-                     │  Supabase              │   │  External APIs       │
-                     │  • Postgres + RLS      │   │  • LLM (Claude / GPT)│
-                     │  • Auth                │   │  • Stripe            │
-                     │  • Storage (private)   │   │  • Google Places     │
-                     │  • Realtime            │   │  • Resend (email)    │
-                     │  • pg_cron             │   └──────────────────────┘
-                     └────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                         Browser                               │
+│   Svelte pages: parent workspace + kids' space (Pebble)       │
+└──────────────┬───────────────────────────────┬────────────────┘
+               │ supabase-js (anon key)        │ form actions / fetch /api/*
+               │ CRUD + Realtime + Storage     │
+               │ protected by RLS              ▼
+               │              ┌──────────────────────────────────┐
+               │              │  SvelteKit server (Vercel)       │
+               │              │  hooks.server.ts → session       │
+               │              │  src/lib/server/*  (secrets here)│
+               │              │  • AI (rewrite, plan PDF, Pebble)│
+               │              │  • Planner (Google Places)       │
+               │              │  • Stripe checkout + webhook     │
+               │              │  • Weekly insight job (cron)     │
+               │              └───────┬──────────────┬───────────┘
+               ▼                      ▼              ▼
+     ┌──────────────────────────────────────┐  ┌───────────────────────┐
+     │  Supabase                            │  │  External APIs        │
+     │  Postgres + RLS · Auth · Storage     │  │  LLM (Claude / GPT)   │
+     │  Realtime · pg_cron                  │  │  Stripe · Places      │
+     └──────────────────────────────────────┘  │  Resend               │
+                                               └───────────────────────┘
 ```
 
 **Rule of thumb:**
-- **Svelte → Supabase directly** for everything simple: reading and writing calendar events, messages, expenses, pet state and live updates. Row-level security protects it.
-- **Svelte → FastAPI** only for things that need secrets or heavy logic: AI calls, PDF parsing, Stripe and the weekly insight summary.
-- FastAPI verifies the user's Supabase JWT on every request. It uses the Supabase **service role key**, which never reaches the browser.
+- **Browser → Supabase directly** for simple reads and writes: calendar, messages, expenses, pet state and live updates. Row-level security (RLS) protects it.
+- **Browser → SvelteKit server** for anything that needs a secret or heavy logic: AI calls, PDF reading, Stripe and the weekly insight summary.
+- Secrets live **only** in `src/lib/server/` and `$env/static/private`. SvelteKit refuses to bundle these into browser code.
 
 ---
 
@@ -114,21 +114,21 @@ TeamKid has three parts:
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| Frontend | **SvelteKit + TypeScript** | Team experience; fast to build |
+| App framework | **SvelteKit + TypeScript** | Frontend and backend in one project; team experience |
+| Adapter | `@sveltejs/adapter-vercel` | Zero-config deploys to Vercel |
 | UI | Tailwind CSS + shadcn-svelte | Polished UI quickly |
 | Animation | Rive (or Lottie) | Pebble's states: idle, happy, sleepy, tuck-in |
-| Backend | **FastAPI (Python 3.12)** | Team experience; good for AI and PDF work |
 | Database | **Supabase Postgres** | Relational data, RLS, triggers for immutable records |
-| Auth | Supabase Auth (magic link) | Parents by email; children by a PIN created by a parent |
+| Auth | Supabase Auth via `@supabase/ssr` | Magic link for parents; PIN login for children |
 | Realtime | Supabase Realtime | Live messages, swap requests, insight cards |
 | Files | Supabase Storage (private buckets) | PDFs, receipts, photos |
-| AI | LLM API via the official Python SDK | Rewrite, extraction, planning, pet replies |
-| PDF | pypdf (text PDFs), or LLM vision for scans | Parenting plan reader |
+| AI | LLM provider's TypeScript SDK | Rewrite, PDF extraction (the model reads the PDF directly), planning, Pebble replies |
+| Validation | Zod | Validate requests and AI JSON output |
 | Payments | Stripe Checkout + Billing (test mode for demo) | Family Plus subscription |
 | Email | Resend | Invites, notifications |
 | Places | Google Places API | Real venues for "Plan my weekend" |
-| Hosting | **Vercel** (two projects: web + api) | Zero-config deploys for SvelteKit and FastAPI |
-| Scheduled jobs | Vercel Cron → FastAPI endpoint | Weekly child insight summary |
+| Scheduled jobs | Vercel Cron → `/api/cron/insights` | Weekly child insight summary |
+| Hosting | **Vercel** (one project) | Push to deploy |
 
 ---
 
@@ -137,95 +137,101 @@ TeamKid has three parts:
 ```
 teamkid/
 ├── README.md
-├── .gitignore
+├── package.json
+├── svelte.config.js                # adapter-vercel
+├── vite.config.ts
+├── tailwind.config.ts
+├── tsconfig.json
+├── vercel.json                     # cron schedule
+├── .env.example
 │
-├── web/                              # SvelteKit frontend (Vercel project #1)
-│   ├── package.json
-│   ├── svelte.config.js
-│   ├── vite.config.ts
-│   ├── tailwind.config.ts
-│   ├── .env.example
-│   ├── static/
-│   │   └── pebble/                   # Rive / Lottie files for the turtle
-│   └── src/
-│       ├── app.html
-│       ├── hooks.server.ts           # Supabase session on every request
-│       ├── lib/
-│       │   ├── supabase.ts           # browser + server clients
-│       │   ├── api.ts                # fetch wrapper for FastAPI (adds JWT)
-│       │   ├── types.ts              # shared TS types (generated from DB)
-│       │   ├── stores/               # session, family, realtime stores
-│       │   └── components/
-│       │       ├── calendar/         # CustodyCalendar, SwapRequestCard
-│       │       ├── messages/         # Thread, Composer (with AI rewrite)
-│       │       ├── expenses/         # ExpenseForm, Balance
-│       │       ├── insights/         # InsightCard (weekly child summary)
-│       │       ├── kids/             # Pebble, MoodWheel, WishCard, TuckIn
-│       │       └── ui/               # shadcn-svelte components
-│       └── routes/
-│           ├── +layout.svelte
-│           ├── +page.svelte          # landing page
-│           ├── login/                # magic link
-│           ├── onboarding/           # create family, invite co-parent, add child
-│           ├── (parent)/             # parent-only layout guard
-│           │   ├── dashboard/        # week overview + insight card
-│           │   ├── calendar/
-│           │   ├── messages/
-│           │   ├── expenses/
-│           │   ├── documents/
-│           │   ├── plan/             # "Plan my weekend"
-│           │   └── billing/          # Stripe checkout
-│           ├── (kid)/                # child-only layout guard
-│           │   ├── pebble/           # home screen with the turtle
-│           │   ├── checkin/
-│           │   ├── wishes/
-│           │   └── where-am-i/
-│           └── kid-login/            # PIN login for children
+├── static/
+│   └── pebble/                     # Rive / Lottie files for the turtle
 │
-├── api/                              # FastAPI backend (Vercel project #2)
-│   ├── pyproject.toml                # or requirements.txt
-│   ├── .python-version               # 3.12
-│   ├── .env.example
-│   ├── vercel.json                   # cron schedule
-│   └── app/
-│       ├── main.py                   # FastAPI instance named `app`, CORS, routers
-│       ├── config.py                 # settings from env vars
-│       ├── deps.py                   # auth dependency: verify Supabase JWT
-│       ├── db.py                     # Supabase client (service role)
-│       ├── routers/
-│       │   ├── ai.py                 # rewrite, shield, summarise
-│       │   ├── documents.py          # parenting plan → calendar
-│       │   ├── planner.py            # plan my weekend
-│       │   ├── pet.py                # Pebble's replies (guarded)
-│       │   ├── insights.py           # weekly child insight job
-│       │   ├── billing.py            # Stripe checkout + webhook
-│       │   └── health.py
-│       ├── services/
-│       │   ├── llm.py                # LLM client wrapper + prompts
-│       │   ├── pdf.py                # text extraction
-│       │   ├── places.py             # Google Places
-│       │   ├── safety.py             # crisis keyword + classifier checks
-│       │   └── stripe_service.py
-│       ├── prompts/                  # prompt templates (.md)
-│       │   ├── rewrite.md
-│       │   ├── shield.md
-│       │   ├── plan_extract.md
-│       │   ├── planner.md
-│       │   ├── pet_system.md
-│       │   └── weekly_insight.md
-│       └── schemas/                  # Pydantic request/response models
-│   └── tests/
+├── src/
+│   ├── app.html
+│   ├── app.d.ts                    # Locals: supabase, session, member
+│   ├── hooks.server.ts             # Supabase SSR client + session on every request
+│   │
+│   ├── lib/
+│   │   ├── supabase.ts             # browser client
+│   │   ├── types.ts                # DB types (generated by Supabase CLI)
+│   │   ├── stores/                 # session, family, realtime subscriptions
+│   │   ├── components/
+│   │   │   ├── calendar/           # CustodyCalendar, SwapRequestCard
+│   │   │   ├── messages/           # Thread, Composer (with AI rewrite)
+│   │   │   ├── expenses/           # ExpenseForm, Balance
+│   │   │   ├── insights/           # InsightCard (weekly child summary)
+│   │   │   ├── kids/               # Pebble, MoodWheel, WishCard, TuckIn
+│   │   │   └── ui/                 # shadcn-svelte components
+│   │   │
+│   │   └── server/                 # SERVER ONLY: never imported by the browser
+│   │       ├── env.ts              # re-exports $env/static/private
+│   │       ├── supabaseAdmin.ts    # service-role client (insights job, webhooks)
+│   │       ├── guards.ts           # requireParent(), requireChild(), requireFamily()
+│   │       ├── ai/
+│   │       │   ├── llm.ts          # LLM client wrapper
+│   │       │   ├── rewrite.ts
+│   │       │   ├── shield.ts
+│   │       │   ├── planExtract.ts  # parenting plan PDF → schedule JSON
+│   │       │   ├── planner.ts
+│   │       │   ├── pebble.ts       # scripted replies + guarded LLM fallback
+│   │       │   ├── weeklyInsight.ts
+│   │       │   └── prompts/        # prompt templates (.md)
+│   │       ├── safety.ts           # crisis keyword + classifier checks
+│   │       ├── places.ts           # Google Places
+│   │       └── stripe.ts
+│   │
+│   └── routes/
+│       ├── +layout.svelte
+│       ├── +layout.server.ts       # passes session to pages
+│       ├── +page.svelte            # landing page
+│       ├── login/                  # magic link
+│       ├── auth/callback/+server.ts
+│       ├── onboarding/             # create family, invite co-parent, add child (both consents)
+│       │
+│       ├── (parent)/               # +layout.server.ts guards parent role
+│       │   ├── dashboard/          # week overview + insight card
+│       │   ├── calendar/
+│       │   ├── messages/
+│       │   ├── expenses/
+│       │   ├── documents/
+│       │   ├── plan/               # "Plan my weekend"
+│       │   └── billing/
+│       │
+│       ├── kid-login/              # PIN login for children
+│       ├── (kid)/                  # +layout.server.ts guards child role
+│       │   ├── pebble/             # home screen with the turtle
+│       │   ├── checkin/
+│       │   ├── wishes/
+│       │   └── where-am-i/
+│       │
+│       └── api/                    # JSON endpoints (+server.ts)
+│           ├── health/
+│           ├── ai/
+│           │   ├── rewrite/
+│           │   ├── shield/
+│           │   └── summarize-thread/
+│           ├── documents/
+│           │   ├── parse-plan/
+│           │   └── parse-receipt/
+│           ├── planner/weekend/
+│           ├── pebble/reply/
+│           ├── billing/
+│           │   ├── checkout/
+│           │   └── webhook/
+│           └── cron/insights/
 │
 └── supabase/
     ├── config.toml
     ├── migrations/
-    │   ├── 0001_core.sql             # families, members, children, consents
-    │   ├── 0002_parent.sql           # schedules, events, swaps, messages, expenses, documents
-    │   ├── 0003_kids.sql             # pet_state, mood_checkins, wish_cards, kid_chat_raw, weekly_insights
-    │   ├── 0004_rls.sql              # row-level security policies
-    │   ├── 0005_immutability.sql     # triggers: messages can't be edited/deleted, hash chain
-    │   └── 0006_retention.sql        # pg_cron: delete kid_chat_raw after 30 days
-    └── seed.sql                      # demo family, sample plan, a week of check-ins
+    │   ├── 0001_core.sql           # families, members, children, consents
+    │   ├── 0002_parent.sql         # schedules, events, swaps, threads, messages, expenses, documents
+    │   ├── 0003_kids.sql           # pet_state, mood_checkins, wish_cards, kid_chat_raw, weekly_insights, safety_alerts
+    │   ├── 0004_rls.sql            # row-level security policies
+    │   ├── 0005_immutability.sql   # messages can't be edited/deleted + hash chain
+    │   └── 0006_retention.sql      # pg_cron: delete kid_chat_raw after 30 days
+    └── seed.sql                    # demo family, sample plan, a week of check-ins
 ```
 
 ---
@@ -251,6 +257,7 @@ teamkid/
 | `expenses` | id, family_id, paid_by, amount_cents, category, receipt_path, split (jsonb), status |
 | `documents` | id, family_id, kind, storage_path, extracted (jsonb) |
 | `audit_log` | id, family_id, actor_id, action, entity, entity_id, at |
+| `subscriptions` | id, user_id, stripe_customer_id, status, current_period_end |
 
 ### Kids' space
 | Table | Key columns | Parents can read? |
@@ -283,45 +290,70 @@ create policy parents_read_insights on weekly_insights
 
 ---
 
-## API endpoints (FastAPI)
+## Server endpoints
 
-All endpoints except `/health` and `/billing/webhook` require `Authorization: Bearer <supabase_jwt>`.
+All endpoints live in `src/routes/api/**/+server.ts`. Each one checks the session from `hooks.server.ts` and the role via `src/lib/server/guards.ts`. Simple form submissions (create event, send message, log expense) use **form actions** in the page's `+page.server.ts` instead.
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/health` | Health check (also used to warm up before the demo) |
-| POST | `/ai/rewrite` | Rewrite a draft message in a calm, BIFF tone |
-| POST | `/ai/shield` | Summarise an incoming message into facts and requests |
-| POST | `/ai/summarize-thread` | "What did we agree about X?" |
-| POST | `/documents/parse-plan` | Parenting plan PDF → schedule template + holidays (writes `events`) |
-| POST | `/documents/parse-receipt` | Receipt photo → amount, date, category |
-| POST | `/planner/weekend` | Three activity suggestions from wish cards, schedule, budget, location |
-| POST | `/pet/reply` | Pebble's guarded reply (scripted first, LLM fallback, safety check) |
-| POST | `/insights/run` | Build `weekly_insights` (called by Vercel Cron; protected by a cron secret) |
-| POST | `/billing/checkout` | Create a Stripe Checkout session |
-| POST | `/billing/webhook` | Stripe webhook → update subscription status |
+| Method | Path | Role | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/health` | public | Health check |
+| POST | `/api/ai/rewrite` | parent | Rewrite a draft message in a calm, BIFF tone |
+| POST | `/api/ai/shield` | parent | Summarise an incoming message into facts and requests |
+| POST | `/api/ai/summarize-thread` | parent | "What did we agree about X?" |
+| POST | `/api/documents/parse-plan` | parent | Parenting plan PDF → schedule template + holidays (writes `events`) |
+| POST | `/api/documents/parse-receipt` | parent | Receipt photo → amount, date, category |
+| POST | `/api/planner/weekend` | parent | Three activity suggestions from wish cards, schedule, budget, location |
+| POST | `/api/pebble/reply` | child | Pebble's guarded reply (scripted first, LLM fallback, safety check) |
+| POST | `/api/billing/checkout` | parent | Create a Stripe Checkout session |
+| POST | `/api/billing/webhook` | Stripe | Verify signature → update `subscriptions` |
+| GET | `/api/cron/insights` | Vercel Cron | Build `weekly_insights` (checks `CRON_SECRET`) |
 
-Example: verifying the Supabase JWT in FastAPI (`app/deps.py`):
+### Session in `hooks.server.ts`
+```ts
+import { createServerClient } from '@supabase/ssr';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import type { Handle } from '@sveltejs/kit';
 
-```python
-from fastapi import Depends, HTTPException, Header
-import jwt
-from .config import settings
-
-def current_user(authorization: str = Header(...)) -> dict:
-    try:
-        token = authorization.removeprefix("Bearer ").strip()
-        return jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
+export const handle: Handle = async ({ event, resolve }) => {
+  event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll: () => event.cookies.getAll(),
+      setAll: (cookies) =>
+        cookies.forEach(({ name, value, options }) =>
+          event.cookies.set(name, value, { ...options, path: '/' })
         )
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    }
+  });
+
+  event.locals.getUser = async () => {
+    const { data } = await event.locals.supabase.auth.getUser(); // verified with Supabase
+    return data.user;
+  };
+
+  return resolve(event, {
+    filterSerializedResponseHeaders: (name) => name === 'content-range' || name === 'x-supabase-api-version'
+  });
+};
 ```
 
-> If your Supabase project uses asymmetric JWT signing keys, verify against the project's JWKS endpoint instead of the shared secret.
+### Example endpoint: `src/routes/api/ai/rewrite/+server.ts`
+```ts
+import { json, error } from '@sveltejs/kit';
+import { z } from 'zod';
+import { requireParent } from '$lib/server/guards';
+import { rewriteMessage } from '$lib/server/ai/rewrite';
+
+const Body = z.object({ draft: z.string().min(1).max(4000) });
+
+export async function POST({ request, locals }) {
+  await requireParent(locals);                       // 401/403 if not a parent
+  const parsed = Body.safeParse(await request.json());
+  if (!parsed.success) throw error(400, 'Invalid body');
+
+  const rewritten = await rewriteMessage(parsed.data.draft);
+  return json({ rewritten });
+}
+```
 
 ---
 
@@ -345,37 +377,31 @@ These rules are part of the product. Every PR must respect them.
 
 ### Prerequisites
 - Node.js 20+ and pnpm (or npm)
-- Python 3.12 and [uv](https://github.com/astral-sh/uv) (or pip)
 - Supabase CLI and Docker (for local Supabase), or a free Supabase cloud project
 
 ### 1. Database
 ```bash
-cd supabase
 supabase start                 # local Postgres, Auth, Storage, Realtime
 supabase db reset              # applies migrations + seed.sql
+supabase gen types typescript --local > src/lib/types.ts
 ```
 
-### 2. Backend (FastAPI)
+### 2. App
 ```bash
-cd api
-cp .env.example .env           # fill in keys
-uv sync                        # or: pip install -r requirements.txt
-uv run uvicorn app.main:app --reload --port 8000
-# open http://localhost:8000/docs
-```
-
-### 3. Frontend (SvelteKit)
-```bash
-cd web
 cp .env.example .env           # fill in keys
 pnpm install
 pnpm dev                       # http://localhost:5173
 ```
 
+### 3. Stripe webhooks (optional, local)
+```bash
+stripe listen --forward-to localhost:5173/api/billing/webhook
+```
+
 ### Demo accounts (from seed.sql)
 | Role | Login |
 | --- | --- |
-| Parent A (Mom) | `mom@demo.teamkid` (magic link shows in the Supabase Inbucket) |
+| Parent A (Mom) | `mom@demo.teamkid` (magic link shows in Supabase Inbucket) |
 | Parent B (Dad) | `dad@demo.teamkid` |
 | Child (Lily, 8) | Kid login → PIN `1234` |
 
@@ -383,19 +409,16 @@ pnpm dev                       # http://localhost:5173
 
 ## Environment variables
 
-### `web/.env`
+`.env` (one file for the whole app):
+
 ```
+# Public (safe in the browser)
 PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
-PUBLIC_API_URL=http://localhost:8000
 PUBLIC_STRIPE_PUBLISHABLE_KEY=
-```
 
-### `api/.env`
-```
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=        # server only, never in web/
-SUPABASE_JWT_SECRET=
+# Private (server only; import from $env/static/private)
+SUPABASE_SERVICE_ROLE_KEY=
 LLM_API_KEY=
 LLM_MODEL=
 GOOGLE_PLACES_API_KEY=
@@ -404,38 +427,35 @@ STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID_FAMILY_PLUS=
 RESEND_API_KEY=
 CRON_SECRET=
-ALLOWED_ORIGINS=http://localhost:5173,https://teamkid.vercel.app
 ```
+
+> Never import a private variable outside `src/lib/server/` or a `+server.ts` / `+page.server.ts` file. SvelteKit will fail the build if you try.
 
 ---
 
 ## Deployment
 
-Two Vercel projects from one GitHub repo, plus one Supabase project.
+One Vercel project and one Supabase project.
 
-| What | Where | Settings |
-| --- | --- | --- |
-| Frontend | Vercel project `teamkid-web` | Root directory: `web/`; framework auto-detected (SvelteKit) |
-| Backend | Vercel project `teamkid-api` | Root directory: `api/`; FastAPI auto-detected (exports `app` in `app/main.py`) |
-| Database | Supabase cloud (Free plan) | Run `supabase db push` to apply migrations |
-
-Steps:
-1. Push the repo to GitHub.
-2. Import it twice at vercel.com/new: once with root `web/`, once with root `api/`.
-3. Add environment variables in each Vercel project (Settings → Environment Variables).
-4. Set `PUBLIC_API_URL` in `web` to the `teamkid-api` production URL, and add the `web` URL to `ALLOWED_ORIGINS` in `api`.
-5. In Stripe (test mode), point the webhook to `https://teamkid-api.vercel.app/billing/webhook`.
-6. Add the weekly cron in `api/vercel.json`:
-   ```json
-   { "crons": [{ "path": "/insights/run", "schedule": "0 6 * * 1" }] }
+1. **Supabase:** create a project (Free plan), then run:
+   ```bash
+   supabase link --project-ref <ref>
+   supabase db push
    ```
+2. **Vercel:** push the repo to GitHub, import it at vercel.com/new (SvelteKit is detected automatically), and add all environment variables.
+3. **Supabase Auth:** add your Vercel URL to *Authentication → URL Configuration* (site URL and redirect `https://teamkid.vercel.app/auth/callback`).
+4. **Stripe (test mode):** add a webhook to `https://teamkid.vercel.app/api/billing/webhook`.
+5. **Cron:** `vercel.json`
+   ```json
+   { "crons": [{ "path": "/api/cron/insights", "schedule": "0 6 * * 1" }] }
+   ```
+   The endpoint checks the `Authorization: Bearer <CRON_SECRET>` header that Vercel sends.
 
-### Serverless rules (FastAPI on Vercel)
-- Keep each request short; no long-running jobs.
-- No WebSockets: use **Supabase Realtime** for live updates.
-- No local file storage: use **Supabase Storage**.
-- Avoid heavy libraries (no PyTorch); call LLM APIs instead.
-- Hit `/health` right before the demo to avoid a cold start.
+### Serverless rules
+- Keep each request short; no long-running jobs (process the weekly insights one family at a time).
+- Use **Supabase Realtime** for live updates (no custom WebSockets).
+- Store files in **Supabase Storage**, never on disk.
+- Open `/api/health` right before the demo to warm up.
 
 ### Plan limits to remember
 - **Supabase Free** pauses a project after 7 days of inactivity. Restore it before any later demo.
@@ -481,12 +501,12 @@ Steps:
 
 | Person | Owns |
 | --- | --- |
-| 1 | Supabase: schema, RLS, triggers, seed data, auth and kid PIN login |
-| 2 | Svelte parent app: calendar, swaps, messages, dashboard, Stripe UI |
-| 3 | Svelte kids' space: Pebble animation, check-in, wish cards, tuck-in |
-| 4 | FastAPI: AI endpoints, PDF parsing, planner, insights job, deployment |
+| 1 | Supabase: schema, RLS, triggers, seed data; auth, `hooks.server.ts`, guards, kid PIN login |
+| 2 | Parent pages: calendar, swaps, messages, dashboard, Stripe |
+| 3 | Kids' space: Pebble animation, check-in, wish cards, tuck-in |
+| 4 | `src/lib/server/ai/*` and `/api/*`: rewrite, plan PDF, planner, Pebble replies, insights cron; deployment |
 
-**First hour:** everyone deploys a "hello world" (web + api + database) so deployment problems show up early.
+**First hour:** deploy a "hello world" to Vercel connected to Supabase, so deployment problems show up early. Then keep deploying on every merge.
 
 ---
 
@@ -498,6 +518,8 @@ Steps:
 4. **Money and admin:** tax helper, insurance, savings for the child
 5. **Child growth:** Pebble grows with the child; teen mode becomes a life-skills app
 6. **Beyond divorce:** blended families, grandparents, foster and military families
+
+> If the AI logic later needs Python (custom models, heavy data work), move `src/lib/server/ai/` into a separate FastAPI service. The rest of the app stays the same.
 
 ---
 
