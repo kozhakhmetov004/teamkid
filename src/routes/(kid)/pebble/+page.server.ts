@@ -10,6 +10,7 @@ import {
 	SHELL_COLOR_KEYS,
 	shellColorByKey
 } from '#lib/kids/pet.js';
+import { parsePond } from '#lib/kids/pond.js';
 import { isoDate, partOfDay, partOfHour, utcDayStart } from '#lib/kids/time.js';
 import { localHour, safeTimeZone } from '#lib/custody/today.js';
 import type { Json } from '#lib/types/database.js';
@@ -29,7 +30,7 @@ async function loadToday(sb: Sb, childId: string, now: Date) {
 	const [pet, checkin, wish, lastCheckin, lastWish] = await Promise.all([
 		sb
 			.from('pet_state')
-			.select('name, colors, shell_patterns')
+			.select('name, colors, shell_patterns, pond')
 			.eq('child_id', childId)
 			.maybeSingle(),
 		sb
@@ -62,6 +63,7 @@ async function loadToday(sb: Sb, childId: string, now: Date) {
 
 	return {
 		look: petLookFrom(pet.data),
+		pondFriends: parsePond(pet.data?.pond).friends.length,
 		checkedInToday: (checkin.data?.length ?? 0) > 0,
 		wishedToday: (wish.data?.length ?? 0) > 0,
 		awayDays:
@@ -103,6 +105,7 @@ export const load: PageServerLoad = async (event) => {
 		},
 		checkedInToday: state.checkedInToday,
 		wishedToday: state.wishedToday,
+		pondFriends: state.pondFriends,
 		awayDays: state.awayDays,
 		canClaim: canClaimPattern({
 			checkedInToday: state.checkedInToday,
