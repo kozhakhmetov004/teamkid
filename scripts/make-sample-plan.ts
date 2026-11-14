@@ -2,23 +2,53 @@
  * Writes the FICTIONAL sample parenting plan used in the demo:
  * static/demo/parenting-plan-carter.pdf
  *
- *   pnpm exec tsx scripts/make-sample-plan.ts
+ *   pnpm exec tsx scripts/make-sample-plan.ts [--start=YYYY-MM-DD]
  *
  * No dependencies: a small hand-written PDF 1.4 (text objects, standard
  * Helvetica fonts), so the text is real and extractable. Output is
- * deterministic (no dates or ids), so re-running gives the same bytes.
+ * deterministic for a given start date (no timestamps or ids).
  *
- * The schedule matches the seed (scripts/seed.ts): 2-2-3 starting Monday
- * 2026-11-09 with Mother (= Mom, home A) first, exchanges at 5:00 pm. The seed
- * starts on the Monday of the week it runs, so if the local or cloud DB is
- * seeded from scratch in a week whose Monday is not 2026-11-09 plus a multiple
- * of 14 days, change START below and re-run this script.
+ * The schedule must match the demo seed (scripts/seed.ts): 2-2-3 with Mother
+ * (= Mom, home A) first, exchanges at 5:00 pm. The seed does NOT use a fixed
+ * date: it starts on the Monday (UTC) of the week it runs. So:
+ * - default --start: the Monday of the current UTC week, i.e. what the seed
+ *   picks when it runs this week;
+ * - before a demo, pass the seeded custody_schedules.start_date of the
+ *   database you demo on (see docs/MANUAL_STEPS.md, "Before the demo").
+ * Any Monday 14·k days from the seed's start gives the same nights.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mondayOf } from '../src/lib/custody/time.js';
+import { weekdayOf } from '../src/lib/custody/pattern.js';
 
-const START = 'Monday, November 9, 2026';
+function startDate(): string {
+	const arg = process.argv.find((a) => a.startsWith('--start='))?.slice('--start='.length);
+	const date = arg ?? mondayOf(new Date().toISOString().slice(0, 10));
+	// The week descriptions below ("Mother has Lily on Monday and Tuesday nights")
+	// assume the rotation starts on a Monday. weekdayOf() also rejects impossible dates.
+	let monday = false;
+	try {
+		monday = weekdayOf(date) === 1;
+	} catch {
+		// impossible date such as 2026-02-30
+	}
+	if (!monday) {
+		console.error(`--start must be a Monday as YYYY-MM-DD (got "${date}")`);
+		process.exit(1);
+	}
+	return date;
+}
+
+const START_DATE = startDate();
+const START = new Intl.DateTimeFormat('en-US', {
+	weekday: 'long',
+	month: 'long',
+	day: 'numeric',
+	year: 'numeric',
+	timeZone: 'UTC'
+}).format(new Date(`${START_DATE}T12:00:00Z`));
 const OUT = join(
 	dirname(fileURLToPath(import.meta.url)),
 	'../static/demo/parenting-plan-carter.pdf'
@@ -228,4 +258,4 @@ function buildPdf(): Buffer {
 mkdirSync(dirname(OUT), { recursive: true });
 const bytes = buildPdf();
 writeFileSync(OUT, bytes);
-console.log(`Wrote ${OUT} (${PAGES.length} pages, ${bytes.length} bytes)`);
+console.log(`Wrote ${OUT} (${PAGES.length} pages, ${bytes.length} bytes, starts ${START})`);
