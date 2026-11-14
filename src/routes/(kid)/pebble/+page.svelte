@@ -84,13 +84,13 @@
 				pattern={data.pet.pattern}
 				onsaved={(name) => react(customizeThanks(name), 'happy')}
 			/>
-			{#if data.tonight}
-				<p
-					class="flex min-h-16 items-center gap-2 rounded-2xl bg-kid-surface px-5 text-xl shadow-sm"
-				>
-					<span aria-hidden="true">🌙</span> Tonight: <strong>{data.tonight}</strong>
-				</p>
-			{/if}
+			<a
+				href="/tonight"
+				class="flex min-h-16 items-center gap-2 rounded-2xl bg-kid-surface px-5 text-xl shadow-sm {KID_FOCUS}"
+			>
+				<span aria-hidden="true">🌙</span>
+				{#if data.tonight}Tonight: <strong>{data.tonight}</strong>{:else}Where am I tonight?{/if}
+			</a>
 		</div>
 	</section>
 
@@ -112,6 +112,19 @@
 			allUnlocked={data.allUnlocked}
 			onclaimed={onClaimed}
 		/>
+
+		<a
+			href="/tuck-in"
+			class="flex min-h-20 items-center gap-4 rounded-3xl bg-kid-surface px-6 text-2xl font-semibold shadow-sm {KID_FOCUS}"
+		>
+			<span class="text-4xl" aria-hidden="true">🐢</span>
+			<span
+				>Tuck in with {data.pet.name}
+				<span class="block text-lg font-normal text-muted-foreground"
+					>Big feelings? Take three turtle breaths.</span
+				></span
+			>
+		</a>
 
 		<a
 			href="/my-sharing"

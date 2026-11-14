@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
+	import MyTimeCard from '#lib/components/analytics/MyTimeCard.svelte';
 	import SpendingChart from '#lib/components/analytics/SpendingChart.svelte';
+	import InsightCard from '#lib/components/insights/InsightCard.svelte';
 	import BalanceCard from '#lib/components/expenses/BalanceCard.svelte';
 	import BriefingCard from '#lib/components/today/BriefingCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
@@ -110,7 +112,11 @@
 	</div>
 
 	<div class="grid gap-4 md:grid-cols-2">
-		<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)" />
+		<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
+			{#if data.child}
+				<InsightCard childId={data.child.id} {childName} familyId={data.parent.family_id} />
+			{/if}
+		</DashboardSlot>
 
 		<DashboardSlot name="spending" title="Spending" owner="Member 1">
 			<div class="grid gap-4">
@@ -120,25 +126,9 @@
 		</DashboardSlot>
 
 		<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">
-			<Card.Root class="h-full">
-				<Card.Header>
-					<Card.Title>My time with {childName}</Card.Title>
-					<Card.Description>Private · only you see this card</Card.Description>
-				</Card.Header>
-				<Card.Content class="space-y-2 text-sm">
-					<p>
-						<span class="text-xl font-bold">{data.slots.myTime.outings}</span>
-						outing{data.slots.myTime.outings === 1 ? '' : 's'} logged recently{#if data.slots.myTime.avgRating !== null}<span
-								class="ms-1">· rating <strong>{data.slots.myTime.avgRating}★</strong></span
-							>{/if}
-					</p>
-					{#if data.slots.myTime.suggestion}
-						<p class="rounded-lg bg-secondary p-3 text-secondary-foreground">
-							💡 {data.slots.myTime.suggestion}
-						</p>
-					{/if}
-				</Card.Content>
-			</Card.Root>
+			{#if data.child}
+				<MyTimeCard childId={data.child.id} {childName} />
+			{/if}
 		</DashboardSlot>
 	</div>
 </div>
