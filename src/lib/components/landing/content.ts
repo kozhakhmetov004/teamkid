@@ -102,7 +102,7 @@ export const howItWorks = {
 			status: 'live' as Status,
 			items: [
 				{ text: 'Calm rewrites before a heated message goes out', status: 'live' as Status },
-				{ text: 'Parenting-plan PDF turned into your calendar', status: 'coming-soon' as Status },
+				{ text: 'Parenting-plan PDF turned into your calendar', status: 'live' as Status },
 				{
 					text: '"Plan my weekend" ideas based on what your child likes',
 					status: 'coming-soon' as Status
@@ -189,7 +189,7 @@ export const features = {
 			icon: 'file-text',
 			title: 'Parenting-plan import',
 			text: 'Upload your plan as a PDF and get the calendar filled in.',
-			status: 'coming-soon' as Status
+			status: 'live' as Status
 		},
 		{
 			icon: 'map',
@@ -258,7 +258,7 @@ export const pricing = {
 			highlight: true,
 			items: [
 				{ text: 'Full AI assistant with tone check', status: 'live' as Status },
-				{ text: 'Parenting-plan import', status: 'coming-soon' as Status },
+				{ text: 'Parenting-plan import', status: 'live' as Status },
 				{ text: 'Weekend planner', status: 'coming-soon' as Status },
 				{ text: "Weekly insights about your child's week", status: 'in-development' as Status }
 			]

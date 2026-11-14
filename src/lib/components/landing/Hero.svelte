@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { hero } from './content.js';
-	import PebbleArt from './PebbleArt.svelte';
+	import Pebble3D from '#lib/components/pebble/Pebble3D.svelte';
 
 	let { signedIn, homePath }: { signedIn: boolean; homePath: string } = $props();
 </script>
@@ -48,7 +48,12 @@
 				class="absolute top-[8%] right-[2%] size-16 rounded-full bg-(--mk-mint-strong)"
 				aria-hidden="true"
 			></div>
-			<PebbleArt class="relative w-full drop-shadow-sm" />
+			<Pebble3D
+				follow
+				mood="idle"
+				class="relative drop-shadow-sm"
+				label="Pebble the turtle, smiling and looking around"
+			/>
 		</div>
 	</div>
 </section>

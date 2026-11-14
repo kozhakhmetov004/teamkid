@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ComingSoonBadge from './ComingSoonBadge.svelte';
 	import { pebble, screenshots } from './content.js';
-	import PebbleArt from './PebbleArt.svelte';
+	import Pebble3D from '#lib/components/pebble/Pebble3D.svelte';
 	import ProductPreview from './ProductPreview.svelte';
 	import { reveal } from './reveal.js';
 </script>
@@ -23,7 +23,7 @@
 			</div>
 			<div class="relative mx-auto hidden size-44 md:block" aria-hidden="true">
 				<div class="absolute inset-0 rounded-full bg-(--mk-peach)"></div>
-				<PebbleArt class="relative size-44" label="" />
+				<Pebble3D mood="happy" size="11rem" class="relative" label="Pebble the turtle, happy" />
 			</div>
 		</div>
 
