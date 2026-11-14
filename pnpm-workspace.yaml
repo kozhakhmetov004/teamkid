@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: true
+  supabase: true
+minimumReleaseAgeExclude:
+  - '@lucide/svelte@1.73.0'
