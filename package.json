@@ -28,7 +28,8 @@
 		"db:seed": "tsx --env-file=.env scripts/seed.ts",
 		"test:rls": "tsx --env-file=.env scripts/test-rls.ts",
 		"test:smoke": "tsx scripts/smoke.ts",
-		"test:swaps": "tsx --env-file=.env scripts/test-swaps.ts"
+		"test:swaps": "tsx --env-file=.env scripts/test-swaps.ts",
+		"test:expenses": "tsx --env-file=.env scripts/test-expenses.ts"
 	},
 	"engines": {
 		"node": ">=20.19"

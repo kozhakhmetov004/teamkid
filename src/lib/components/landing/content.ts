@@ -93,7 +93,7 @@ export const howItWorks = {
 				},
 				{ text: 'Swap requests: accept, decline or counter', status: 'live' as Status },
 				{ text: "Messages that can't be edited or deleted", status: 'live' as Status },
-				{ text: 'Shared expenses and records', status: 'coming-soon' as Status }
+				{ text: 'Shared expenses and records', status: 'live' as Status }
 			]
 		},
 		{
@@ -201,13 +201,13 @@ export const features = {
 			icon: 'wallet',
 			title: 'Shared expenses',
 			text: 'Log costs, agree on splits and see who owes whom.',
-			status: 'coming-soon' as Status
+			status: 'live' as Status
 		},
 		{
 			icon: 'folder-lock',
 			title: 'Documents vault',
 			text: 'Keep the plan, school letters and insurance cards in one safe place.',
-			status: 'coming-soon' as Status
+			status: 'live' as Status
 		}
 	]
 };

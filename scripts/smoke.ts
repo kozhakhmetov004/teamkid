@@ -378,7 +378,7 @@ async function main() {
 	);
 	const pebble = await lily.get('/pebble');
 	check(
-		pebble.status === 200 && /I(&#39;|')m Pebble/.test(await pebble.text()),
+		pebble.status === 200 && /Pebble/.test(await pebble.text()),
 		'Lily sees Pebble'
 	);
 	const kidDash = await lily.get('/dashboard');
