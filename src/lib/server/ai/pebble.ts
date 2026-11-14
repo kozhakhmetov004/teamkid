@@ -12,16 +12,16 @@
  *
  * Used by: POST /api/pebble/reply (child only).
  */
-export type PebbleSafety = 'ok' | 'flag' | 'crisis';
+import { classifySafety } from '../safety.js';
 
-const CRISIS_PATTERN = /\b(hurt myself|kill myself|want to die|someone hurts me|hits me)\b/i;
+export type PebbleSafety = 'ok' | 'flag' | 'crisis';
 
 export async function pebbleReply(
 	childId: string,
 	message: string
 ): Promise<{ reply: string; safety: PebbleSafety }> {
 	void childId;
-	if (CRISIS_PATTERN.test(message)) {
+	if (classifySafety(message).level === 'crisis') {
 		return {
 			reply:
 				'Thank you for telling me. That sounds really big, and you deserve help from a grown-up you trust right now. ' +

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ReadReceipt from './ReadReceipt.svelte';
+	import ShieldButton from './ShieldButton.svelte';
 	import type { BubbleMessage } from './types.js';
 
 	let { message }: { message: BubbleMessage } = $props();
@@ -23,7 +24,9 @@
 			{#if message.aiRewritten}
 				<span class="rounded-full border px-2 py-0.5">AI-assisted</span>
 			{/if}
-			{#if message.mine}<ReadReceipt readLabel={message.readLabel} />{/if}
+			{#if message.mine}<ReadReceipt readLabel={message.readLabel} />{:else}<ShieldButton
+					messageId={message.id}
+				/>{/if}
 		</p>
 	</div>
 </li>

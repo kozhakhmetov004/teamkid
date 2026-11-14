@@ -127,6 +127,13 @@
 		</a>
 
 		<a
+			href="/help"
+			class="inline-flex min-h-16 items-center gap-3 self-start rounded-2xl bg-kid-surface px-5 text-xl font-semibold shadow-sm {KID_FOCUS}"
+		>
+			<span aria-hidden="true">🆘</span> I need a grown-up
+		</a>
+
+		<a
 			href="/my-sharing"
 			class="inline-flex min-h-16 items-center gap-3 self-start rounded-2xl px-5 text-xl font-semibold text-primary underline-offset-4 hover:underline {KID_FOCUS}"
 		>

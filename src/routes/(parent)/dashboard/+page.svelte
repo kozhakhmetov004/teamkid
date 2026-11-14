@@ -5,6 +5,7 @@
 	import SpendingChart from '#lib/components/analytics/SpendingChart.svelte';
 	import InsightCard from '#lib/components/insights/InsightCard.svelte';
 	import BalanceCard from '#lib/components/expenses/BalanceCard.svelte';
+	import SafetyAlerts from '#lib/components/safety/SafetyAlerts.svelte';
 	import BriefingCard from '#lib/components/today/BriefingCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
 	import NextHandover from '#lib/components/today/NextHandover.svelte';
@@ -58,6 +59,8 @@
 
 <div class="space-y-6">
 	<TodayHeader {...data.header} />
+
+	<SafetyAlerts familyId={data.parent.family_id} {childName} />
 
 	{#if !data.child}
 		<Card.Root>
