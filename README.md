@@ -18,14 +18,15 @@ Built for **Business Cup 2.0** (24-hour build). Audience: US parents aged 25–4
 5. [Repository structure](#repository-structure)
 6. [Data model](#data-model)
 7. [Server endpoints](#server-endpoints)
-8. [Child safety and privacy rules](#child-safety-and-privacy-rules)
-9. [Getting started (local)](#getting-started-local)
-10. [Environment variables](#environment-variables)
-11. [Deployment](#deployment)
-12. [MVP scope (24 hours)](#mvp-scope-24-hours)
-13. [Demo script](#demo-script)
-14. [Team split](#team-split)
-15. [Roadmap](#roadmap)
+8. [Analytics](#analytics)
+9. [Child safety and privacy rules](#child-safety-and-privacy-rules)
+10. [Getting started (local)](#getting-started-local)
+11. [Environment variables](#environment-variables)
+12. [Deployment](#deployment)
+13. [MVP scope (24 hours)](#mvp-scope-24-hours)
+14. [Demo script](#demo-script)
+15. [Team split](#team-split)
+16. [Roadmap](#roadmap)
 
 ---
 
@@ -70,6 +71,11 @@ TeamKid has three parts:
 - Picture calendar: which home tonight, who picks me up
 - Packing helper ("What should we carry in our shell to Dad's?")
 - Pebble never gets sick or sad if the child doesn't play; no guilt mechanics
+
+### Analytics
+- **Shared (both parents, identical numbers):** spending by category per month, and later the child's week, overnights per home, budget vs actual and a year-end report
+- **Private (one parent only):** "My time with Lily", covering outings together and the child's star ratings, plus an AI suggestion for the next activity
+- Never compares parents and never scores anyone (see [Analytics](#analytics))
 
 ---
 
@@ -162,6 +168,7 @@ teamkid/
 │   │   │   ├── messages/           # Thread, Composer (with AI rewrite)
 │   │   │   ├── expenses/           # ExpenseForm, Balance
 │   │   │   ├── insights/           # InsightCard (weekly child summary)
+│   │   │   ├── analytics/          # SpendingChart (shared), MyTimeCard (private)
 │   │   │   ├── kids/               # Pebble, MoodWheel, WishCard, TuckIn
 │   │   │   └── ui/                 # shadcn-svelte components
 │   │   │
@@ -177,6 +184,7 @@ teamkid/
 │   │       │   ├── planner.ts
 │   │       │   ├── pebble.ts       # scripted replies + guarded LLM fallback
 │   │       │   ├── weeklyInsight.ts
+│   │       │   ├── parentSuggestion.ts  # private "My time" suggestion
 │   │       │   └── prompts/        # prompt templates (.md)
 │   │       ├── safety.ts           # crisis keyword + classifier checks
 │   │       ├── places.ts           # Google Places
@@ -217,6 +225,9 @@ teamkid/
 │           │   └── parse-receipt/
 │           ├── planner/weekend/
 │           ├── pebble/reply/
+│           ├── analytics/
+│           │   ├── spending/
+│           │   └── my-time/
 │           ├── billing/
 │           │   ├── checkout/
 │           │   └── webhook/
@@ -230,7 +241,8 @@ teamkid/
     │   ├── 0003_kids.sql           # pet_state, mood_checkins, wish_cards, kid_chat_raw, weekly_insights, safety_alerts
     │   ├── 0004_rls.sql            # row-level security policies
     │   ├── 0005_immutability.sql   # messages can't be edited/deleted + hash chain
-    │   └── 0006_retention.sql      # pg_cron: delete kid_chat_raw after 30 days
+    │   ├── 0006_retention.sql      # pg_cron: delete kid_chat_raw after 30 days
+    │   └── 0007_analytics.sql      # outings table (if not in 0003), v_spending_by_category, v_parent_time
     └── seed.sql                    # demo family, sample plan, a week of check-ins
 ```
 
@@ -269,6 +281,15 @@ teamkid/
 | `weekly_insights` | id, child_id, week_start, mood_trend, interests, gentle_flag | **Yes**, identical for both parents |
 | `safety_alerts` | id, child_id, level, created_at, resolved_at | Yes (both parents) |
 
+### Analytics
+| Object | Type | Key columns | Who can read |
+| --- | --- | --- | --- |
+| `outings` | table | id, family_id, child_id, parent_member_id, event_id, title, child_rating (1–5), happened_on | Parents of the family (the private view filters to self) |
+| `v_spending_by_category` | view | family_id, month, category, total_cents | Both parents of the family |
+| `v_parent_time` | view | parent_member_id, child_id, month, outings_count, avg_rating, top_activities | **Only that parent** (`parent_member_id` in `current_member_ids()`) |
+
+> Create views with `security_invoker = true` so the RLS rules on the underlying tables still apply.
+
 ### Database-level guarantees
 ```sql
 -- Messages can never be edited or deleted
@@ -304,6 +325,8 @@ All endpoints live in `src/routes/api/**/+server.ts`. Each one checks the sessio
 | POST | `/api/documents/parse-receipt` | parent | Receipt photo → amount, date, category |
 | POST | `/api/planner/weekend` | parent | Three activity suggestions from wish cards, schedule, budget, location |
 | POST | `/api/pebble/reply` | child | Pebble's guarded reply (scripted first, LLM fallback, safety check) |
+| GET | `/api/analytics/spending` | parent | Spending by category for a month range (shared) |
+| GET | `/api/analytics/my-time` | parent | The signed-in parent's private outing stats + one AI suggestion |
 | POST | `/api/billing/checkout` | parent | Create a Stripe Checkout session |
 | POST | `/api/billing/webhook` | Stripe | Verify signature → update `subscriptions` |
 | GET | `/api/cron/insights` | Vercel Cron | Build `weekly_insights` (checks `CRON_SECRET`) |
@@ -357,6 +380,33 @@ export async function POST({ request, locals }) {
 
 ---
 
+## Analytics
+
+Analytics gives parents a reason to come back every week. In a separated family, though, any number that compares one parent with the other can become ammunition. The rule: **share facts, keep reflection private, never rank one parent against the other.**
+
+| Feature | Who sees it | Status |
+| --- | --- | --- |
+| Spending by category (monthly, per category, "who owes whom") | Both parents, identical | **MVP (P2)** |
+| "My time with Lily" + AI suggestion | That parent only | **MVP (P2)** |
+| Child's week (school, activities, free time, from the calendar) | Both parents | After the competition |
+| Overnights per home (factual, no judgement) | Both parents | After the competition |
+| Budget vs actual (agreed limits per category) | Both parents | After the competition |
+| Year-end report (childcare, medical, education totals for tax and child-support reviews) | Both parents | Paid tier |
+| AI monthly review ("3 things that went well") | Each parent, private | Paid tier |
+| Benchmarks vs similar families (anonymised, opt-in) | Each parent | Later |
+
+**Never build:**
+- comparisons of one parent's time or spending with the other's;
+- parent scores or quality ratings;
+- the child's mood broken down by home;
+- analytics on the child's chat.
+
+**Data honesty:** analytics only reflects what parents log (expenses, calendar, rated outings). The app never claims automatic tracking it doesn't have.
+
+**AI suggestion rules (`suggestForParent`):** uses only that parent's outings and calendar plus the child's **shared** wish cards. It never mentions the other parent and never judges how much time someone spends.
+
+---
+
 ## Child safety and privacy rules
 
 These rules are part of the product. Every PR must respect them.
@@ -368,8 +418,9 @@ These rules are part of the product. Every PR must respect them.
 5. **Pebble is a companion, not a therapist.** It doesn't claim to be human, has no romance or secrets, and nudges the child toward real people.
 6. **Mostly scripted.** The LLM only fills small gaps, behind safety filters.
 7. **Crisis escalation:** self-harm, abuse or danger → calm pre-written reply, trusted-adult prompt, 988 Lifeline, and a `safety_alerts` row for both parents. The abuse-disclosure protocol must be reviewed by child-protection experts before launch.
-8. **Data minimisation:** raw chat is deleted after 30 days; no children's data is used for AI training or ads; no analytics SDKs in the kids' space.
-9. **COPPA:** verifiable parental consent, a written data-retention policy and a security programme are required before a real launch.
+8. **No parent-vs-parent analytics:** no comparisons, scores or child mood by home.
+9. **Data minimisation:** raw chat is deleted after 30 days; no children's data is used for AI training or ads; no analytics SDKs in the kids' space.
+10. **COPPA:** verifiable parental consent, a written data-retention policy and a security programme are required before a real launch.
 
 ---
 
@@ -478,6 +529,8 @@ One Vercel project and one Supabase project.
 
 **B: if time allows**
 - [ ] Expense with receipt photo → auto-split
+- [ ] **Spending by category chart** on the shared dashboard
+- [ ] **Private "My time with Lily" card** with one AI suggestion
 - [ ] Incoming message shield
 - [ ] Crisis script demo (safe reply + alert to both parents)
 - [ ] PDF records export
@@ -490,7 +543,7 @@ One Vercel project and one Supabase project.
 ## Demo script
 
 1. **Child (judge on a phone):** logs in with a PIN, meets Pebble, says they feel "a bit tired", and picks "build a fort" and "go to the zoo". Pebble asks, "Want me to tell Mom and Dad about the zoo?" The child taps **Yes**.
-2. **Dad's screen:** the insight card appears live: "A bit tired this week; into forts and animals." He taps **Plan my weekend**, and the AI suggests the zoo (times, prices) and a fort night at home.
+2. **Dad's screen:** the insight card appears live: "A bit tired this week; into forts and animals." He sees the shared **spending chart** and his private card: *"You and Lily did 2 outings this month; she's into animals lately, and the zoo is open Saturday."* He taps **Plan my weekend**, and the AI suggests the zoo (times, prices) and a fort night at home.
 3. **Dad writes an angry message** about a late pickup. The AI rewrites it calmly before sending.
 4. **Mom's screen:** the same insight card, the calm message, and a swap request she accepts in one tap.
 5. **Close:** *"Every co-parenting app helps parents argue less. TeamKid is the first that helps them listen to the child."*
@@ -499,20 +552,25 @@ One Vercel project and one Supabase project.
 
 ## Team split
 
-| Person | Owns |
-| --- | --- |
-| 1 | Supabase: schema, RLS, triggers, seed data; auth, `hooks.server.ts`, guards, kid PIN login |
-| 2 | Parent pages: calendar, swaps, messages, dashboard, Stripe |
-| 3 | Kids' space: Pebble animation, check-in, wish cards, tuck-in |
-| 4 | `src/lib/server/ai/*` and `/api/*`: rewrite, plan PDF, planner, Pebble replies, insights cron; deployment |
+**Backbone (hours 0–5): all three together.** Project setup and deploy, full database schema with RLS, parent and kid auth, onboarding, layouts, `ask()` wrapper, stubs and seed data. Work as a mob (one types, two guide, rotate every 30–45 min). Don't split until Mom, Dad and Lily can log in on the live URL.
 
-**First hour:** deploy a "hello world" to Vercel connected to Supabase, so deployment problems show up early. Then keep deploying on every merge.
+**Then split by feature:**
+
+| | Member 1: Parent core | Member 2: Kids' space + insights | Member 3: AI and integrations |
+| --- | --- | --- | --- |
+| **P1** (hours 5–12) | Calendar, swap requests, messaging UI, dashboard | Pebble, mood check-in, wish cards with "Tell Mom and Dad?", weekly insight card | AI rewrite, parenting plan PDF → calendar, "Plan my weekend" |
+| **P2** (hours 12–18) | Expenses → **spending chart**, document vault | Tuck-in, "where am I tonight?" → **"My time with Lily" card** | Stripe, message shield, crisis demo, review of the suggestion prompt |
+| **P3** (pitch only) | Records PDF export | Teen mode, weekly insight cron | Marketplace, kids' wallet |
+
+**Checkpoints:** backbone live (hour 5) → full demo on the live site (hour 12) → feature freeze (hour 18) → three clean demo runs (hour 22).
+
+**If behind at hour 16, drop in this order:** private time card → message shield → crisis demo → document vault. Keep the spending chart and Stripe.
 
 ---
 
 ## Roadmap
 
-1. **Core:** calendar, messaging, expenses, documents, AI assistant, Pebble
+1. **Core:** calendar, messaging, expenses, documents, AI assistant, Pebble, shared spending and private time analytics
 2. **Family logistics:** activity booking, childcare and carpools, shared kids' wallet
 3. **Divorce journey:** parenting-plan builder, mediator and lawyer marketplace
 4. **Money and admin:** tax helper, insurance, savings for the child
