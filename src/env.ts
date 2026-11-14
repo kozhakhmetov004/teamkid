@@ -57,6 +57,14 @@ export const variables = defineEnvVars({
 	},
 	LLM_API_KEY: { schema: optional, description: 'LLM API key. Empty => deterministic fake output' },
 	LLM_MODEL: { schema: optional, description: 'LLM model id (provider default if empty)' },
+	LLM_MODEL_FAST: {
+		schema: optional,
+		description: "Model for ask({ tier: 'fast' }) (rewrite, planner queries). Empty => LLM_MODEL"
+	},
+	LLM_MODEL_SMART: {
+		schema: optional,
+		description: "Model for ask({ tier: 'smart' }) (plan PDF, planner pick). Empty => LLM_MODEL"
+	},
 	GOOGLE_PLACES_API_KEY: { schema: optional, description: 'Google Places (later)' },
 	STRIPE_SECRET_KEY: { schema: optional, description: 'Stripe secret key (later)' },
 	STRIPE_WEBHOOK_SECRET: { schema: optional, description: 'Stripe webhook signing secret (later)' },

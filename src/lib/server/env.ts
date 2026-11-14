@@ -9,6 +9,8 @@ import {
 	LLM_PROVIDER,
 	LLM_API_KEY,
 	LLM_MODEL,
+	LLM_MODEL_FAST,
+	LLM_MODEL_SMART,
 	GOOGLE_PLACES_API_KEY,
 	STRIPE_SECRET_KEY,
 	STRIPE_WEBHOOK_SECRET,
@@ -42,7 +44,9 @@ export const serverEnv = {
 	llm: {
 		provider: LLM_PROVIDER,
 		apiKey: LLM_API_KEY,
-		model: LLM_MODEL
+		model: LLM_MODEL,
+		modelFast: LLM_MODEL_FAST,
+		modelSmart: LLM_MODEL_SMART
 	},
 	googlePlacesApiKey: GOOGLE_PLACES_API_KEY,
 	stripe: {

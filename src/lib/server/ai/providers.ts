@@ -4,7 +4,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { LlmRefusalError, type CompleteFn } from './llmCore.js';
+import { LlmRefusalError, pickModel, type CompleteFn } from './llmCore.js';
 
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
 
@@ -15,12 +15,31 @@ export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5';
  * - Server-side refusal fallbacks are enabled (`fallbacks: 'default'`): if the
  *   model declines on a safety category, the API retries on a fallback model
  *   inside the same call.
+ * - The model comes from the request's tier (`fastModel` / `smartModel`), else `model`.
+ *   The `fast` tier uses low effort and no SDK retries so it fits short budgets.
+ * - PDFs are sent as `document` blocks before the prompt text.
  */
-export function anthropicComplete(config: { apiKey: string; model?: string }): CompleteFn {
+export function anthropicComplete(config: {
+	apiKey: string;
+	model?: string;
+	fastModel?: string;
+	smartModel?: string;
+}): CompleteFn {
 	const client = new Anthropic({ apiKey: config.apiKey, maxRetries: 2, timeout: 60_000 });
-	const model = config.model || DEFAULT_ANTHROPIC_MODEL;
 
 	return async (req) => {
+		const model = pickModel(config, req.tier, DEFAULT_ANTHROPIC_MODEL);
+		const fast = req.tier === 'fast';
+		const content = req.documents?.length
+			? [
+					...req.documents.map((doc) => ({
+						type: 'document' as const,
+						source: { type: 'base64' as const, media_type: doc.mime, data: doc.base64 }
+					})),
+					{ type: 'text' as const, text: req.prompt }
+				]
+			: req.prompt;
+
 		let format: ReturnType<typeof zodOutputFormat> | undefined;
 		if (req.jsonSchema) {
 			try {
@@ -30,23 +49,34 @@ export function anthropicComplete(config: { apiKey: string; model?: string }): C
 			}
 		}
 
-		const response = await client.beta.messages.create({
-			model,
-			max_tokens: req.maxTokens,
-			system: req.system,
-			messages: [{ role: 'user', content: req.prompt }],
-			output_config: format ? { effort: 'medium', format } : { effort: 'medium' },
-			betas: ['server-side-fallback-2026-07-01'],
-			fallbacks: 'default'
-		});
+		const effort = fast ? 'low' : 'medium';
+		const response = await client.beta.messages.create(
+			{
+				model,
+				max_tokens: req.maxTokens,
+				system: req.system,
+				messages: [{ role: 'user', content }],
+				output_config: format ? { effort, format } : { effort },
+				betas: ['server-side-fallback-2026-07-01'],
+				fallbacks: 'default'
+			},
+			{ signal: req.signal, timeout: req.timeoutMs, maxRetries: fast ? 0 : 1 }
+		);
 
 		if (response.stop_reason === 'refusal') {
 			throw new LlmRefusalError(response.stop_details?.category ?? null);
 		}
-		return response.content
-			.filter((block) => block.type === 'text')
-			.map((block) => block.text)
-			.join('');
+		return {
+			text: response.content
+				.filter((block) => block.type === 'text')
+				.map((block) => block.text)
+				.join(''),
+			model: response.model,
+			usage: {
+				inputTokens: response.usage.input_tokens,
+				outputTokens: response.usage.output_tokens
+			}
+		};
 	};
 }
 
