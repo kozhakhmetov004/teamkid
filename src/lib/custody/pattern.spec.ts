@@ -1,83 +1,93 @@
 import { describe, expect, it } from 'vitest';
-import { generateNights, nightsToBlocks } from './pattern.js';
-import { addMonths, localTime, mondayOf, weekTitle, zonedToUtc } from './time.js';
+import { addDays, generateNights, MAX_NIGHTS, weekdayOf, type Night } from './pattern.js';
 
-const homes = (nights: { home: string }[]) => nights.map((n) => n.home).join('');
+const homes = (nights: Night[]) => nights.map((n) => n.home).join('');
+const count = (nights: Night[], home: 'A' | 'B') => nights.filter((n) => n.home === home).length;
 
-describe('generateNights', () => {
-	it('2-2-3 follows A A B B A A A | B B A A B B B and repeats every 14 days', () => {
-		const nights = generateNights('2-2-3', '2026-11-16', 'A', 28);
-		expect(homes(nights.slice(0, 14))).toBe('AABBAAABBAABBB');
-		expect(homes(nights.slice(14, 28))).toBe(homes(nights.slice(0, 14)));
+describe('date helpers', () => {
+	it('adds days across month, year and leap-day boundaries', () => {
+		expect(addDays('2026-01-31', 1)).toBe('2026-02-01');
+		expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+		expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
+		expect(addDays('2027-02-28', 1)).toBe('2027-03-01');
+		expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
 	});
 
-	it('gives each parent 7 of 14 nights and the first night to firstParent', () => {
-		for (const template of ['2-2-3', 'week-on-week-off'] as const) {
-			const nights = generateNights(template, '2026-11-16', 'B', 14);
-			expect(nights[0].home).toBe('B');
-			expect(nights.filter((n) => n.home === 'A')).toHaveLength(7);
-		}
-		// alternate weekends starting on a Monday: first night is a weekday => firstParent
-		expect(generateNights('alternate-weekends', '2026-11-16', 'B', 1)[0].home).toBe('B');
-	});
-
-	it('week on / week off', () => {
-		expect(homes(generateNights('week-on-week-off', '2026-11-16', 'A', 14))).toBe('AAAAAAABBBBBBB');
-	});
-
-	it('alternate weekends: B has Fri, Sat, Sun nights every other weekend', () => {
-		// 2026-11-16 is a Monday
-		const nights = generateNights('alternate-weekends', '2026-11-16', 'A', 14);
-		expect(homes(nights)).toBe('AAAABBB' + 'AAAAAAA');
-	});
-
-	it('works across month boundaries and DST changes (string dates)', () => {
-		const nov = generateNights('2-2-3', '2026-10-25', 'A', 14); // US DST ends Nov 1
-		expect(nov.map((n) => n.date)).toContain('2026-11-01');
-		expect(nov[7].date).toBe('2026-11-01');
-		expect(new Set(nov.map((n) => n.date)).size).toBe(14);
-	});
-
-	it('accepts a Date as start', () => {
-		expect(generateNights('2-2-3', new Date('2026-11-16T00:00:00Z'), 'A', 1)[0]).toEqual({
-			date: '2026-11-16',
-			home: 'A'
-		});
+	it('gives ISO weekdays', () => {
+		expect(weekdayOf('2026-11-02')).toBe(1); // Monday
+		expect(weekdayOf('2026-11-06')).toBe(5); // Friday
+		expect(weekdayOf('2026-11-08')).toBe(7); // Sunday
+		expect(weekdayOf('1969-12-31')).toBe(3); // before the epoch: Wednesday
 	});
 });
 
-describe('time helpers', () => {
-	it('converts local wall-clock time to UTC, including DST', () => {
-		expect(zonedToUtc('2026-11-16', '17:00', 'UTC').toISOString()).toBe('2026-11-16T17:00:00.000Z');
-		expect(zonedToUtc('2026-11-16', '17:00', 'Asia/Almaty').toISOString()).toBe(
-			'2026-11-16T12:00:00.000Z'
-		);
-		// New York: EDT (UTC-4) before Nov 1, EST (UTC-5) after
-		expect(zonedToUtc('2026-10-30', '17:00', 'America/New_York').toISOString()).toBe(
-			'2026-10-30T21:00:00.000Z'
-		);
-		expect(zonedToUtc('2026-11-02', '17:00', 'America/New_York').toISOString()).toBe(
-			'2026-11-02T22:00:00.000Z'
-		);
+describe('generateNights', () => {
+	it('returns [] for 0 days', () => {
+		expect(generateNights('2-2-3', '2026-11-02', 'A', 0)).toEqual([]);
 	});
 
-	it('round-trips local time', () => {
-		const t = zonedToUtc('2026-11-16', '08:30', 'America/Los_Angeles');
-		expect(localTime(t, 'America/Los_Angeles')).toBe('08:30');
+	it('2-2-3 follows the 14-night cycle and repeats it', () => {
+		const nights = generateNights('2-2-3', '2026-11-02', 'A', 28);
+		expect(homes(nights)).toBe('AABBAAABBAABBB'.repeat(2));
+		expect(nights[0]).toEqual({ date: '2026-11-02', home: 'A' });
+		expect(nights[27].date).toBe('2026-11-29');
 	});
 
-	it('finds Mondays, adds months and titles weeks', () => {
-		expect(mondayOf('2026-11-15')).toBe('2026-11-09'); // Sunday
-		expect(mondayOf('2026-11-16')).toBe('2026-11-16');
-		expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
-		expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
-		expect(weekTitle('2026-11-30')).toBe('Nov 30 – Dec 6, 2026');
+	it('2-2-3 gives each home 7 of 14 nights and is relative to firstHome', () => {
+		const nights = generateNights('2-2-3', '2026-11-02', 'B', 14);
+		expect(count(nights, 'A')).toBe(7);
+		expect(count(nights, 'B')).toBe(7);
+		expect(homes(nights)).toBe('BBAABBBAABBAAA');
 	});
 
-	it('builds night blocks from exchange time to exchange time', () => {
-		const blocks = nightsToBlocks([{ date: '2026-11-16', home: 'A' }], '17:00', 'Asia/Almaty');
-		expect(blocks).toEqual([
-			{ starts_at: '2026-11-16T12:00:00.000Z', ends_at: '2026-11-17T12:00:00.000Z', home: 'A' }
-		]);
+	it('week on / week off alternates every 7 nights', () => {
+		const nights = generateNights('week_on_week_off', '2026-11-04', 'A', 21);
+		expect(homes(nights)).toBe('AAAAAAABBBBBBBAAAAAAA');
+	});
+
+	it('alternate weekends gives Fri and Sat nights of every other weekend to the other home', () => {
+		// Starts on Wednesday 2026-11-04; first Friday is 2026-11-06.
+		const nights = generateNights('alternate_weekends', '2026-11-04', 'A', 21);
+		const away = nights.filter((n) => n.home === 'B').map((n) => n.date);
+		expect(away).toEqual(['2026-11-06', '2026-11-07', '2026-11-20', '2026-11-21']);
+		// Sunday nights are always at firstHome.
+		expect(nights.filter((n) => weekdayOf(n.date) === 7).every((n) => n.home === 'A')).toBe(true);
+	});
+
+	it('alternate weekends starting on a Saturday waits for the first Friday', () => {
+		const nights = generateNights('alternate_weekends', '2026-11-07', 'B', 8);
+		expect(nights[0]).toEqual({ date: '2026-11-07', home: 'B' });
+		expect(nights.find((n) => n.date === '2026-11-13')?.home).toBe('A');
+		expect(nights.find((n) => n.date === '2026-11-14')?.home).toBe('A');
+	});
+
+	it('starts with firstHome for every template', () => {
+		for (const t of ['2-2-3', 'week_on_week_off'] as const) {
+			expect(generateNights(t, '2026-11-02', 'B', 1)[0].home).toBe('B');
+		}
+		expect(generateNights('alternate_weekends', '2026-11-02', 'B', 1)[0].home).toBe('B');
+	});
+
+	it('produces consecutive dates across a year end and DST changes', () => {
+		// US DST ends 2026-11-01 and starts 2027-03-14; dates must not skip or repeat.
+		const nights = generateNights('2-2-3', '2026-10-25', 'A', MAX_NIGHTS);
+		expect(nights).toHaveLength(MAX_NIGHTS);
+		for (let i = 1; i < nights.length; i++) {
+			expect(nights[i].date).toBe(addDays(nights[i - 1].date, 1));
+		}
+		expect(nights.map((n) => n.date)).toContain('2026-12-31');
+		expect(nights.map((n) => n.date)).toContain('2027-01-01');
+		expect(nights.map((n) => n.date)).toContain('2027-03-14');
+		expect(count(nights.slice(0, 392), 'A')).toBe(196); // 28 full cycles
+	});
+
+	it('rejects bad input', () => {
+		expect(() => generateNights('2-2-3', '2026-02-30', 'A', 3)).toThrow(RangeError);
+		expect(() => generateNights('2-2-3', '11/02/2026', 'A', 3)).toThrow(RangeError);
+		expect(() => generateNights('2-2-3', '2026-11-02', 'A', -1)).toThrow(RangeError);
+		expect(() => generateNights('2-2-3', '2026-11-02', 'A', 1.5)).toThrow(RangeError);
+		expect(() => generateNights('2-2-3', '2026-11-02', 'A', MAX_NIGHTS + 1)).toThrow(RangeError);
+		expect(() => generateNights('custom' as never, '2026-11-02', 'A', 3)).toThrow(RangeError);
+		expect(() => generateNights('2-2-3', '2026-11-02', 'C' as never, 3)).toThrow(RangeError);
 	});
 });

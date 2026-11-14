@@ -9,13 +9,8 @@ import { logAudit } from '#lib/server/audit.js';
 import { requireParent } from '#lib/server/guards.js';
 import { formFailure, parseForm } from '#lib/server/validation.js';
 import { peopleFor } from '#lib/custody/people.js';
-import {
-	DB_TEMPLATE,
-	generateNights,
-	nightsToBlocks,
-	TEMPLATE_LABEL,
-	type Template
-} from '#lib/custody/pattern.js';
+import { generateNights, PATTERN_TEMPLATES, type PatternTemplate } from '#lib/custody/pattern.js';
+import { nightsToBlocks, TEMPLATE_LABEL } from '#lib/custody/schedule.js';
 import {
 	addMonths,
 	DATE_RE,
@@ -153,9 +148,9 @@ export const load: PageServerLoad = async (event) => {
 		view === 'week' ? addDays(anchor, 7 * delta) : addMonths(anchor, delta);
 	const firstHome =
 		(schedule.data?.rules as { first_home?: string } | null)?.first_home ?? member.home ?? 'A';
-	const templateFromDb = (Object.entries(DB_TEMPLATE).find(
-		([, v]) => v === schedule.data?.template
-	)?.[0] ?? '2-2-3') as Template;
+	const savedTemplate = schedule.data?.template as PatternTemplate | undefined;
+	const templateFromDb: PatternTemplate =
+		savedTemplate && PATTERN_TEMPLATES.includes(savedTemplate) ? savedTemplate : '2-2-3';
 
 	return {
 		view,
@@ -178,10 +173,7 @@ export const load: PageServerLoad = async (event) => {
 				firstHome
 			},
 			homes: (['A', 'B'] as const).map((h) => ({ home: h, name: people.nameOfHome(h) })),
-			templates: (Object.keys(TEMPLATE_LABEL) as Template[]).map((t) => ({
-				value: t,
-				label: TEMPLATE_LABEL[t]
-			}))
+			templates: PATTERN_TEMPLATES.map((t) => ({ value: t, label: TEMPLATE_LABEL[t] }))
 		}
 	};
 };
@@ -217,7 +209,7 @@ const EventFields = z
 const UpdateEvent = z.intersection(EventFields, z.object({ id: z.uuid() }));
 
 const Schedule = z.object({
-	template: z.enum(['2-2-3', 'week-on-week-off', 'alternate-weekends']),
+	template: z.enum(['2-2-3', 'week_on_week_off', 'alternate_weekends']),
 	startDate: z.string().regex(DATE_RE, 'Pick a start date'),
 	firstHome: z.enum(['A', 'B']),
 	exchangeTime: z.string().regex(TIME_RE, 'Pick the exchange time')
@@ -316,14 +308,21 @@ export const actions: Actions = {
 			return formFailure('schedule', 'Pick a start date within the last month or the next year.');
 		}
 
-		const nights = generateNights(v.template, v.startDate, v.firstHome, SCHEDULE_WEEKS * 7);
+		// generateNights throws RangeError on impossible dates or more than MAX_NIGHTS (400);
+		// 12 weeks = 84 nights, well inside the limit.
+		let nights: ReturnType<typeof generateNights>;
+		try {
+			nights = generateNights(v.template, v.startDate, v.firstHome, SCHEDULE_WEEKS * 7);
+		} catch {
+			return formFailure('schedule', 'That start date is not a valid date.');
+		}
 		const blocks = nightsToBlocks(nights, v.exchangeTime, tz);
 		const startInstant = zonedToUtc(v.startDate, v.exchangeTime, tz);
 		const fromInstant = new Date(Math.max(Date.now(), startInstant.getTime()));
 
 		const { error } = await event.locals.supabase.rpc('replace_custody_schedule', {
 			p_family_id: member.family_id,
-			p_template: DB_TEMPLATE[v.template],
+			p_template: v.template,
 			p_start_date: v.startDate,
 			p_exchange_time: v.exchangeTime,
 			p_first_home: v.firstHome,
