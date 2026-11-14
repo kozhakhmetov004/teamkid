@@ -283,6 +283,27 @@ async function main() {
 	const health = await fetch(`${BASE}/api/health`).then((r) => r.json());
 	check(health.ok === true && health.db === true, '/api/health reports ok + db');
 
+	console.log('\nLanding page');
+	const landing = await new Browser().get('/');
+	const landingHtml = await landing.text();
+	check(
+		landing.status === 200 &&
+			landingHtml.includes('Two homes. One team. One kid.') &&
+			landingHtml.includes('Start free'),
+		'logged-out / shows the landing page'
+	);
+	const signedInLanding = await (
+		await (async () => {
+			const b = new Browser();
+			await b.post('/login?/password', { email: DEMO.mom.email, password: DEMO.mom.password });
+			return b;
+		})()
+	).get('/');
+	check(
+		signedInLanding.status === 200 && (await signedInLanding.text()).includes('Open TeamKid'),
+		'signed-in / shows "Open TeamKid"'
+	);
+
 	console.log('\nGuards when signed out');
 	const anon = new Browser();
 	const anonDash = await anon.get('/dashboard');

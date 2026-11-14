@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<!-- Source for og-image.png (rendered once with rsvg-convert). TeamKid colours + Pebble. -->
+	<rect width="1200" height="630" fill="#fbf7ef" />
+	<rect x="0" y="560" width="1200" height="70" fill="#0f3a30" />
+	<circle cx="905" cy="300" r="225" fill="#ffe3d2" />
+	<circle cx="1085" cy="110" r="46" fill="#cfe9da" />
+
+	<!-- wordmark -->
+	<g transform="translate(80 92)">
+		<path d="M0 54 C 0 34 10 23 26 23 C 42 23 52 34 52 54 Z" fill="#2f6b45" />
+		<circle cx="26" cy="19" r="15" fill="#a6d96a" />
+		<circle cx="20.5" cy="17" r="2.8" fill="#1d2a24" />
+		<circle cx="31.5" cy="17" r="2.8" fill="#1d2a24" />
+		<text x="68" y="48" font-family="DejaVu Sans, Arial, sans-serif" font-size="40" font-weight="700" fill="#0f3a30">TeamKid</text>
+	</g>
+
+	<text font-family="DejaVu Sans, Arial, sans-serif" font-weight="800" fill="#0f3a30" font-size="64">
+		<tspan x="80" y="250">Two homes.</tspan>
+		<tspan x="80" y="330">One team.</tspan>
+		<tspan x="80" y="410">One kid.</tspan>
+	</text>
+	<text x="80" y="478" font-family="DejaVu Sans, Arial, sans-serif" font-size="27" font-weight="600" fill="#1c6b5c">The co-parenting app where your</text>
+	<text x="80" y="514" font-family="DejaVu Sans, Arial, sans-serif" font-size="27" font-weight="600" fill="#1c6b5c">child finally has a voice.</text>
+	<text x="80" y="603" font-family="DejaVu Sans, Arial, sans-serif" font-size="22" fill="#d6e8e0">A Business Cup 2.0 project</text>
+
+	<!-- Pebble (same art as PebbleArt.svelte, scaled) -->
+	<g transform="translate(720 115) scale(1.7)">
+		<ellipse cx="62" cy="182" rx="20" ry="13" fill="#8cc152" />
+		<ellipse cx="158" cy="182" rx="20" ry="13" fill="#8cc152" />
+		<path d="M110 92 C 58 92 34 128 34 160 C 34 182 54 192 110 192 C 166 192 186 182 186 160 C 186 128 162 92 110 92 Z" fill="#2f6b45" />
+		<g fill="#3f8a5c" stroke="#245236" stroke-width="2">
+			<polygon points="52,140 62,128 76,128 82,140 76,152 62,152" />
+			<polygon points="138,140 144,128 158,128 168,140 158,152 144,152" />
+			<polygon points="46,168 54,158 66,158 72,168 66,178 54,178" />
+			<polygon points="148,168 154,158 166,158 174,168 166,178 154,178" />
+		</g>
+		<ellipse cx="44" cy="142" rx="14" ry="20" fill="#8cc152" transform="rotate(25 44 142)" />
+		<ellipse cx="176" cy="142" rx="14" ry="20" fill="#8cc152" transform="rotate(-25 176 142)" />
+		<ellipse cx="110" cy="152" rx="44" ry="40" fill="#fff3d6" />
+		<path d="M80 140 H140 M76 158 H144 M84 176 H136" stroke="#ead9b0" stroke-width="3" stroke-linecap="round" />
+		<circle cx="110" cy="74" r="50" fill="#a6d96a" />
+		<circle cx="110" cy="74" r="50" fill="none" stroke="#8cc152" stroke-width="3" />
+		<ellipse cx="78" cy="88" rx="10" ry="6" fill="#f7a8a0" opacity="0.85" />
+		<ellipse cx="142" cy="88" rx="10" ry="6" fill="#f7a8a0" opacity="0.85" />
+		<circle cx="90" cy="70" r="9" fill="#1d2a24" />
+		<circle cx="130" cy="70" r="9" fill="#1d2a24" />
+		<circle cx="93" cy="66.5" r="3" fill="#ffffff" />
+		<circle cx="133" cy="66.5" r="3" fill="#ffffff" />
+		<path d="M101 89 Q110 98 119 89" fill="none" stroke="#1d2a24" stroke-width="3.5" stroke-linecap="round" />
+	</g>
+</svg>

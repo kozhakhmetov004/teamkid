@@ -5,6 +5,7 @@ Read README.md for product, architecture, data model and safety rules.
 ## Ownership (do not edit other areas without asking the user)
 
 - Member 1: src/routes/(parent)/{calendar,messages,expenses,documents}, src/lib/components/{calendar,messages,expenses}
+- Member 1 (landing): src/routes/(marketing)/** (public /, /privacy, /terms), src/lib/components/landing/**, static/landing/**
 - Member 2: src/routes/(kid)/**, src/lib/components/{kids,insights}, src/lib/components/analytics/MyTimeCard.svelte
 - Member 3: src/lib/server/ai/**, src/routes/api/**, src/routes/(parent)/{plan,billing}
 - Shared/frozen: hooks.server.ts, src/lib/server/guards.ts, src/lib/server/ai/llm.ts,
