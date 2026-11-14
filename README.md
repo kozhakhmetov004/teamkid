@@ -1,6 +1,6 @@
-# Homy (working name)
+# TeamKid (working name)
 
-> **Two homes. One heart.**
+> **Two homes. One team. One kid.**
 > A co-parenting web app for separated parents, with an AI assistant and a child-safe AI pet that gives the child a voice in family planning.
 
 Built for **Business Cup 2.0** (24-hour build). Audience: US parents aged 25–45. B2C, web only.
@@ -29,7 +29,7 @@ Built for **Business Cup 2.0** (24-hour build). Audience: US parents aged 25–4
 
 ## What it is
 
-Homy has three parts:
+TeamKid has three parts:
 
 | Part | Who uses it | What it does |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Homy has three parts:
 | **AI assistant** | Each parent, privately | Rewrites heated messages calmly, reads the parenting plan PDF into the calendar, plans activities, summarises threads |
 | **Kids' space with Pebble the turtle** | Child (ages 6–12) | Daily mood check-in, calming "tuck in" breathing, wish cards about what they want to do, "where am I tonight?" calendar |
 
-**Why it's different:** every co-parenting app now has AI tone-checking. None gives the child a safe, structured voice. Homy turns what the child chooses to share into plans both parents can act on.
+**Why it's different:** every co-parenting app now has AI tone-checking. None gives the child a safe, structured voice. TeamKid turns what the child chooses to share into plans both parents can act on.
 
 **Why a turtle:** its shell is a home it carries everywhere, a symbol of continuity across two homes. It also uses the "Turtle Technique" (recognise the feeling → stop → tuck in and take 3 breaths → come out and solve), a calming method already taught in US preschools.
 
@@ -135,7 +135,7 @@ Homy has three parts:
 ## Repository structure
 
 ```
-homy/
+teamkid/
 ├── README.md
 ├── .gitignore
 │
@@ -375,8 +375,8 @@ pnpm dev                       # http://localhost:5173
 ### Demo accounts (from seed.sql)
 | Role | Login |
 | --- | --- |
-| Parent A (Mom) | `mom@demo.homy` (magic link shows in the Supabase Inbucket) |
-| Parent B (Dad) | `dad@demo.homy` |
+| Parent A (Mom) | `mom@demo.teamkid` (magic link shows in the Supabase Inbucket) |
+| Parent B (Dad) | `dad@demo.teamkid` |
 | Child (Lily, 8) | Kid login → PIN `1234` |
 
 ---
@@ -404,7 +404,7 @@ STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID_FAMILY_PLUS=
 RESEND_API_KEY=
 CRON_SECRET=
-ALLOWED_ORIGINS=http://localhost:5173,https://homy.vercel.app
+ALLOWED_ORIGINS=http://localhost:5173,https://teamkid.vercel.app
 ```
 
 ---
@@ -415,16 +415,16 @@ Two Vercel projects from one GitHub repo, plus one Supabase project.
 
 | What | Where | Settings |
 | --- | --- | --- |
-| Frontend | Vercel project `homy-web` | Root directory: `web/`; framework auto-detected (SvelteKit) |
-| Backend | Vercel project `homy-api` | Root directory: `api/`; FastAPI auto-detected (exports `app` in `app/main.py`) |
+| Frontend | Vercel project `teamkid-web` | Root directory: `web/`; framework auto-detected (SvelteKit) |
+| Backend | Vercel project `teamkid-api` | Root directory: `api/`; FastAPI auto-detected (exports `app` in `app/main.py`) |
 | Database | Supabase cloud (Free plan) | Run `supabase db push` to apply migrations |
 
 Steps:
 1. Push the repo to GitHub.
 2. Import it twice at vercel.com/new: once with root `web/`, once with root `api/`.
 3. Add environment variables in each Vercel project (Settings → Environment Variables).
-4. Set `PUBLIC_API_URL` in `web` to the `homy-api` production URL, and add the `web` URL to `ALLOWED_ORIGINS` in `api`.
-5. In Stripe (test mode), point the webhook to `https://homy-api.vercel.app/billing/webhook`.
+4. Set `PUBLIC_API_URL` in `web` to the `teamkid-api` production URL, and add the `web` URL to `ALLOWED_ORIGINS` in `api`.
+5. In Stripe (test mode), point the webhook to `https://teamkid-api.vercel.app/billing/webhook`.
 6. Add the weekly cron in `api/vercel.json`:
    ```json
    { "crons": [{ "path": "/insights/run", "schedule": "0 6 * * 1" }] }
@@ -473,7 +473,7 @@ Steps:
 2. **Dad's screen:** the insight card appears live: "A bit tired this week; into forts and animals." He taps **Plan my weekend**, and the AI suggests the zoo (times, prices) and a fort night at home.
 3. **Dad writes an angry message** about a late pickup. The AI rewrites it calmly before sending.
 4. **Mom's screen:** the same insight card, the calm message, and a swap request she accepts in one tap.
-5. **Close:** *"Every co-parenting app helps parents argue less. Homy is the first that helps them listen to the child."*
+5. **Close:** *"Every co-parenting app helps parents argue less. TeamKid is the first that helps them listen to the child."*
 
 ---
 
@@ -501,4 +501,4 @@ Steps:
 
 ---
 
-*Homy is a working name for the competition. Check trademarks before using it publicly.*
+*TeamKid is a working name for the competition. Check trademarks before using it publicly.*
