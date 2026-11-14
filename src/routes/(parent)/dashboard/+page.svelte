@@ -5,6 +5,7 @@
 	import BalanceCard from '#lib/components/expenses/BalanceCard.svelte';
 	import BriefingCard from '#lib/components/today/BriefingCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
+	import InsightCard from '#lib/components/insights/InsightCard.svelte';
 	import NextHandover from '#lib/components/today/NextHandover.svelte';
 	import PendingSwapsCard from '#lib/components/today/PendingSwapsCard.svelte';
 	import TodayEvents from '#lib/components/today/TodayEvents.svelte';
@@ -110,7 +111,9 @@
 	</div>
 
 	<div class="grid gap-4 md:grid-cols-2">
-		<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)" />
+		<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
+			{#if data.child}<InsightCard childId={data.child.id} {childName} />{/if}
+		</DashboardSlot>
 
 		<DashboardSlot name="spending" title="Spending" owner="Member 1">
 			<div class="grid gap-4">
