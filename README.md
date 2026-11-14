@@ -427,34 +427,47 @@ These rules are part of the product. Every PR must respect them.
 ## Getting started (local)
 
 ### Prerequisites
-- Node.js 20+ and pnpm (or npm)
-- Supabase CLI and Docker (for local Supabase), or a free Supabase cloud project
+- Node.js 20.19+ (22 or 24 recommended) and pnpm 12 (`npm i -g pnpm`)
+- Docker Desktop running (for local Supabase). The Supabase CLI is a dev dependency: use `pnpm exec supabase …`.
 
-### 1. Database
+### 1. Install and start the database
 ```bash
-supabase start                 # local Postgres, Auth, Storage, Realtime
-supabase db reset              # applies migrations + seed.sql
-supabase gen types typescript --local > src/lib/types.ts
+pnpm install
+pnpm db:start                  # local Postgres, Auth, Storage, Realtime, Mailpit (first run pulls images)
+pnpm env:local                 # writes .env from `supabase status` + a fresh KID_AUTH_SECRET
+pnpm db:seed                   # demo families (idempotent)
 ```
 
-### 2. App
+### 2. Run the app
 ```bash
-cp .env.example .env           # fill in keys
-pnpm install
 pnpm dev                       # http://localhost:5173
 ```
+Magic-link emails land in Mailpit: http://127.0.0.1:54324
 
-### 3. Stripe webhooks (optional, local)
+### 3. Useful scripts
+| Script | What it does |
+| --- | --- |
+| `pnpm db:reset` | Re-applies `supabase/migrations/*` on an empty DB (run `pnpm db:seed` after) |
+| `pnpm db:types` | Regenerates `src/lib/types/database.ts` from the local DB |
+| `pnpm check` / `pnpm lint` / `pnpm test` | Types, Prettier + ESLint + private-env import check, Vitest |
+| `pnpm test:rls` | Row-level security test with real signed-in clients (needs the seed) |
+| `pnpm test:smoke` | HTTP smoke test of logins, guards and the full onboarding flow (needs `pnpm dev`) |
+
+Cloud setup (Supabase + Vercel) is in [docs/MANUAL_STEPS.md](docs/MANUAL_STEPS.md); decisions and
+deviations in [docs/ARCHITECTURE_NOTES.md](docs/ARCHITECTURE_NOTES.md).
+
+### 4. Stripe webhooks (optional, local)
 ```bash
 stripe listen --forward-to localhost:5173/api/billing/webhook
 ```
 
-### Demo accounts (from seed.sql)
+### Demo accounts (from `pnpm db:seed`)
 | Role | Login |
 | --- | --- |
-| Parent A (Mom) | `mom@demo.teamkid` (magic link shows in Supabase Inbucket) |
-| Parent B (Dad) | `dad@demo.teamkid` |
-| Child (Lily, 8) | Kid login → PIN `1234` |
+| Parent A (Mom) | `mom@demo.teamkid.app` / `DemoMom!2026` (or magic link via Mailpit) |
+| Parent B (Dad) | `dad@demo.teamkid.app` / `DemoDad!2026` |
+| Child (Lily, born 2018) | Kid login → family code `TURTLE-1234`, PIN `1234` |
+| RLS test only (Diaz family) | `ana@demo.teamkid.app` / `DemoAna!2026` |
 
 ---
 
@@ -468,7 +481,7 @@ PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
 PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
-# Private (server only; import from $env/static/private)
+# Private (server only; read them through src/lib/server/env.ts)
 SUPABASE_SERVICE_ROLE_KEY=
 LLM_API_KEY=
 LLM_MODEL=
@@ -478,9 +491,11 @@ STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID_FAMILY_PLUS=
 RESEND_API_KEY=
 CRON_SECRET=
+KID_AUTH_SECRET=               # >= 32 chars; derives the hidden kid passwords (keep it stable)
+LLM_PROVIDER=anthropic         # anthropic | openai | fake (empty LLM_API_KEY => fake output)
 ```
 
-> Never import a private variable outside `src/lib/server/` or a `+server.ts` / `+page.server.ts` file. SvelteKit will fail the build if you try.
+> SvelteKit 3: variables are declared and validated in `src/env.ts` and imported from `$app/env/public` / `$app/env/private` (there is no `$env/static/*`). Never import a private variable outside `src/lib/server/` or a `+server.ts` / `+page.server.ts` / `+layout.server.ts` file; SvelteKit refuses to bundle it for the browser and `pnpm lint` fails.
 
 ---
 
