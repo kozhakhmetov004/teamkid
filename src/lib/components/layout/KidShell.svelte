@@ -6,10 +6,10 @@
 </script>
 
 <div class="flex min-h-dvh flex-col bg-kid-background text-lg">
-	<main class="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
+	<main class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
 		{@render children()}
 	</main>
-	<footer class="mx-auto w-full max-w-md px-4 pb-6">
+	<footer class="mx-auto w-full max-w-6xl px-4 pb-6">
 		<form method="POST" action="/logout" class="flex justify-center">
 			<button
 				type="submit"
