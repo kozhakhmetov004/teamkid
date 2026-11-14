@@ -3,6 +3,7 @@
 Read README.md for product, architecture, data model and safety rules.
 
 ## Ownership (do not edit other areas without asking the user)
+
 - Member 1: src/routes/(parent)/{calendar,messages,expenses,documents}, src/lib/components/{calendar,messages,expenses}
 - Member 2: src/routes/(kid)/**, src/lib/components/{kids,insights}, src/lib/components/analytics/MyTimeCard.svelte
 - Member 3: src/lib/server/ai/**, src/routes/api/**, src/routes/(parent)/{plan,billing}
@@ -11,6 +12,7 @@ Read README.md for product, architecture, data model and safety rules.
   stop and tell the user to coordinate with the team.
 
 ## Rules
+
 - Work only on the current feature branch. Never push to main.
 - New DB changes: `supabase migration new <name>`; never edit existing migrations.
 - Never hand-edit src/lib/types/database.ts; run `pnpm db:types`.
