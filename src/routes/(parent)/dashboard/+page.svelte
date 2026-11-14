@@ -11,10 +11,13 @@
 	import WeekStrip from '#lib/components/today/WeekStrip.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
+	import SwapRequestDialog from '#lib/components/calendar/SwapRequestDialog.svelte';
+	import { subscribeToEvents } from '#lib/components/calendar/subscribeToEvents.js';
 	import { subscribeToFamily } from '#lib/realtime.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	let swapOpen = $state(false);
 
 	const childName = $derived(data.child?.first_name ?? 'your child');
 	const money = (cents: number) =>
@@ -47,7 +50,8 @@
 		};
 		const unsubscribe = [
 			subscribeToFamily('swap_requests', familyId, refresh),
-			subscribeToFamily('messages', familyId, refresh)
+			subscribeToFamily('messages', familyId, refresh),
+			subscribeToEvents(familyId, refresh)
 		];
 		return () => {
 			clearTimeout(timer);
@@ -99,8 +103,12 @@
 
 	<div class="grid gap-4 md:grid-cols-2">
 		<TodayEvents events={data.todayEvents} />
-		<NextHandover handover={data.nextHandover} {childName} />
-		<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} />
+		<NextHandover
+			handover={data.nextHandover}
+			{childName}
+			onRequestSwap={data.canSwap ? () => (swapOpen = true) : undefined}
+		/>
+		<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} window={data.swapWindow} />
 		<UnreadMessagesCard count={data.unread.count} threads={data.unread.threads} />
 	</div>
 
@@ -163,3 +171,12 @@
 		</DashboardSlot>
 	</div>
 </div>
+{#if data.canSwap}
+	<SwapRequestDialog
+		bind:open={swapOpen}
+		originalDate={data.swapPrefill.original}
+		proposedDate={data.swapPrefill.proposed}
+		otherName={data.otherName ?? 'your co-parent'}
+		window={data.swapWindow}
+	/>
+{/if}

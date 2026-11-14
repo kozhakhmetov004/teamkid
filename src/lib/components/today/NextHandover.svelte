@@ -16,8 +16,13 @@
 	let {
 		handover,
 		childName,
-		swapsEnabled = false
-	}: { handover: HandoverInfo | null; childName: string; swapsEnabled?: boolean } = $props();
+		onRequestSwap
+	}: {
+		handover: HandoverInfo | null;
+		childName: string;
+		/** Omitted when swaps aren't possible yet (no co-parent / no home set). */
+		onRequestSwap?: () => void;
+	} = $props();
 </script>
 
 <Card.Root>
@@ -39,12 +44,10 @@
 		{:else}
 			<p class="text-muted-foreground">No handover in the next two weeks.</p>
 		{/if}
-		{#if swapsEnabled}
-			<Button href="/calendar?swap=1" variant="outline">Request a swap</Button>
+		{#if onRequestSwap}
+			<Button variant="outline" onclick={onRequestSwap}>Request a swap</Button>
 		{:else}
-			<Button variant="outline" disabled title="Swap requests are coming next">
-				Request a swap (soon)
-			</Button>
+			<p class="text-xs text-muted-foreground">Swaps work once your co-parent has joined.</p>
 		{/if}
 	</Card.Content>
 </Card.Root>

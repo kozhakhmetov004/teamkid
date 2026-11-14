@@ -186,9 +186,17 @@ export const load: PageServerLoad = async (event) => {
 		requester: nameById(s.requested_by),
 		original: shortDate(s.original_date),
 		proposed: s.proposed_date ? shortDate(s.proposed_date) : null,
+		originalDate: s.original_date,
+		proposedDate: s.proposed_date,
 		note: s.note
 	}));
 	const swapsFromOther = swapRows.filter((s) => !s.fromMe).length;
+	// "Request a swap" pre-fill: my next night to give, their next night to take.
+	const upcoming = weekStrip(blocks, [], today, tz, 14);
+	const swapPrefill = {
+		original: upcoming.find((d) => d.home && d.home === myHome)?.date ?? '',
+		proposed: upcoming.find((d) => d.home && d.home !== myHome)?.date ?? ''
+	};
 
 	// ---- messages -------------------------------------------------------------
 	const unreadCount = unread.count ?? 0;
@@ -250,6 +258,9 @@ export const load: PageServerLoad = async (event) => {
 		todayEvents,
 		nextHandover,
 		swaps: swapRows,
+		swapPrefill,
+		canSwap: other !== null && !!myHome,
+		swapWindow: { min: today, max: addDays(today, 60) },
 		unread: { count: unreadCount, threads: latestPerThread },
 		slots: {
 			spending: {
