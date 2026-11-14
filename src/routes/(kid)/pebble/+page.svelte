@@ -4,7 +4,13 @@
 	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
 	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
 	import ShellRewards from '#lib/components/kids/ShellRewards.svelte';
-	import { customizeThanks, greeting, progressOf, rewardLine } from '#lib/kids/pebbleLines.js';
+	import {
+		customizeThanks,
+		greeting,
+		progressOf,
+		rewardLine,
+		WISH_LINES
+	} from '#lib/kids/pebbleLines.js';
 	import { SHELL_PATTERNS, shellColorByKey } from '#lib/kids/pet.js';
 	import { rememberTimeZone } from '#lib/kids/tz.js';
 	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
@@ -27,7 +33,9 @@
 
 	onMount(() => {
 		rememberTimeZone(data.tz);
-		if (data.justCheckedIn) react('Thanks for checking in! You make my shell feel happy.', 'happy');
+		if (data.justDid === 'checkin')
+			react('Thanks for checking in! You make my shell feel happy.', 'happy');
+		if (data.justDid === 'wishes') react(WISH_LINES.done, 'happy');
 		return () => clearTimeout(reactionTimer);
 	});
 

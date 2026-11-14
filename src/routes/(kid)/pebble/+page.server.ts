@@ -115,7 +115,9 @@ export const load: PageServerLoad = async (event) => {
 		// Greeting in the browser's time zone (tz cookie); "done today" stays UTC.
 		part: tz === 'UTC' ? partOfDay(now) : partOfHour(localHour(now, tz)),
 		tz,
-		justCheckedIn: event.url.searchParams.get('done') === 'checkin',
+		justDid:
+			(['checkin', 'wishes'] as const).find((d) => d === event.url.searchParams.get('done')) ??
+			null,
 		today: fmt.format(now),
 		tonight: tonight.data?.title ?? null
 	};

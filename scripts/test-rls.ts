@@ -152,6 +152,17 @@ async function main() {
 	}
 
 	console.log('\nWish cards: Mom sees only the shared ones');
+	// The seed shares nothing (the demo shares live), so Lily shares one wish as a fixture.
+	const fixtureWish = (await lily.from('wish_cards').select('id').eq('child_id', lilyId).limit(1))
+		.data?.[0];
+	const shareFixture = fixtureWish
+		? await lily
+				.from('wish_cards')
+				.update({ shared_with_parents: true, shared_at: new Date().toISOString() })
+				.eq('id', fixtureWish.id)
+				.select('id')
+		: null;
+	expect((shareFixture?.data ?? []).length === 1, 'Lily can share her own wish card');
 	const allWishes =
 		(await admin.from('wish_cards').select('id, shared_with_parents').eq('child_id', lilyId))
 			.data ?? [];
@@ -163,13 +174,19 @@ async function main() {
 	const unshared = allWishes.filter((w) => !w.shared_with_parents);
 	expect(
 		JSON.stringify(momWishes.map((w) => w.id).sort()) === JSON.stringify(sharedIds) &&
-			sharedIds.length >= 2,
+			sharedIds.length >= 1,
 		`Mom reads exactly the ${sharedIds.length} shared wish cards`,
 		`got ${momWishes.length}`
 	);
 	for (const w of unshared) {
 		const r = await mom.from('wish_cards').select('id').eq('id', w.id);
 		expect((r.data ?? []).length === 0, 'Mom cannot read the unshared wish card');
+	}
+	if (fixtureWish) {
+		await lily
+			.from('wish_cards')
+			.update({ shared_with_parents: false, shared_at: null })
+			.eq('id', fixtureWish.id);
 	}
 
 	console.log('\nMom cannot write server-only tables');
@@ -208,13 +225,14 @@ async function main() {
 		'Lily reads her family events',
 		lilyEvents.error ?? `rows=${lilyEvents.n}`
 	);
-	for (const table of [
-		'messages',
-		'expenses',
-		'weekly_insights',
-		'audit_log',
-		'outings'
-	] as const) {
+	// kid_read_own_insight: Lily reads her own weekly insight (for /my-sharing), nobody else's.
+	const lilyInsights = (await lily.from('weekly_insights').select('child_id')).data ?? [];
+	expect(
+		lilyInsights.length > 0 && lilyInsights.every((i) => i.child_id === lilyId),
+		'Lily reads only her own weekly_insights',
+		`rows=${lilyInsights.length}`
+	);
+	for (const table of ['messages', 'expenses', 'audit_log', 'outings'] as const) {
 		const r = await count(lily, table);
 		expect(r.n === 0, `Lily sees 0 ${table}`, r.error ?? `rows=${r.n}`);
 	}
