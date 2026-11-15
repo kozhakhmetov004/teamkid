@@ -7,6 +7,9 @@
 		IDLE_AFTER_MS,
 		lookAngles,
 		moodPose,
+		nextSaccade,
+		PUPIL,
+		pupilOffset,
 		pointerTarget,
 		shouldDraw,
 		SPIN_REST,
@@ -16,7 +19,7 @@
 		type Mood,
 		type Spin
 	} from './motion.js';
-	import { buildTurtle } from './shapes.js';
+	import { ARM_REST, buildTurtle } from './shapes.js';
 
 	let {
 		mood,
@@ -125,6 +128,9 @@
 	// ---- animation loop (renders on demand) ---------------------------------------------
 	let look: Look = { x: 0, y: 0 };
 	let picked = 0; // 0..1 "picked up" lift while dragging
+	let pupilLook: Look = { x: 0, y: 0 }; // eases faster than `look`: the pupil leads
+	let glance: Look = { x: 0, y: 0 };
+	let glanceIn = 1.2; // seconds until the next tiny dart
 	let t = 0;
 	let sinceDraw = Infinity;
 	let announced = false;
@@ -139,6 +145,22 @@
 			const following = follow && !dragging && performance.now() - lastPointerAt < IDLE_AFTER_MS;
 			const lookStep = stepLook(look, following ? target : { x: 0, y: 0 }, step);
 			look = lookStep.look;
+
+			// living eyes: tiny random darts, smaller while following the cursor
+			glanceIn -= step;
+			if (glanceIn <= 0) {
+				const g = nextSaccade();
+				glance = g.look;
+				glanceIn = g.wait;
+			}
+			const lookTarget = following ? target : { x: 0, y: 0 };
+			const dart = following ? 0.4 : 1;
+			pupilLook = stepLook(
+				pupilLook,
+				{ x: lookTarget.x + glance.x * dart, y: lookTarget.y + glance.y * dart },
+				step,
+				PUPIL.lambda
+			).look;
 
 			// spin: driven by the drag while held, coasting and returning after release
 			let spinning = dragging;
@@ -160,9 +182,17 @@
 			turtle.root.scale.set(1 / Math.sqrt(pose.breath), pose.breath, 1);
 			turtle.body.rotation.set(a.bodyPitch, a.bodyYaw, 0);
 			turtle.head.rotation.set(a.headPitch, a.headYaw, look.x * 0.06);
-			turtle.eyes.position.x = a.eyeX;
-			turtle.eyes.position.y = 0.46 + a.eyeY;
+			turtle.eyes.position.x = turtle.eyeBase.x + a.eyeX;
+			turtle.eyes.position.y = turtle.eyeBase.y + a.eyeY;
+			// arms: the right one waves hello; both lift a little when picked up
+			const wave = pose.wave * (1 - picked);
+			turtle.armR.rotation.z = ARM_REST + picked * 0.6 + wave * (2.2 + Math.sin(t * 11) * 0.28);
+			turtle.armL.rotation.z = -ARM_REST - picked * 0.6;
 			for (const eye of turtle.eyeballs) eye.scale.y = Math.max(0.08, pose.eyeOpen);
+			// the pupil slides inside the iris; the white highlights stay put (they are reflections)
+			const p = pupilOffset(pupilLook);
+			for (const { mesh, base } of turtle.pupils)
+				mesh.position.set(base.x + p.x, base.y + p.y, base.z);
 			// shadow shrinks and fades as the turtle lifts
 			const height = turtle.root.position.y;
 			turtle.shadow.scale.set(1.15 - height * 0.5, 0.55 - height * 0.25, 1);
@@ -170,14 +200,7 @@
 				0.05,
 				0.14 - height * 0.3
 			);
-			for (const p of turtle.plates) {
-				// proud: a soft highlight sweeps around the shell
-				const sweep =
-					pose.shine < 0
-						? 0
-						: Math.max(0, 1 - Math.abs(Math.sin(p.angle / 2 - pose.shine * Math.PI)) * 3);
-				p.material.emissive.setRGB(sweep * 0.35, sweep * 0.42, sweep * 0.2);
-			}
+			turtle.setShine(pose.shine); // proud: a soft highlight sweeps round the shell
 
 			if (shouldDraw(sinceDraw, lookStep.moving || spinning || lifting)) {
 				sinceDraw = 0;
