@@ -9,6 +9,7 @@
 import { requireParent } from '#lib/server/guards.js';
 import { balanceText, computeBalance } from '#lib/expenses/balance.js';
 import { buildChartMonths } from '#lib/expenses/chart.js';
+import { moodToday } from '#lib/kids/moodToday.js';
 import { loadBalanceRows, loadSpendingRows, shiftMonth } from '../expenses/expenses.server.js';
 import {
 	addDays,
@@ -56,7 +57,8 @@ export const load: PageServerLoad = async (event) => {
 		unread,
 		recent,
 		spending,
-		balanceRows
+		balanceRows,
+		sharedMoods
 	] = await Promise.all([
 		sb
 			.from('members')
@@ -111,7 +113,9 @@ export const load: PageServerLoad = async (event) => {
 			.limit(20),
 		// Shared spending (last 3 months) + balance input; identical for both parents.
 		loadSpendingRows(sb, familyId, shiftMonth(currentMonth, -2)),
-		loadBalanceRows(sb, familyId)
+		loadBalanceRows(sb, familyId),
+		// Only what the child chose to tell both parents (never mood_checkins).
+		sb.from('shared_moods').select('child_id, mood, energy, shared_at').eq('family_id', familyId)
 	]);
 
 	// ---- people -------------------------------------------------------------
@@ -233,6 +237,11 @@ export const load: PageServerLoad = async (event) => {
 			firstEvent: todayEvents[0] ? { title: todayEvents[0].title, time: todayEvents[0].time } : null
 		}),
 		child,
+		moodToday: moodToday(
+			(sharedMoods.data ?? []).find((m) => m.child_id === child?.id) ?? null,
+			today,
+			tz
+		),
 		hasCoParent: other !== null,
 		otherName: other?.display_name ?? null,
 		strip,
