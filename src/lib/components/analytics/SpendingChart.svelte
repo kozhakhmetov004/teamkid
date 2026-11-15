@@ -16,6 +16,9 @@
 	const maxMonth = $derived(Math.max(1, ...months.map((m) => m.totalCents)));
 	const W = 320;
 	const ROW = 30;
+	/** Bars start after the category label; amounts get a fixed right column (never cut off). */
+	const BAR_X = 112;
+	const AMOUNT_W = 72;
 </script>
 
 <Card.Root class={compact ? 'h-full' : ''}>
@@ -59,14 +62,15 @@
 						.join(', ')}. Total {formatCents(current.totalCents)}."
 				>
 					{#each current.rows as r, i (r.category)}
-						{@const w = Math.max(4, (r.totalCents / maxCat) * (W - 150))}
+						{@const w = Math.max(4, (r.totalCents / maxCat) * (W - BAR_X - AMOUNT_W - 8))}
 						<text x="0" y={i * ROW + 19} class="fill-foreground text-[12px]"
 							>{r.icon} {r.label}</text
 						>
-						<rect x="120" y={i * ROW + 6} width={w} height="18" rx="6" class="fill-primary" />
+						<rect x={BAR_X} y={i * ROW + 6} width={w} height="18" rx="6" class="fill-primary" />
 						<text
-							x={120 + w + 6}
+							x={W}
 							y={i * ROW + 19}
+							text-anchor="end"
 							class="fill-foreground text-[12px] font-semibold tabular-nums"
 							>{formatCents(r.totalCents)}</text
 						>
@@ -78,7 +82,7 @@
 			{/if}
 		{:else}
 			<svg
-				viewBox="0 0 {W} 110"
+				viewBox="0 0 {W} 124"
 				class="w-full"
 				role="img"
 				aria-label="Monthly totals: {months
@@ -88,13 +92,13 @@
 				{#each [...months].reverse() as m, i (m.month)}
 					{@const h = Math.max(3, (m.totalCents / maxMonth) * 70)}
 					{@const x = 30 + i * 100}
-					<rect {x} y={80 - h} width="60" height={h} rx="6" class="fill-primary" />
-					<text x={x + 30} y="96" text-anchor="middle" class="fill-foreground text-[12px]"
+					<rect {x} y={94 - h} width="60" height={h} rx="6" class="fill-primary" />
+					<text x={x + 30} y="112" text-anchor="middle" class="fill-foreground text-[12px]"
 						>{m.shortLabel}</text
 					>
 					<text
 						x={x + 30}
-						y={74 - h}
+						y={88 - h}
 						text-anchor="middle"
 						class="fill-foreground text-[11px] font-semibold tabular-nums"
 						>{formatCents(m.totalCents)}</text

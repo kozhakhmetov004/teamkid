@@ -62,12 +62,12 @@
 	});
 </script>
 
-<svelte:head><title>Calendar · TeamKid</title></svelte:head>
+<svelte:head><title>Planner · TeamKid</title></svelte:head>
 
 <div class="space-y-5">
 	<div class="flex flex-wrap items-end justify-between gap-3">
 		<div>
-			<h1 class="text-2xl font-bold">Calendar</h1>
+			<h1 class="text-2xl font-bold">Planner</h1>
 			<p class="text-muted-foreground">{data.title}</p>
 		</div>
 		<div class="flex flex-wrap gap-2">

@@ -4,13 +4,12 @@
 	import MyTimeCard from '#lib/components/analytics/MyTimeCard.svelte';
 	import SpendingChart from '#lib/components/analytics/SpendingChart.svelte';
 	import InsightCard from '#lib/components/insights/InsightCard.svelte';
-	import BalanceCard from '#lib/components/expenses/BalanceCard.svelte';
 	import SafetyAlerts from '#lib/components/safety/SafetyAlerts.svelte';
+	import DashCard from '#lib/components/today/DashCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
 	import MoodToday from '#lib/components/today/MoodToday.svelte';
 	import NextHandover from '#lib/components/today/NextHandover.svelte';
 	import PendingSwapsCard from '#lib/components/today/PendingSwapsCard.svelte';
-	import TodayEvents from '#lib/components/today/TodayEvents.svelte';
 	import TodayHeader from '#lib/components/today/TodayHeader.svelte';
 	import TonightCard from '#lib/components/today/TonightCard.svelte';
 	import UnreadMessagesCard from '#lib/components/today/UnreadMessagesCard.svelte';
@@ -117,49 +116,57 @@
 		</div>
 	{/if}
 
-	<!-- 1. Today at a glance: tonight, next handover, today's events -->
-	<section aria-label="Today at a glance" class="grid items-start gap-4 lg:grid-cols-12">
-		<div class="lg:col-span-5">
-			<TonightCard
-				{childName}
-				mine={tonight?.mine ?? null}
-				withName={tonight?.label ?? null}
-				custodyLine={data.header.custodyLine}
-				briefing={data.briefing}
-			/>
-		</div>
-		<div class="grid items-start gap-4 sm:grid-cols-2 lg:col-span-7">
-			<NextHandover
-				handover={data.nextHandover}
-				{childName}
-				onRequestSwap={data.canSwap ? () => (swapOpen = true) : undefined}
-			/>
-			<TodayEvents events={data.todayEvents} />
-		</div>
-	</section>
-
-	<WeekStrip days={data.strip} />
-
-	<!-- 2. Things to act on -->
-	<section aria-label="Swaps and messages" class="grid items-start gap-4 md:grid-cols-2">
-		<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} window={data.swapWindow} />
-		<UnreadMessagesCard count={data.unread.count} threads={data.unread.threads} />
-	</section>
-
-	<!-- 3. The child's week -->
-	{#if data.child}
-		<section aria-labelledby="child-week-title" class="space-y-4">
-			<div class="flex flex-wrap items-baseline justify-between gap-2">
-				<h2 id="child-week-title" class="text-lg font-semibold">{childName}'s week</h2>
-				<p class="text-xs text-muted-foreground">Only what {childName} chose to share</p>
+	<!--
+		Two columns on desktop that stack independently (no holes between cards).
+		On phones the column wrappers become `contents`, so every card sits in one
+		list ordered by importance (order-*): tonight + today, handover, week,
+		swaps, messages, child's week, feeling + My time, money.
+	-->
+	<div class="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
+		<div class="contents lg:col-span-8 lg:flex lg:flex-col lg:gap-6">
+			<div class="order-1 min-w-0 lg:order-none">
+				<TonightCard
+					{childName}
+					mine={tonight?.mine ?? null}
+					withName={tonight?.label ?? null}
+					custodyLine={data.header.custodyLine}
+					events={data.todayEvents}
+					briefing={data.briefing}
+				/>
 			</div>
-			<div class="grid items-start gap-4 lg:grid-cols-3">
-				<div class="min-w-0 lg:col-span-2">
+			<div class="order-3 min-w-0 lg:order-none">
+				<WeekStrip days={data.strip} />
+			</div>
+			{#if data.child}
+				<div class="order-6 min-w-0 lg:order-none">
 					<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
 						<InsightCard childId={data.child.id} {childName} familyId={data.parent.family_id} />
 					</DashboardSlot>
 				</div>
-				<div class="grid items-start gap-4">
+			{/if}
+			<div class="order-8 min-w-0 lg:order-none">
+				<DashboardSlot name="spending" title="Spending" owner="Member 1">
+					<SpendingChart months={data.slots.chart} compact />
+				</DashboardSlot>
+			</div>
+		</div>
+
+		<div class="contents lg:col-span-4 lg:flex lg:flex-col lg:gap-6">
+			<div class="order-2 min-w-0 lg:order-none">
+				<NextHandover
+					handover={data.nextHandover}
+					{childName}
+					onRequestSwap={data.canSwap ? () => (swapOpen = true) : undefined}
+				/>
+			</div>
+			<div class="order-4 min-w-0 lg:order-none">
+				<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} window={data.swapWindow} />
+			</div>
+			<div class="order-5 min-w-0 lg:order-none">
+				<UnreadMessagesCard count={data.unread.count} threads={data.unread.threads} />
+			</div>
+			{#if data.child}
+				<div class="order-7 grid min-w-0 gap-4 lg:order-none lg:gap-6">
 					{#if childActive}
 						<MoodToday {childName} mood={data.moodToday} />
 					{/if}
@@ -167,20 +174,25 @@
 						<MyTimeCard childId={data.child.id} {childName} />
 					</DashboardSlot>
 				</div>
+			{/if}
+			<div class="order-9 min-w-0 lg:order-none">
+				<DashCard
+					title="Balance"
+					icon="💰"
+					action={data.slots.balance.items > 0
+						? { href: '/expenses?status=approved', label: 'See them' }
+						: { href: '/expenses', label: 'Expenses' }}
+				>
+					<p class="text-lg leading-snug font-semibold">{data.slots.balance.text}</p>
+					<p class="mt-1 text-sm text-muted-foreground">
+						{data.slots.balance.items === 0
+							? 'Nothing outstanding.'
+							: `From ${data.slots.balance.items} approved expense${data.slots.balance.items === 1 ? '' : 's'} not reimbursed yet.`}
+					</p>
+				</DashCard>
 			</div>
-		</section>
-	{/if}
-
-	<!-- 4. Money -->
-	<DashboardSlot name="spending" title="Spending" owner="Member 1">
-		<section aria-labelledby="money-title" class="space-y-4">
-			<h2 id="money-title" class="text-lg font-semibold">Money</h2>
-			<div class="grid items-start gap-4 md:grid-cols-2">
-				<SpendingChart months={data.slots.chart} compact />
-				<BalanceCard text={data.slots.balance.text} items={data.slots.balance.items} compact />
-			</div>
-		</section>
-	</DashboardSlot>
+		</div>
+	</div>
 </div>
 {#if data.canSwap}
 	<SwapRequestDialog

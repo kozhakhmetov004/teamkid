@@ -21,7 +21,7 @@
 	icon="⇄"
 	badge={toAnswer ? `${toAnswer} to answer` : undefined}
 	empty={swaps.length === 0 ? 'Nothing waiting.' : undefined}
-	action={{ href: '/calendar', label: 'Calendar' }}
+	action={{ href: '/calendar', label: 'Planner' }}
 >
 	<div class="divide-y">
 		{#each visible as swap (swap.id)}

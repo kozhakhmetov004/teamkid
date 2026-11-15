@@ -47,9 +47,9 @@
 					<span class="text-xs text-muted-foreground">{day.isToday ? 'Today' : day.weekday}</span>
 					<span class="text-lg leading-none font-semibold">{day.dayOfMonth}</span>
 					<span class="w-full truncate text-[11px] font-medium sm:text-xs">{day.label}</span>
-					<span class="flex h-1.5 gap-0.5" aria-hidden="true">
+					<span class="flex h-2 gap-1" aria-hidden="true">
 						{#each Array(Math.min(day.eventCount, 3)) as _, i (i)}
-							<span class="size-1.5 rounded-full bg-foreground/60"></span>
+							<span class="size-2 rounded-full bg-primary ring-2 ring-card"></span>
 						{/each}
 					</span>
 				</a>
