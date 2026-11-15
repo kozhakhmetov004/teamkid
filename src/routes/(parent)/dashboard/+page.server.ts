@@ -166,7 +166,10 @@ export const load: PageServerLoad = async (event) => {
 			time: timeLabel(e.starts_at, tz),
 			title: e.title,
 			place: e.place,
-			kind: e.kind
+			kind: e.kind,
+			// For the dashboard's done markers (past events tick themselves off).
+			startsAt: e.starts_at,
+			endsAt: e.ends_at
 		}));
 	const strip = weekStrip(blocks, others, today, tz).map((d) => ({
 		...d,

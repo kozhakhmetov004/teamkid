@@ -1,12 +1,13 @@
 <script lang="ts">
 	/**
-	 * Dashboard card shell: one spacing scale, header (icon chip + title + badge
-	 * + action) and a compact one-line state when there's nothing to show.
-	 * Height always follows the content (no fixed heights).
+	 * Dashboard card shell on the shared Card: same radius, padding and header
+	 * row as every other card (the dashboard gives all card headers one fixed
+	 * height + divider). Empty → one compact line. Height follows the content.
 	 *
 	 *   <DashCard title="Messages" icon="💬" empty={none ? 'No messages yet.' : undefined}>…</DashCard>
 	 */
 	import type { Snippet } from 'svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
 
 	let {
 		title,
@@ -34,30 +35,25 @@
 		'shrink-0 rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none';
 </script>
 
-{#if empty}
-	<section
-		aria-label={title}
-		class="flex min-w-0 items-center gap-3 rounded-2xl border bg-card px-4 py-3 text-sm shadow-xs {klass}"
+{#snippet chip()}
+	<span
+		class="grid size-7 shrink-0 place-items-center rounded-lg bg-accent text-sm"
+		aria-hidden="true">{icon}</span
 	>
-		<span
-			class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-base"
-			aria-hidden="true">{icon}</span
-		>
-		<span class="shrink-0 font-semibold">{title}</span>
+{/snippet}
+
+{#if empty}
+	<Card.Root aria-label={title} class="flex-row items-center gap-3 px-4 py-3 {klass}">
+		{@render chip()}
+		<span class="shrink-0 text-base font-semibold">{title}</span>
 		<span class="min-w-0 flex-1 truncate text-muted-foreground">{empty}</span>
 		{#if action}<a href={action.href} class={link}>{action.label}</a>{/if}
-	</section>
+	</Card.Root>
 {:else}
-	<section
-		aria-labelledby="{id}-title"
-		class="min-w-0 rounded-2xl border bg-card p-4 shadow-xs sm:p-5 {klass}"
-	>
-		<header class="mb-3 flex items-center gap-3">
-			<span
-				class="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-base"
-				aria-hidden="true">{icon}</span
-			>
-			<h2 id="{id}-title" class="text-base font-semibold">{title}</h2>
+	<Card.Root aria-labelledby="{id}-title" class={klass}>
+		<Card.Header class="flex items-center gap-2">
+			{@render chip()}
+			<Card.Title id="{id}-title">{title}</Card.Title>
 			{#if badge}
 				<span
 					class="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
@@ -65,7 +61,9 @@
 				>
 			{/if}
 			{#if action}<a href={action.href} class="ml-auto {link}">{action.label}</a>{/if}
-		</header>
-		{@render children?.()}
-	</section>
+		</Card.Header>
+		<Card.Content>
+			{@render children?.()}
+		</Card.Content>
+	</Card.Root>
 {/if}

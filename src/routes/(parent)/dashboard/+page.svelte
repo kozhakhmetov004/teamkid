@@ -73,7 +73,14 @@
 	</div>
 {/snippet}
 
-<div class="space-y-6 sm:space-y-8">
+<!--
+	One "section starter line" for every card on this page (ours and the ones
+	other workstreams drop in): a fixed-height header row with a divider and
+	the same title weight.
+-->
+<div
+	class="space-y-6 sm:space-y-8 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold"
+>
 	<!-- Header: greeting + the main shortcut -->
 	<div class="flex flex-wrap items-end justify-between gap-4">
 		<TodayHeader {...data.header} custodyLine={null} />
@@ -168,7 +175,9 @@
 			{#if data.child}
 				<div class="order-7 grid min-w-0 gap-4 lg:order-none lg:gap-6">
 					{#if childActive}
-						<MoodToday {childName} mood={data.moodToday} />
+						<DashCard title="{childName}'s feeling" icon="💛">
+							<MoodToday {childName} mood={data.moodToday} />
+						</DashCard>
 					{/if}
 					<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">
 						<MyTimeCard childId={data.child.id} {childName} />
