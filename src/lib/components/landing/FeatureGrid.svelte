@@ -34,9 +34,15 @@
 				</li>
 			{/each}
 		</ul>
-		<div class="mx-auto mt-14 grid max-w-5xl gap-6 md:grid-cols-2">
-			<div use:reveal><ProductPreview {...screenshots.messages} /></div>
-			<div use:reveal={120}><ProductPreview {...screenshots.plan} /></div>
-		</div>
+		{#if screenshots.messages.available || screenshots.plan.available}
+			<div class="mx-auto mt-14 grid max-w-5xl gap-6 md:grid-cols-2">
+				{#if screenshots.messages.available}
+					<div use:reveal><ProductPreview {...screenshots.messages} /></div>
+				{/if}
+				{#if screenshots.plan.available}
+					<div use:reveal={120}><ProductPreview {...screenshots.plan} /></div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </section>

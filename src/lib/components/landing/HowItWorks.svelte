@@ -50,11 +50,13 @@
 			{/each}
 		</div>
 
-		<div class="mx-auto mt-14 max-w-4xl" use:reveal>
-			<ProductPreview {...screenshots.dashboard} />
-			<p class="mt-3 text-center text-sm text-(--mk-muted)">
-				A parent's Today page: who has your child tonight, swaps and messages.
-			</p>
-		</div>
+		{#if screenshots.dashboard.available}
+			<div class="mx-auto mt-14 max-w-4xl" use:reveal>
+				<ProductPreview {...screenshots.dashboard} />
+				<p class="mt-3 text-center text-sm text-(--mk-muted)">
+					A parent's Today page: who has your child tonight, swaps and messages.
+				</p>
+			</div>
+		{/if}
 	</div>
 </section>

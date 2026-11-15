@@ -37,7 +37,7 @@
 			class="flex items-center gap-2 rounded-lg focus-visible:ring-3 focus-visible:ring-(--mk-green)/40 focus-visible:outline-none"
 		>
 			<TurtleMark class="size-9" />
-			<span class="text-xl font-bold tracking-tight text-(--mk-ink)">{site.name}</span>
+			<span class="mk-display text-xl font-black tracking-tight text-(--mk-ink)">{site.name}</span>
 		</a>
 
 		<nav aria-label="Page sections" class="hidden md:block">
