@@ -1,7 +1,7 @@
 /**
  * "Where am I tonight?": a picture calendar of the next nights for the child.
- * Built from the family's custody events (kind = 'custody', home A/B), which
- * the child may read under RLS (events_select_child). Pure helpers, no I/O.
+ * Built from the family's custody events (kind = 'custody', home A/B), read
+ * through public.kid_calendar(). Pure helpers, no I/O.
  */
 
 export interface NightEvent {

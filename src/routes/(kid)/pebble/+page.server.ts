@@ -83,15 +83,11 @@ export const load: PageServerLoad = async (event) => {
 	const [state, tonight] = await Promise.all([
 		loadToday(sb, childId, now),
 		// "Where am I tonight?": the overnight event covering tonight, if any.
-		sb
-			.from('events')
-			.select('title, home, starts_at')
-			.lte('starts_at', new Date(now.getTime() + 12 * 3_600_000).toISOString())
-			.gte('ends_at', now.toISOString())
-			.not('home', 'is', null)
-			.order('starts_at', { ascending: false })
-			.limit(1)
-			.maybeSingle()
+		// kid_calendar(): safe columns only, never hidden events (see the migration).
+		sb.rpc('kid_calendar', {
+			p_from: now.toISOString(),
+			p_to: new Date(now.getTime() + 12 * 3_600_000).toISOString()
+		})
 	]);
 
 	const { look } = state;
@@ -122,7 +118,9 @@ export const load: PageServerLoad = async (event) => {
 			(['checkin', 'wishes'] as const).find((d) => d === event.url.searchParams.get('done')) ??
 			null,
 		today: fmt.format(now),
-		tonight: tonight.data?.title ?? null
+		// The custody night covering tonight (latest start), if any.
+		tonight:
+			(tonight.data ?? []).filter((e) => e.kind === 'custody' && e.home).at(-1)?.title ?? null
 	};
 };
 

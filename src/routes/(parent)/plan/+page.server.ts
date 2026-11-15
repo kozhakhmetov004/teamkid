@@ -30,6 +30,11 @@ export const load: PageServerLoad = async (event) => {
 const Add = z.object({
 	title: z.string().trim().min(1).max(200),
 	place: z.string().trim().max(200).optional(),
+	// Unchecked "Show to <child>" = a surprise, hidden from the child's calendar.
+	kidVisible: z
+		.literal('yes')
+		.optional()
+		.transform((v) => v === 'yes'),
 	...SlotFields
 });
 
@@ -62,6 +67,7 @@ export const actions: Actions = {
 				ends_at: zonedToUtc(v.date, v.to, tz).toISOString(),
 				home: member.home === 'A' || member.home === 'B' ? member.home : null,
 				kind: 'activity',
+				kid_visible: v.kidVisible,
 				source: 'planner',
 				place: v.place || null,
 				created_by: member.member_id

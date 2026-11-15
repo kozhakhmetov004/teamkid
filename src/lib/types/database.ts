@@ -267,6 +267,7 @@ export type Database = {
 					family_id: string;
 					home: string | null;
 					id: string;
+					kid_visible: boolean;
 					kind: string;
 					notes: string | null;
 					place: string | null;
@@ -283,6 +284,7 @@ export type Database = {
 					family_id: string;
 					home?: string | null;
 					id?: string;
+					kid_visible?: boolean;
 					kind?: string;
 					notes?: string | null;
 					place?: string | null;
@@ -298,6 +300,7 @@ export type Database = {
 					family_id?: string;
 					home?: string | null;
 					id?: string;
+					kid_visible?: boolean;
 					kind?: string;
 					notes?: string | null;
 					place?: string | null;
@@ -1720,6 +1723,19 @@ export type Database = {
 			};
 			is_family_member: { Args: { fid: string }; Returns: boolean };
 			is_family_parent: { Args: { fid: string }; Returns: boolean };
+			kid_calendar: {
+				Args: { p_from: string; p_to: string };
+				Returns: {
+					ends_at: string;
+					home: string;
+					id: string;
+					kind: string;
+					place: string;
+					starts_at: string;
+					title: string;
+				}[];
+			};
+			kid_exchange_place: { Args: Record<PropertyKey, never>; Returns: string };
 			my_memberships: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
