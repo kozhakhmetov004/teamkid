@@ -13,7 +13,7 @@ export type ShareResult = 'ok' | 'not_found' | 'error';
 
 export async function setWishShared(
 	sb: SupabaseClient<Database>,
-	child: { childId: string; member: Membership },
+	child: { childId: string; member: Membership; tz?: string },
 	wishId: string,
 	shared: boolean
 ): Promise<ShareResult> {
@@ -38,14 +38,14 @@ export async function setWishShared(
 		entityId: wishId
 	});
 
-	await rebuildQuietly(sb, child.childId);
+	await rebuildQuietly(sb, child.childId, child.tz);
 	return 'ok';
 }
 
 /** Rebuild the weekly insight; a failure never breaks the child's action. */
-export async function rebuildQuietly(sb: SupabaseClient<Database>, childId: string) {
+export async function rebuildQuietly(sb: SupabaseClient<Database>, childId: string, tz?: string) {
 	try {
-		await rebuildWeeklyInsight(childId, new Date(), sb);
+		await rebuildWeeklyInsight(childId, new Date(), sb, tz);
 	} catch (err) {
 		console.error('insight rebuild failed', err instanceof Error ? err.message : 'unknown');
 	}
@@ -54,7 +54,7 @@ export async function rebuildQuietly(sb: SupabaseClient<Database>, childId: stri
 /** Share every answer of one card (this week) with both parents. */
 export async function setCardShared(
 	sb: SupabaseClient<Database>,
-	child: { childId: string; member: Membership },
+	child: { childId: string; member: Membership; tz?: string },
 	kind: string,
 	weekStart: string
 ): Promise<ShareResult> {
@@ -79,6 +79,6 @@ export async function setCardShared(
 			entityId: row.id
 		});
 	}
-	await rebuildQuietly(sb, child.childId);
+	await rebuildQuietly(sb, child.childId, child.tz);
 	return 'ok';
 }

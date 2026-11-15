@@ -271,7 +271,7 @@
 					{#each shown as s (s.place.id)}
 						{@const matches = matchesFor(s.place.category, panel.childTags)}
 						<div class="flex flex-col gap-2">
-							<SuggestionCard suggestion={s} {demo} />
+							<SuggestionCard suggestion={s} {demo} childName={panel.childName} />
 							<p class="text-xs text-muted-foreground">
 								{matches.length ? `Matches: ${matches.join(', ')}` : 'A new idea to try'}
 							</p>

@@ -110,7 +110,8 @@ export function parsePond(raw: Json | null | undefined): PondState {
 	return { friends, day, played, best };
 }
 
-export function toJson(s: PondState): Json {
+/** Always an object (the pond column is jsonb NOT NULL, object only). */
+export function toJson(s: PondState): { [key: string]: Json } {
 	return {
 		friends: s.friends.map((f) => ({ key: f.key, on: f.on })),
 		day: s.day,

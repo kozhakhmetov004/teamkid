@@ -195,7 +195,7 @@ export const actions: Actions = {
 				entityId: r.id
 			});
 		}
-		if (wasShared.length) await rebuildQuietly(sb, childId);
+		if (wasShared.length) await rebuildQuietly(sb, childId, safeTimeZone(event.cookies.get('tz')));
 
 		return {
 			form: 'answer',
@@ -212,7 +212,7 @@ export const actions: Actions = {
 		if (!parsed.success) return formFailure('share', 'Oops, try again?', 400);
 		const result = await setCardShared(
 			event.locals.supabase,
-			{ childId, member },
+			{ childId, member, tz: safeTimeZone(event.cookies.get('tz')) },
 			parsed.data.card,
 			isoDate(utcWeekStart(new Date()))
 		);

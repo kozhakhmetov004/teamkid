@@ -6,6 +6,8 @@ export interface CalEvent {
 	place: string | null;
 	notes: string | null;
 	childId: string | null;
+	/** false = hidden from the child's calendar (e.g. a surprise) */
+	kidVisible: boolean;
 	/** "4:00 PM" */
 	time: string;
 	/** local 'YYYY-MM-DD' / 'HH:MM' for the edit form */

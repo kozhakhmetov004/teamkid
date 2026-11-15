@@ -21,11 +21,15 @@
 	} = $props();
 
 	let pending = $state(false);
+	// "Show to Lily": on by default; off hides it from the child (surprises).
+	let kidVisible = $state(true);
+	const kidName = $derived(children[0]?.first_name ?? 'your child');
 	let error = $state<string | null>(null);
 	let fieldErrors = $state<Record<string, string>>({});
 
 	$effect(() => {
 		if (open) {
+			kidVisible = event?.kidVisible ?? true;
 			error = null;
 			fieldErrors = {};
 		}
@@ -116,6 +120,36 @@
 						>{event?.notes ?? ''}</textarea
 					>
 				</div>
+				<label
+					class="flex items-start gap-3 rounded-lg border p-3 text-sm sm:col-span-2 {kidVisible
+						? ''
+						: 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40'}"
+				>
+					<input
+						type="checkbox"
+						name="kidVisible"
+						value="yes"
+						bind:checked={kidVisible}
+						class="mt-0.5 size-4 accent-primary"
+					/>
+					<span>
+						{#if kidVisible}
+							<span class="font-medium"
+								><span aria-hidden="true">👀</span> {kidName} can see this</span
+							>
+							<span class="block text-muted-foreground"
+								>Shown in {kidName}'s calendar. Untick to keep it a surprise.</span
+							>
+						{:else}
+							<span class="font-medium"
+								><span aria-hidden="true">🤫</span> Surprise: hidden from {kidName}</span
+							>
+							<span class="block text-muted-foreground"
+								>{kidName} won't see this event. Only you and your co-parent will.</span
+							>
+						{/if}
+					</span>
+				</label>
 				{#if error}<p role="alert" class="text-sm text-destructive sm:col-span-2">{error}</p>{/if}
 				<Dialog.Footer class="sm:col-span-2">
 					<Button type="button" variant="outline" onclick={() => (open = false)}>Cancel</Button>
