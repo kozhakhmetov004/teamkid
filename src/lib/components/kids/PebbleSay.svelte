@@ -38,14 +38,17 @@
 
 <div class="relative {className}">
 	<div
-		class="relative rounded-[2rem] border-2 border-primary/20 bg-kid-surface px-7 py-6 text-2xl leading-snug font-semibold shadow-sm"
+		class="relative rounded-[1.75rem] border-[3px] border-white bg-[var(--kid-surface)] px-6 py-5 text-[1.45rem] leading-snug font-bold shadow-[0_5px_0_oklch(0.86_0.035_205),var(--k-shadow)]"
 	>
-		<p aria-live="polite">{text}</p>
+		{#key text}
+			<p aria-live="polite" class="k-rise">{text}</p>
+		{/key}
 		{#if canSpeak}
 			<button
 				type="button"
 				onclick={speaking ? stop : readAloud}
-				class="mt-4 inline-flex min-h-12 items-center gap-2 rounded-full bg-secondary px-5 text-lg font-semibold text-secondary-foreground transition hover:bg-accent focus-visible:ring-4 focus-visible:ring-ring focus-visible:outline-none"
+				aria-pressed={speaking}
+				class="k-btn k-btn--sm k-sky mt-4"
 			>
 				<span aria-hidden="true">{speaking ? '⏹️' : '🔊'}</span>
 				{speaking ? 'Stop' : 'Read to me'}
@@ -54,7 +57,7 @@
 		<!-- tail pointing down toward Pebble -->
 		<span
 			aria-hidden="true"
-			class="absolute -bottom-3 left-16 size-6 rotate-45 border-r-2 border-b-2 border-primary/20 bg-kid-surface"
+			class="absolute -bottom-[13px] left-14 size-6 rotate-45 rounded-br-md border-r-[3px] border-b-[3px] border-white bg-[var(--kid-surface)] shadow-[4px_4px_0_oklch(0.86_0.035_205)]"
 		></span>
 	</div>
 </div>

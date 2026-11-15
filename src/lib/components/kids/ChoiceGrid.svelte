@@ -4,7 +4,7 @@
 	 * Keyboard: arrow keys move focus (Home/End too), Enter/Space or click picks.
 	 * Every choice has an icon AND a word; the picked one also shows "✓".
 	 */
-	import { KID_FOCUS } from '#lib/kids/ui.js';
+	import type { KidAccent } from './ui/KidTile.svelte';
 
 	interface Choice {
 		value: V;
@@ -18,6 +18,7 @@
 		picked = null,
 		cols = 3,
 		disabled = false,
+		accent = 'mint',
 		onpick
 	}: {
 		choices: readonly Choice[];
@@ -26,6 +27,8 @@
 		picked?: V | null;
 		cols?: 2 | 3;
 		disabled?: boolean;
+		/** Colour family of the picked card. */
+		accent?: KidAccent;
 		onpick: (value: V) => void;
 	} = $props();
 
@@ -62,7 +65,7 @@
 <div
 	role="radiogroup"
 	aria-label={label}
-	class="grid gap-4 {cols === 3 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}"
+	class="k-{accent} grid gap-4 {cols === 3 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}"
 >
 	{#each choices as choice, i (choice.value)}
 		{@const isPicked = picked === choice.value}
@@ -76,17 +79,13 @@
 			onclick={() => onpick(choice.value)}
 			onkeydown={(e) => onkeydown(e, i)}
 			onfocus={() => (focusIndex = i)}
-			class="relative flex min-h-40 flex-col items-center justify-center gap-3 rounded-[2rem] border-4 bg-kid-surface p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 {isPicked
-				? 'border-primary bg-secondary'
-				: 'border-transparent'} {KID_FOCUS}"
+			class="k-choice k-rise min-h-40"
+			style:animation-delay="{i * 40}ms"
 		>
-			<span class="text-6xl leading-none" aria-hidden="true">{choice.icon}</span>
-			<span class="text-2xl font-bold">{choice.label}</span>
+			<span class="k-choice__icon" aria-hidden="true">{choice.icon}</span>
+			<span class="text-2xl font-extrabold">{choice.label}</span>
 			{#if isPicked}
-				<span
-					class="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground"
-					aria-hidden="true">✓</span
-				>
+				<span class="k-choice__check" aria-hidden="true">✓</span>
 			{/if}
 		</button>
 	{/each}

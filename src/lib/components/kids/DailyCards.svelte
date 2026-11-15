@@ -7,9 +7,10 @@
 	import { onMount, tick } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { cardShareAsk, DECK_LINES, WISH_LINES } from '#lib/kids/pebbleLines.js';
-	import type { ShellColor, ShellPatternKey } from '#lib/kids/pet.js';
-	import { KID_FOCUS } from '#lib/kids/ui.js';
+	import Celebrate from './ui/Celebrate.svelte';
+	import StepDots from './ui/StepDots.svelte';
 	import { IDEA_MAX, type DeckCard } from '#lib/kids/weeklyDeck.js';
+	import type { ShellColorKey } from '#lib/kids/pet.js';
 	import type { PebbleState } from './Pebble.svelte';
 	import ShareAsk from './ShareAsk.svelte';
 
@@ -29,15 +30,13 @@
 		weekendLine,
 		petName,
 		color,
-		pattern,
 		onsay
 	}: {
 		deck: { cards: DeckCard[] };
 		answers: Answer[];
 		weekendLine: string | null;
 		petName: string;
-		color: ShellColor;
-		pattern: ShellPatternKey | null;
+		color: ShellColorKey;
 		onsay: (text: string, mood?: PebbleState) => void;
 	} = $props();
 
@@ -194,171 +193,165 @@
 </script>
 
 <!-- progress dots, with a text label too -->
-<div class="flex flex-wrap items-center gap-3">
-	<ol class="flex gap-2" aria-hidden="true">
-		{#each deck.cards as c, i (c.id ?? c.kind)}
-			<li
-				class="size-3.5 rounded-full {answeredKinds.has(c.id ?? '')
-					? 'bg-primary'
-					: i === index
-						? 'bg-primary/60 ring-2 ring-primary'
-						: 'bg-border'}"
-			></li>
-		{/each}
-	</ol>
-	{#if card}
-		<span class="text-lg text-muted-foreground">Card {index + 1} of {deck.cards.length}</span>
-	{/if}
+<div class="k-sun">
+	<StepDots
+		total={deck.cards.length}
+		current={index}
+		done={deck.cards.flatMap((c, i) => (answeredKinds.has(c.id ?? '') ? [i] : []))}
+		label={card ? `Card ${index + 1} of ${deck.cards.length}` : 'All done!'}
+	/>
 </div>
 
 {#if card}
-	<article class="flex flex-col gap-5 rounded-[2.5rem] bg-kid-surface p-6 shadow-md lg:p-8">
-		<div class="space-y-2">
-			<h1 bind:this={heading} tabindex="-1" class="text-4xl font-bold outline-none lg:text-5xl">
-				{card.prompt}
-			</h1>
-			{#if card.kind === 'activity' && weekendLine}
-				<p class="text-xl text-muted-foreground">{weekendLine}</p>
-			{/if}
-			<p class="text-lg text-muted-foreground">{hint}</p>
-		</div>
+	{#key index}
+		<article class="k-card k-card--accent k-sun k-rise relative flex flex-col gap-5 p-6 lg:p-8">
+			<!-- playing-card corner marks -->
+			<span class="card-corner top-4 right-5" aria-hidden="true">★</span>
+			<span class="card-corner bottom-4 left-5 rotate-180" aria-hidden="true">★</span>
 
-		<div class="grid grid-cols-2 gap-3 sm:grid-cols-3" role="group" aria-label={card.prompt}>
-			{#each card.options as o (o.key)}
-				{@const on = picked.includes(o.key)}
-				<button
-					type="button"
-					aria-pressed={on}
-					disabled={pending}
-					onclick={() => togglePick(o.key)}
-					class="flex min-h-24 flex-col items-center justify-center gap-1 rounded-[1.5rem] border-4 p-3 text-center text-xl font-semibold transition disabled:opacity-60 {on
-						? 'border-primary bg-primary/10'
-						: 'border-transparent bg-background'} {KID_FOCUS}"
-				>
-					<span class="text-4xl" aria-hidden="true">{o.emoji}</span>
-					{o.label}
-					{#if on}<span class="sr-only">(picked)</span>{/if}
-				</button>
-			{/each}
-			{#each ownIdeas as o (o.key)}
-				{@const on = keepOwn.includes(o.key)}
-				<button
-					type="button"
-					aria-pressed={on}
-					disabled={pending}
-					onclick={() => (keepOwn = toggle(keepOwn, o.key))}
-					class="flex min-h-24 flex-col items-center justify-center gap-1 rounded-[1.5rem] border-4 p-3 text-center text-xl font-semibold disabled:opacity-60 {on
-						? 'border-primary bg-primary/10'
-						: 'border-transparent bg-background'} {KID_FOCUS}"
-				>
-					<span class="text-4xl" aria-hidden="true">{o.emoji}</span>
-					{o.label}
-					<span class="text-base font-normal text-muted-foreground">My idea ✏️</span>
-				</button>
-			{/each}
-			<button
-				type="button"
-				aria-expanded={otherOpen}
-				aria-controls="{uid}-other"
-				disabled={pending}
-				onclick={() => (otherOpen = !otherOpen)}
-				class="flex min-h-24 flex-col items-center justify-center gap-1 rounded-[1.5rem] border-4 border-dashed border-border bg-background p-3 text-xl font-semibold disabled:opacity-60 {KID_FOCUS}"
-			>
-				<span class="text-4xl" aria-hidden="true">✏️</span> Other
-			</button>
-		</div>
-
-		{#if otherOpen}
-			<div id="{uid}-other" class="grid gap-2">
-				<label for="{uid}-text" class="text-xl font-semibold">Type your own idea</label>
-				<input
-					id="{uid}-text"
-					type="text"
-					bind:value={other}
-					maxlength={IDEA_MAX}
-					autocomplete="off"
-					class="min-h-16 rounded-2xl border-2 border-border bg-background px-4 text-xl {KID_FOCUS}"
-				/>
-				<p class="text-base text-muted-foreground">
-					{other.length}/{IDEA_MAX} · Please don’t type names, addresses or phone numbers.
-				</p>
+			<div class="space-y-3 pt-2">
+				<span class="k-eyebrow"><span aria-hidden="true">🃏</span> {hint}</span>
+				<h1 bind:this={heading} tabindex="-1" class="k-display outline-none">
+					{card.prompt}
+				</h1>
+				{#if card.kind === 'activity' && weekendLine}
+					<p class="k-lead">{weekendLine}</p>
+				{/if}
 			</div>
-		{/if}
 
-		<button
-			type="button"
-			onclick={save}
-			disabled={pending}
-			class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-primary px-6 text-2xl font-bold text-primary-foreground shadow-sm disabled:opacity-60 {KID_FOCUS}"
-		>
-			<span aria-hidden="true">💾</span>
-			{pending ? 'Saving…' : mine.length ? 'Save my changes' : 'Save my picks'}
-		</button>
+			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3" role="group" aria-label={card.prompt}>
+				{#each card.options as o (o.key)}
+					{@const on = picked.includes(o.key)}
+					<button
+						type="button"
+						aria-pressed={on}
+						disabled={pending}
+						onclick={() => togglePick(o.key)}
+						class="k-choice min-h-32 text-xl"
+					>
+						<span class="text-[2.6rem] leading-none" aria-hidden="true">{o.emoji}</span>
+						{o.label}
+						{#if on}<span class="k-choice__check" aria-hidden="true">✓</span><span class="sr-only"
+								>(picked)</span
+							>{/if}
+					</button>
+				{/each}
+				{#each ownIdeas as o (o.key)}
+					{@const on = keepOwn.includes(o.key)}
+					<button
+						type="button"
+						aria-pressed={on}
+						disabled={pending}
+						onclick={() => (keepOwn = toggle(keepOwn, o.key))}
+						class="k-choice min-h-32 text-xl"
+					>
+						<span class="text-[2.6rem] leading-none" aria-hidden="true">{o.emoji}</span>
+						{o.label}
+						<span class="text-base font-bold text-muted-foreground">My idea ✏️</span>
+						{#if on}<span class="k-choice__check" aria-hidden="true">✓</span>{/if}
+					</button>
+				{/each}
+				<button
+					type="button"
+					aria-expanded={otherOpen}
+					aria-controls="{uid}-other"
+					disabled={pending}
+					onclick={() => (otherOpen = !otherOpen)}
+					class="k-choice k-choice--dashed min-h-32 text-xl"
+				>
+					<span class="text-[2.6rem] leading-none" aria-hidden="true">✏️</span> Other
+				</button>
+			</div>
 
-		<div class="flex flex-wrap justify-between gap-3">
+			{#if otherOpen}
+				<div id="{uid}-other" class="k-rise grid gap-2">
+					<label for="{uid}-text" class="text-xl font-extrabold">Type your own idea</label>
+					<input
+						id="{uid}-text"
+						type="text"
+						bind:value={other}
+						maxlength={IDEA_MAX}
+						autocomplete="off"
+						class="min-h-16 rounded-[1.25rem] border-[3px] border-[var(--k-line)] bg-[var(--kid-surface)] px-5 text-xl font-bold shadow-[inset_0_3px_0_oklch(0.93_0.015_200)] focus:border-[var(--a-edge)]"
+					/>
+					<p class="text-base font-semibold text-muted-foreground">
+						{other.length}/{IDEA_MAX} · Please don’t type names, addresses or phone numbers.
+					</p>
+				</div>
+			{/if}
+
 			<button
 				type="button"
-				disabled={pending || index === 0}
-				onclick={() => goTo(index - 1, DECK_LINES.next)}
-				class="min-h-14 rounded-2xl px-4 text-xl font-semibold text-muted-foreground disabled:opacity-40 {KID_FOCUS}"
-			>
-				← Back
-			</button>
-			<button
-				type="button"
+				onclick={save}
 				disabled={pending}
-				onclick={() =>
-					goTo(index + 1, index + 1 >= deck.cards.length ? DECK_LINES.end : DECK_LINES.next)}
-				class="min-h-14 rounded-2xl bg-secondary px-5 text-xl font-semibold text-secondary-foreground {KID_FOCUS}"
+				class="k-btn k-btn--lg k-btn--block k-mint"
 			>
-				{mine.length ? 'Next card →' : 'Skip this card →'}
+				<span class="k-btn__icon" aria-hidden="true">💾</span>
+				{pending ? 'Saving…' : mine.length ? 'Save my changes' : 'Save my picks'}
 			</button>
-		</div>
 
-		{#if mine.length}
-			<p class="text-lg text-muted-foreground">
-				{#if mine.some((a) => a.shared)}💌 Mom and Dad can see this card.{:else}🤫 Just for you
-					right now.{/if}
-			</p>
-		{/if}
-	</article>
+			<div class="flex flex-wrap justify-between gap-3">
+				<button
+					type="button"
+					disabled={pending || index === 0}
+					onclick={() => goTo(index - 1, DECK_LINES.next)}
+					class="k-btn k-btn--quiet"
+				>
+					<span aria-hidden="true">←</span> Back
+				</button>
+				<button
+					type="button"
+					disabled={pending}
+					onclick={() =>
+						goTo(index + 1, index + 1 >= deck.cards.length ? DECK_LINES.end : DECK_LINES.next)}
+					class="k-btn k-sky"
+				>
+					{mine.length ? 'Next card' : 'Skip this card'} <span aria-hidden="true">→</span>
+				</button>
+			</div>
+
+			{#if mine.length}
+				<p class="text-lg font-bold text-muted-foreground">
+					{#if mine.some((a) => a.shared)}💌 Mom and Dad can see this card.{:else}🤫 Just for you
+						right now.{/if}
+				</p>
+			{/if}
+		</article>
+	{/key}
 {:else}
-	<article class="flex flex-col gap-6 rounded-[2.5rem] bg-kid-surface p-8 text-center shadow-md">
-		<h1 bind:this={heading} tabindex="-1" class="text-4xl font-bold outline-none">
-			That was every card! 🎉
-		</h1>
-		<p class="text-xl text-muted-foreground">
-			You can change your answers until the day ends. New cards tomorrow!
-		</p>
-		<div class="grid gap-4 sm:grid-cols-2">
+	<article
+		class="k-card k-card--accent k-sun k-rise relative flex flex-col items-center gap-6 p-8 text-center"
+	>
+		<Celebrate />
+		<span
+			class="grid size-24 place-items-center rounded-[2rem] bg-[var(--a-solid)] text-6xl shadow-[inset_0_-6px_0_var(--a-edge)]"
+			aria-hidden="true">🎉</span
+		>
+		<h1 bind:this={heading} tabindex="-1" class="k-display outline-none">That was every card!</h1>
+		<p class="k-lead">You can change your answers until the day ends. New cards tomorrow!</p>
+		<div class="grid w-full gap-4 sm:grid-cols-2">
 			<button
 				type="button"
 				onclick={() => goTo(0, DECK_LINES.start)}
-				class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-kid-surface px-6 text-2xl font-bold shadow-sm ring-2 ring-border {KID_FOCUS}"
+				class="k-btn k-btn--lg k-btn--quiet"
 			>
-				<span aria-hidden="true">🔁</span> Change my answers
+				<span class="k-btn__icon" aria-hidden="true">🔁</span> Change my answers
 			</button>
-			<a
-				href="/my-sharing"
-				class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-primary px-6 text-2xl font-bold text-primary-foreground shadow-sm {KID_FOCUS}"
-			>
-				<span aria-hidden="true">👀</span> What do Mom and Dad see?
+			<a href="/my-sharing" class="k-btn k-btn--lg k-sky">
+				<span class="k-btn__icon" aria-hidden="true">👀</span> What do Mom and Dad see?
 			</a>
 		</div>
 	</article>
 {/if}
 
 {#if needsGrownUp}
-	<a
-		href="/help"
-		class="inline-flex min-h-16 items-center gap-3 self-start rounded-2xl bg-kid-surface px-5 text-xl font-semibold shadow-sm ring-2 ring-primary {KID_FOCUS}"
-	>
-		<span aria-hidden="true">🆘</span> I need a grown-up
+	<a href="/help" class="k-btn k-btn--lg k-rose self-start">
+		<span class="k-btn__icon" aria-hidden="true">🆘</span> I need a grown-up
 	</a>
 {/if}
 
 {#if error}
-	<p role="alert" class="rounded-2xl bg-pebble/40 p-4 text-center text-xl text-pebble-foreground">
+	<p role="alert" class="k-note k-peach justify-center text-center">
 		{error}
 	</p>
 {/if}
@@ -369,7 +362,16 @@
 	icon={mine[0]?.emoji ?? '⭐'}
 	{petName}
 	{color}
-	{pattern}
 	{pending}
 	{onanswer}
 />
+
+<style>
+	.card-corner {
+		position: absolute;
+		color: var(--a-edge);
+		font-size: 1.25rem;
+		font-weight: 900;
+		opacity: 0.7;
+	}
+</style>

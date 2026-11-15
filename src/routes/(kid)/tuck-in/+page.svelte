@@ -4,8 +4,7 @@
 	 * 3 slow breaths → come out. Runs entirely in the browser; nothing is saved
 	 * or sent (no tracking of how a child feels here).
 	 */
-	import Pebble from '#lib/components/kids/Pebble.svelte';
-	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import {
 		BREATHS,
 		breathAt,
@@ -15,9 +14,15 @@
 		type BreathState,
 		type TuckFeeling
 	} from '#lib/kids/tuckIn.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import Celebrate from '#lib/components/kids/ui/Celebrate.svelte';
+	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
+	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
+	import StepDots from '#lib/components/kids/ui/StepDots.svelte';
 	import { goto } from '$app/navigation';
 	import { onDestroy } from 'svelte';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let stepIndex = $state(0);
 	let feeling = $state<TuckFeeling | null>(null);
@@ -81,71 +86,60 @@
 
 <svelte:head><title>Tuck in with Pebble · TeamKid</title></svelte:head>
 
-<div class="flex flex-col gap-6" style="font-family: {KID_FONT}">
-	<a
-		href="/pebble"
-		class="inline-flex min-h-14 items-center gap-2 self-start rounded-2xl px-4 text-xl font-semibold text-primary {KID_FOCUS}"
-	>
-		<span aria-hidden="true">←</span> Back to Pebble
-	</a>
+<div class="k-lilac flex flex-col gap-6">
+	<KidBack label="Back to Pebble" />
 
-	<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-10">
-		<section
-			aria-label="Pebble"
-			class="flex flex-col gap-6 rounded-[2.5rem] bg-gradient-to-b from-kid-surface to-secondary p-6 shadow-sm lg:p-8"
-		>
-			<PebbleSay text={speech} />
-			<div class="relative mx-auto grid w-full max-w-[24rem] place-items-center">
+	<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-10">
+		<KidStage {speech} label="Pebble" sticky={false}>
+			<div class="relative grid place-items-center">
 				{#if step.key === 'tuck'}
+					<!-- the breathing circle grows on "in" and shrinks on "out" -->
 					<div
-						class="absolute inset-0 m-auto aspect-square w-full rounded-full bg-primary/15"
+						class="absolute inset-0 m-auto aspect-square w-full rounded-full border-4 border-white/70 bg-[radial-gradient(circle,var(--k-lilac-soft),color-mix(in_oklch,var(--k-lilac-solid)_55%,transparent))]"
 						style="transform: scale({bubbleScale}); transition: transform 120ms linear"
 						aria-hidden="true"
 					></div>
 				{/if}
 				<div class="relative w-full px-6">
-					<Pebble state={pebbleState} />
+					<KidPebble state={pebbleState} name={data.pet.name} color={data.pet.colorKey} />
 				</div>
 			</div>
-		</section>
+		</KidStage>
 
-		<section aria-labelledby="tuck-title" class="flex flex-col gap-6">
-			<ol class="flex gap-2" aria-label="Steps">
-				{#each TUCK_STEPS as s, i (s.key)}
-					<li
-						class="h-3 flex-1 rounded-full {i <= stepIndex ? 'bg-primary' : 'bg-muted'}"
-						aria-current={i === stepIndex ? 'step' : undefined}
-					>
-						<span class="sr-only">Step {i + 1}: {s.title}</span>
-					</li>
-				{/each}
-			</ol>
+		<section aria-labelledby="tuck-title" class="relative flex flex-col gap-6">
+			<StepDots
+				total={TUCK_STEPS.length}
+				current={stepIndex}
+				label="Step {stepIndex + 1} of {TUCK_STEPS.length}: {step.title}"
+			/>
 
-			<h1 id="tuck-title" class="text-4xl font-bold lg:text-5xl">{step.title}</h1>
+			{#key stepIndex}
+				<h1 id="tuck-title" class="k-display k-rise">{step.title}</h1>
+			{/key}
 
 			{#if step.key === 'notice'}
 				<div class="grid grid-cols-2 gap-4" role="group" aria-label="How I feel">
-					{#each TUCK_FEELINGS as f (f.key)}
+					{#each TUCK_FEELINGS as f, i (f.key)}
 						<button
 							type="button"
-							class="flex min-h-24 flex-col items-center justify-center gap-1 rounded-3xl bg-kid-surface text-xl font-semibold shadow-sm {feeling ===
-							f.key
-								? 'ring-4 ring-primary'
-								: ''} {KID_FOCUS}"
+							class="k-choice k-rise min-h-32 text-xl"
+							style:animation-delay="{i * 40}ms"
 							aria-pressed={feeling === f.key}
 							onclick={() => (feeling = f.key)}
 						>
-							<span class="text-4xl" aria-hidden="true">{f.emoji}</span>
+							<span class="k-choice__icon" aria-hidden="true">{f.emoji}</span>
 							{f.label}
+							{#if feeling === f.key}<span class="k-choice__check" aria-hidden="true">✓</span>{/if}
 						</button>
 					{/each}
 				</div>
 			{:else if step.key === 'stop'}
-				<p class="text-2xl">
-					<span aria-hidden="true">✋</span> Hands still. Feet on the floor. You're doing great.
+				<p class="k-note k-rise text-2xl">
+					<span class="k-note__icon" aria-hidden="true">✋</span> Hands still. Feet on the floor. You're
+					doing great.
 				</p>
 			{:else if step.key === 'tuck'}
-				<p class="text-2xl" aria-live="polite">
+				<p class="k-note text-2xl" aria-live="polite">
 					{#if breath.done}
 						All three breaths done!
 					{:else if running}
@@ -158,24 +152,21 @@
 					{/if}
 				</p>
 				{#if breath.done}
-					<button
-						type="button"
-						class="min-h-14 self-start rounded-2xl bg-kid-surface px-5 text-xl shadow-sm {KID_FOCUS}"
-						onclick={startBreathing}
-					>
-						<span aria-hidden="true">🔁</span> Three more breaths
+					<button type="button" class="k-btn k-btn--quiet self-start" onclick={startBreathing}>
+						<span class="k-btn__icon" aria-hidden="true">🔁</span> Three more breaths
 					</button>
 				{/if}
 			{:else}
-				<p class="text-2xl">
-					<span aria-hidden="true">🌟</span> When you're ready, you can tell a grown-up you trust how
-					you feel.
+				<Celebrate />
+				<p class="k-note k-sun k-rise text-2xl">
+					<span class="k-note__icon" aria-hidden="true">🌟</span> When you're ready, you can tell a grown-up
+					you trust how you feel.
 				</p>
 			{/if}
 
 			<button
 				type="button"
-				class="min-h-16 self-start rounded-2xl bg-primary px-8 text-2xl font-bold text-primary-foreground shadow-sm disabled:opacity-50 {KID_FOCUS}"
+				class="k-btn k-btn--lg self-start"
 				disabled={step.key === 'tuck' && running}
 				onclick={next}
 			>

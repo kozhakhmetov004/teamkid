@@ -4,17 +4,22 @@
 	 * Pebble3D. Same character as the 3D model (src/lib/components/pebble/shapes.ts):
 	 * standing, orange star bandana, waving.
 	 */
+	import { DEFAULT_SHELL, type ShellPalette } from '#lib/components/pebble/shell.js';
+
 	let {
 		class: className = '',
 		bob = true,
 		label = 'Pebble the turtle, smiling',
-		decorative = false
+		decorative = false,
+		shell = DEFAULT_SHELL
 	}: {
 		class?: string;
 		bob?: boolean;
 		label?: string;
 		/** Hide from assistive tech (e.g. inside Pebble3D, whose wrapper carries the label). */
 		decorative?: boolean;
+		/** Shell colours (the kids' chosen shell colour); default green. */
+		shell?: ShellPalette;
 	} = $props();
 </script>
 
@@ -29,9 +34,9 @@
 		<!-- ground shadow -->
 		<ellipse cx="110" cy="207" rx="52" ry="7" fill="#0f3a30" opacity="0.12" stroke="none" />
 		<!-- shell behind the body: light rim, dark seams, plates peeking out -->
-		<ellipse cx="110" cy="146" rx="70" ry="60" fill="#8dbb63" />
-		<ellipse cx="110" cy="146" rx="62" ry="54" fill="#3b6b2e" stroke="none" />
-		<g fill="#5c9a45" stroke="#2f5a24" stroke-width="2">
+		<ellipse cx="110" cy="146" rx="70" ry="60" fill={shell.rim} />
+		<ellipse cx="110" cy="146" rx="62" ry="54" fill={shell.seam} stroke="none" />
+		<g fill={shell.plate} stroke={shell.seam} stroke-width="2">
 			<polygon points="52,128 60,116 72,118 74,132 64,140 54,138" />
 			<polygon points="168,128 160,116 148,118 146,132 156,140 166,138" />
 			<polygon points="50,160 58,148 68,150 70,164 62,172 52,170" />
@@ -117,8 +122,8 @@
 		<ellipse cx="68" cy="80" rx="11" ry="6.5" fill="#f6ad9c" stroke="none" opacity="0.9" />
 		<ellipse cx="152" cy="80" rx="11" ry="6.5" fill="#f6ad9c" stroke="none" opacity="0.9" />
 		<!-- big brown eyes with highlights -->
-		<circle cx="86" cy="60" r="13" fill="#5a3a24" stroke="#22160e" stroke-width="2" />
-		<circle cx="134" cy="60" r="13" fill="#5a3a24" stroke="#22160e" stroke-width="2" />
+		<circle cx="86" cy="60" r="13" fill="#6b4428" stroke="#22160e" stroke-width="2" />
+		<circle cx="134" cy="60" r="13" fill="#6b4428" stroke="#22160e" stroke-width="2" />
 		<g stroke="none">
 			<circle cx="86" cy="61" r="8" fill="#22160e" />
 			<circle cx="134" cy="61" r="8" fill="#22160e" />

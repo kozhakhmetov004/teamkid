@@ -105,18 +105,19 @@ export const howItWorks = {
 				{ text: 'Parenting-plan PDF turned into your calendar', status: 'live' as Status },
 				{
 					text: '"Plan my weekend" ideas based on what your child likes',
-					status: 'coming-soon' as Status
+					status: 'live' as Status
 				}
 			]
 		},
 		{
 			icon: 'turtle',
 			title: "Kids' space with Pebble",
-			status: 'in-development' as Status,
+			status: 'live' as Status,
 			items: [
-				{ text: 'A 2-minute check-in with faces and colors', status: 'in-development' as Status },
-				{ text: 'Wish cards about what they want to do', status: 'in-development' as Status },
-				{ text: 'The child decides what parents see', status: 'in-development' as Status }
+				{ text: 'A quick check-in: tap a face, pick your energy', status: 'live' as Status },
+				{ text: 'Daily wish cards about what they want to do', status: 'live' as Status },
+				{ text: 'The child decides what parents see', status: 'live' as Status },
+				{ text: '"Where am I tonight?" and a packing helper', status: 'live' as Status }
 			]
 		}
 	]
@@ -124,7 +125,7 @@ export const howItWorks = {
 
 export const pebble = {
 	title: 'Meet Pebble',
-	status: 'in-development' as Status,
+	status: 'live' as Status,
 	intro:
 		'Pebble is a friendly turtle who helps kids aged 6 to 12 say how they feel and what they would love to do, in their own time, at either home.',
 	steps: [
@@ -144,6 +145,14 @@ export const pebble = {
 			title: 'Both parents hear the same thing',
 			text: 'A short, gentle summary and an idea for the weekend, identical in both homes.'
 		}
+	],
+	extrasTitle: "Also in the kids' space",
+	extras: [
+		{ icon: '🌙', text: '"Where am I tonight?" with a picture week and a packing helper' },
+		{ icon: '🐢', text: 'Tuck in with Pebble: three slow turtle breaths for big feelings' },
+		{ icon: '🪷', text: 'Pond Pairs, a calm memory game with no timer and no losing' },
+		{ icon: '🎨', text: 'Kids name Pebble and pick its shell color' },
+		{ icon: '🆘', text: '"I need a grown-up" is one tap away on every screen' }
 	],
 	whyTitle: 'Why a turtle?',
 	why: [
@@ -195,12 +204,12 @@ export const features = {
 			icon: 'map',
 			title: 'Weekend planner',
 			text: 'Ideas for your time together, based on what your child likes.',
-			status: 'coming-soon' as Status
+			status: 'live' as Status
 		},
 		{
 			icon: 'wallet',
 			title: 'Shared expenses',
-			text: 'Log costs, agree on splits and see who owes whom.',
+			text: 'Ask before spending, set up monthly costs, agree on splits and settle up. Your income stays private.',
 			status: 'live' as Status
 		},
 		{
@@ -222,6 +231,7 @@ export const safety = {
 		'Both parents must agree before a child account exists.',
 		'No ads, no selling data, no tracking scripts.',
 		'Pebble is a friendly companion, not a therapist, and points kids to trusted grown-ups.',
+		'Kids can tap "I need a grown-up" on every screen. In a crisis, both parents get an alert.',
 		"Built with the U.S. children's privacy law (COPPA) in mind."
 	],
 	crisis: 'If you or your child are in crisis, call or text 988.'
@@ -247,7 +257,7 @@ export const pricing = {
 			items: [
 				{ text: 'Shared custody calendar and swaps', status: 'live' as Status },
 				{ text: 'Messages with read receipts', status: 'live' as Status },
-				{ text: 'Basic Pebble for your child', status: 'in-development' as Status }
+				{ text: 'Basic Pebble for your child', status: 'live' as Status }
 			]
 		},
 		{
@@ -259,8 +269,8 @@ export const pricing = {
 			items: [
 				{ text: 'Full AI assistant with tone check', status: 'live' as Status },
 				{ text: 'Parenting-plan import', status: 'live' as Status },
-				{ text: 'Weekend planner', status: 'coming-soon' as Status },
-				{ text: "Weekly insights about your child's week", status: 'in-development' as Status }
+				{ text: 'Weekend planner', status: 'live' as Status },
+				{ text: "Weekly insights about your child's week", status: 'live' as Status }
 			]
 		},
 		{
@@ -342,7 +352,7 @@ export const footer = {
 
 /**
  * Product screenshots (1440×900 PNG in static/landing/). Set `available`
- * to true once the file is added; until then a labelled placeholder shows.
+ * to true once the file is added; until then that preview is simply not shown.
  */
 export const screenshots = {
 	dashboard: {
@@ -372,7 +382,8 @@ export const privacyPage = {
 		{
 			heading: 'What we store',
 			body: [
-				"For parents: your email, the display name you choose, your family's calendar, swap requests, messages and the records the app keeps (an audit log of changes).",
+				"For parents: your email, the display name you choose, your family's calendar, swap requests, messages, shared expenses, documents you upload and the records the app keeps (an audit log of changes).",
+				'If you choose to add an income range in Expenses, only you can see it. Your co-parent never does; when you both opt in, TeamKid uses the two ranges only to suggest a fair split percentage.',
 				"For children: a first name, birth year, a PIN (stored only as a secure hash) and what they do in the kids' space."
 			]
 		},
@@ -382,6 +393,7 @@ export const privacyPage = {
 				'A child account exists only after both parents agree.',
 				"Parents never see the child's words. They see only a short summary of trends and the wishes the child chose to share, and both parents see the same thing.",
 				"Raw chat with Pebble is deleted automatically after 30 days. Nothing from the kids' space is exported, used in court, used to train AI models or used for ads.",
+				'When a child types their own wish idea, it is first checked for safety. It may then be sent to an AI provider to turn it into a short label; only that label is kept, never the words they typed. A name a child gives Pebble stays inside TeamKid.',
 				"We designed TeamKid with the U.S. children's privacy law (COPPA) in mind. Before a real launch we will complete verifiable parental consent and a full review."
 			]
 		},
@@ -392,7 +404,7 @@ export const privacyPage = {
 		{
 			heading: 'Who processes data',
 			body: [
-				'Data is stored with our database and hosting providers. When you use the AI assistant, the text you choose to check is sent to an AI provider to produce a calmer version; we do not store your original draft.'
+				"Data is stored with our database and hosting providers. The AI features send an AI provider only what each one needs, and never names: a message you choose to check or summarise (we do not keep it), a parenting plan you import, or your child's age and the wishes they chose to share, for weekend ideas, wish cards and a short weekly line. A child's own words are never sent, apart from a wish idea they type, as described above."
 			]
 		},
 		{

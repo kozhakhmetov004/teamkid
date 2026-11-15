@@ -1,17 +1,56 @@
 /**
- * Pebble's look: preset names, shell colours and shell patterns.
- * Clicks only: the child never types a name (no free text in P1).
+ * Pebble's look: names (a preset, or the child's own), shell colours and patterns.
  *
- * Storage (pet_state, child-only by RLS):
- *   name            one of PET_NAMES (DB allows 1–30 chars)
+ * Storage (pet_state, child-only by RLS; parents never see it):
+ *   name            a preset from PET_NAMES, or the child's own name that passed
+ *                   checkPetName() + the server's safety check (DB allows 1–30 chars)
  *   colors.shell    hex of one of SHELL_COLORS (colors.skin is left as is)
  *   shell_patterns  [{ "key": "stars", "on": "2026-11-15" }, …]  (on = UTC day it was unlocked)
  */
 import type { Json } from '#lib/types/database.js';
+import { isKidSafe } from './weeklyDeck.js';
 
 export const PET_NAMES = ['Pebble', 'Shelly', 'Sunny', 'Mossy', 'Bubbles', 'Coco'] as const;
 export type PetName = (typeof PET_NAMES)[number];
 export const DEFAULT_PET_NAME: PetName = 'Pebble';
+
+// ---------------------------------------------------------------------------
+// The child's own pet name
+// ---------------------------------------------------------------------------
+export const PET_NAME_MAX = 16;
+
+export type PetNameCheck =
+	| { ok: true; name: string }
+	| { ok: false; reason: 'empty' | 'too_long' | 'letters' | 'words' | 'rude' };
+
+/**
+ * Local rules for a typed pet name (the server also runs the safety check first).
+ * Letters only, plus spaces, ' and -: no numbers, links or emails, so it can't
+ * carry a phone number or address. Up to 3 words and 16 characters. Each word is
+ * capitalised ("mister shell" → "Mister Shell").
+ */
+export function checkPetName(input: string): PetNameCheck {
+	const text = input.normalize('NFKC').replace(/\s+/g, ' ').trim();
+	if (!text) return { ok: false, reason: 'empty' };
+	if ([...text].length > PET_NAME_MAX) return { ok: false, reason: 'too_long' };
+	if (!/^\p{L}[\p{L}\p{M}' -]*$/u.test(text)) return { ok: false, reason: 'letters' };
+	if (text.split(' ').length > 3) return { ok: false, reason: 'words' };
+	if (!isKidSafe(text)) return { ok: false, reason: 'rude' };
+	const name = text.replace(
+		/(^|[\s-])(\p{Ll})/gu,
+		(_, sep: string, ch: string) => sep + ch.toUpperCase()
+	);
+	return { ok: true, name };
+}
+
+/** Pebble's gentle "try again" line for each reason. */
+export const PET_NAME_RETRY: Record<Exclude<PetNameCheck, { ok: true }>['reason'], string> = {
+	empty: 'Type a name in the box, or pick one of mine!',
+	too_long: `That’s a long name! Can you make it ${PET_NAME_MAX} letters or less?`,
+	letters: 'Use letters only, please. No numbers or symbols.',
+	words: 'Three words at most, please!',
+	rude: 'Hmm, let’s pick a kinder name for me.'
+};
 
 export const SHELL_COLORS = [
 	{ key: 'forest', label: 'Forest green', hex: '#3E7F5E', dark: '#2A5A42' },

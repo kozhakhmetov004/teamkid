@@ -29,7 +29,9 @@
 						<ComingSoonBadge status={plan.status} />
 					</div>
 					<p class="mt-4">
-						<span class="text-4xl font-extrabold tracking-tight text-(--mk-ink)">{plan.price}</span>
+						<span class="mk-display text-4xl font-black tracking-tight text-(--mk-ink)"
+							>{plan.price}</span
+						>
 						{#if plan.period}<span class="mt-1 block text-sm text-(--mk-muted)">{plan.period}</span
 							>{/if}
 					</p>
@@ -47,7 +49,7 @@
 					</ul>
 					{#if plan.status === 'live'}
 						<a
-							href={signedIn ? homePath : '/login'}
+							href={signedIn ? homePath : '/login?mode=register'}
 							class="mk-btn mt-7 {plan.highlight ? 'mk-btn-primary' : 'mk-btn-outline'}"
 						>
 							{signedIn ? 'Open TeamKid' : 'Start free'}

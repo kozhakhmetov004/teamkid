@@ -6,119 +6,139 @@
 	import { Label } from '#lib/components/ui/label/index.js';
 	import type { PageProps } from './$types';
 
+	/** Email + password only: no emails are sent (see +page.server.ts). */
+	const PASSWORD_MIN = 8;
+
 	let { data, form }: PageProps = $props();
-	let pending = $state<'magic' | 'password' | null>(null);
-	let mode = $state<'magic' | 'password'>('magic');
+	let pending = $state(false);
 
 	const failure = $derived(form && 'message' in form ? form : null);
-	const sentTo = $derived(form && 'sentTo' in form ? form.sentTo : null);
+	// svelte-ignore state_referenced_locally
+	let mode = $state<'signin' | 'register'>(data.startOn);
+	$effect(() => {
+		if (failure?.form === 'register') mode = 'register';
+		else if (failure?.form === 'password') mode = 'signin';
+	});
+	const fromInvite = $derived(data.next?.startsWith('/invite/') ?? false);
+	const email = $derived(failure?.values?.email ?? '');
+
+	const submit = () => {
+		pending = true;
+		return async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => {
+			await update({ reset: false });
+			pending = false;
+		};
+	};
 </script>
 
-<svelte:head><title>Parent login · TeamKid</title></svelte:head>
+<svelte:head
+	><title>{mode === 'register' ? 'Create account' : 'Parent login'} · TeamKid</title></svelte:head
+>
 
 <main class="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 py-10">
 	<a href="/" class="text-sm text-muted-foreground hover:underline">← Back</a>
 	<Card.Root>
 		<Card.Header>
-			<Card.Title class="text-2xl">Parent login</Card.Title>
-			<Card.Description
-				>New here? Enter your email and we'll send you a sign-in link.</Card.Description
-			>
+			<Card.Title class="text-2xl">
+				{mode === 'register' ? 'Create your parent account' : 'Parent login'}
+			</Card.Title>
+			<Card.Description>
+				{#if fromInvite}
+					Your co-parent invited you. Sign in, or create an account to join the family.
+				{:else if mode === 'register'}
+					Just an email and a password. You can set up your family right after.
+				{:else}
+					Welcome back. Sign in with your email and password.
+				{/if}
+			</Card.Description>
 		</Card.Header>
 		<Card.Content class="space-y-5">
+			<div
+				role="tablist"
+				aria-label="Sign in or create an account"
+				class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
+			>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={mode === 'signin'}
+					class="rounded-md px-3 py-2 text-sm font-medium transition {mode === 'signin'
+						? 'bg-background shadow-sm'
+						: 'text-muted-foreground hover:text-foreground'}"
+					onclick={() => (mode = 'signin')}>Sign in</button
+				>
+				<button
+					type="button"
+					role="tab"
+					aria-selected={mode === 'register'}
+					class="rounded-md px-3 py-2 text-sm font-medium transition {mode === 'register'
+						? 'bg-background shadow-sm'
+						: 'text-muted-foreground hover:text-foreground'}"
+					onclick={() => (mode = 'register')}>Create account</button
+				>
+			</div>
+
 			{#if data.error}
 				<p role="alert" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-					That sign-in link didn't work or has expired. Please request a new one.
+					That sign-in link didn't work or has expired. Please sign in with your password.
 				</p>
 			{/if}
 
-			{#if sentTo}
-				<div role="status" class="rounded-md bg-secondary p-4 text-secondary-foreground">
-					<p class="font-medium">Check your email</p>
-					<p class="text-sm">We sent a sign-in link to <strong>{sentTo}</strong>.</p>
-				</div>
-			{:else if mode === 'magic'}
+			{#key mode}
 				<form
 					method="POST"
-					action="?/magic"
+					action={mode === 'register' ? '?/register' : '?/password'}
 					class="space-y-4"
-					use:enhance={() => {
-						pending = 'magic';
-						return async ({ update }) => {
-							await update();
-							pending = null;
-						};
-					}}
+					use:enhance={submit}
 				>
 					<input type="hidden" name="next" value={data.next ?? ''} />
 					<div class="space-y-2">
-						<Label for="magic-email">Email</Label>
+						<Label for="email">Email</Label>
 						<Input
-							id="magic-email"
+							id="email"
 							name="email"
 							type="email"
 							autocomplete="email"
 							required
-							value={failure?.form === 'magic' ? (failure.values?.email ?? '') : ''}
-							aria-invalid={failure?.form === 'magic' && !!failure.errors?.email}
+							value={email}
+							aria-invalid={!!failure?.errors?.email}
 						/>
-						{#if failure?.form === 'magic'}
-							<p class="text-sm text-destructive">{failure.errors?.email ?? failure.message}</p>
+						{#if failure?.errors?.email}
+							<p class="text-sm text-destructive">{failure.errors.email}</p>
 						{/if}
 					</div>
-					<Button type="submit" class="w-full" size="lg" disabled={pending !== null}>
-						{pending === 'magic' ? 'Sending…' : 'Email me a sign-in link'}
-					</Button>
-				</form>
-				<Button variant="link" class="w-full" onclick={() => (mode = 'password')}>
-					Use a password instead (demo accounts)
-				</Button>
-			{:else}
-				<form
-					method="POST"
-					action="?/password"
-					class="space-y-4"
-					use:enhance={() => {
-						pending = 'password';
-						return async ({ update }) => {
-							await update({ reset: false });
-							pending = null;
-						};
-					}}
-				>
-					<input type="hidden" name="next" value={data.next ?? ''} />
 					<div class="space-y-2">
-						<Label for="pw-email">Email</Label>
+						<Label for="password">Password</Label>
 						<Input
-							id="pw-email"
-							name="email"
-							type="email"
-							autocomplete="email"
-							required
-							value={failure?.form === 'password' ? (failure.values?.email ?? '') : ''}
-						/>
-					</div>
-					<div class="space-y-2">
-						<Label for="pw-password">Password</Label>
-						<Input
-							id="pw-password"
+							id="password"
 							name="password"
 							type="password"
-							autocomplete="current-password"
+							autocomplete={mode === 'register' ? 'new-password' : 'current-password'}
+							minlength={mode === 'register' ? PASSWORD_MIN : undefined}
 							required
+							aria-invalid={!!failure?.errors?.password}
+							aria-describedby={mode === 'register' ? 'password-hint' : undefined}
 						/>
+						{#if failure?.errors?.password}
+							<p class="text-sm text-destructive">{failure.errors.password}</p>
+						{:else if mode === 'register'}
+							<p id="password-hint" class="text-sm text-muted-foreground">
+								At least {PASSWORD_MIN} characters.
+							</p>
+						{/if}
 					</div>
-					{#if failure?.form === 'password'}
+					{#if failure && !failure.errors?.email && !failure.errors?.password}
 						<p role="alert" class="text-sm text-destructive">{failure.message}</p>
 					{/if}
-					<Button type="submit" class="w-full" size="lg" disabled={pending !== null}>
-						{pending === 'password' ? 'Signing in…' : 'Sign in'}
+					<Button type="submit" class="w-full" size="lg" disabled={pending}>
+						{#if mode === 'register'}
+							{pending ? 'Creating your account…' : 'Create account'}
+						{:else}
+							{pending ? 'Signing in…' : 'Sign in'}
+						{/if}
 					</Button>
 				</form>
-				<Button variant="link" class="w-full" onclick={() => (mode = 'magic')}>
-					Use an email link instead
-				</Button>
-			{/if}
+			{/key}
 		</Card.Content>
 	</Card.Root>
 	<p class="text-center text-sm text-muted-foreground">

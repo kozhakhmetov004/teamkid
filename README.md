@@ -48,34 +48,57 @@ TeamKid has three parts:
 
 ## Key features
 
+Everything in this section works on `main`. Ideas that aren't built yet are listed under [Planned / not built yet](#planned--not-built-yet).
+
 ### Parent workspace
-- Custody calendar with templates (2-2-3, week on/week off, alternate weekends) and holiday rules
-- Swap requests: request → accept / decline / counter, with full history
-- Messaging that **cannot be edited or deleted**, with read receipts and topic threads
-- Shared expenses with receipt photo, split rules (50/50, 60/40) and a "who owes whom" balance
-- Document vault (parenting plan, medical, school)
-- PDF export of records for lawyers or court
+- **Onboarding:** create a family, invite the co-parent with a link (`/invite/[token]`), add a child. The child's account turns on only after **both** parents consent.
+- **Today dashboard:** briefing, custody line, week strip, next handover, pending swaps, unread messages, the child's shared feeling of the day, safety alerts. Updates live (Supabase Realtime).
+- **Custody calendar** (week and month views): templates 2-2-3, week on / week off and alternate weekends, with an exchange time. Events (school, activity, medical, handover, other) with place and notes. Each event has a **"Lily can see this"** switch, so surprises stay hidden from the child.
+- **Swap requests:** request → accept / decline / counter, with history. Adding a planner idea on the other parent's day sends a swap request instead.
+- **Messaging:** topic threads; messages **cannot be edited or deleted** (trigger + hash chain); read receipts.
+- **Expenses:** receipts stored privately, split rules and a proposed family split both parents agree on, **"Ask before spending"** requests, **monthly costs** that log themselves, balance and **settle up**. A private **"My money"** card: a parent's income is never visible to the co-parent.
+- **Document vault:** files in a private bucket, opened through 60-second signed links.
+- **Safety alerts:** an alert raised in the kids' space shows on both dashboards (category only, never the child's words); either parent can mark it resolved.
+- **Billing:** Stripe Checkout for Family Plus in **test mode**. The page stays disabled when Stripe keys are missing.
 
 ### AI assistant
-- **Tone rewrite** before sending (BIFF: brief, informative, friendly, firm)
-- **Incoming shield**: summarises hostile messages into facts and requests
-- **Parenting plan reader**: upload a PDF → calendar and holidays filled automatically
-- **Plan my weekend**: suggests real places based on the child's wish cards, the parent's schedule, budget and location
-- **Weekly digest**: the week ahead, open requests, money owed, child highlights
+All AI goes through one wrapper (`src/lib/server/ai/llm.ts`, `ask()`), with a fast and a smart model tier. With an empty `LLM_API_KEY` it returns deterministic fake output, so the app runs without a key. Prompts and answers are never logged.
+- **Tone rewrite** before sending (BIFF: brief, informative, friendly, firm), with a check that the rewrite didn't add or drop facts.
+- **Incoming shield:** turns a message from the other parent into neutral facts and requests. Nothing is stored.
+- **Parenting plan reader:** upload a PDF (straight from the browser to private Storage) → the AI extracts the custody pattern, exchange time and place, and holidays, each with a confidence level and the source quote → the parent reviews and applies the schedule to the calendar. Holidays are saved with the schedule rules but not yet turned into calendar nights. A sample plan is in `static/demo/parenting-plan-carter.pdf`.
+- **Plan this weekend** (panel in the Calendar): real places from **OpenStreetMap** (Overpass) near the chosen city, picked around the parent's free time, the child's shared wishes and the budget. Times are editable, with soft warnings. If Overpass is down, demo places are used and labelled as such.
+- **"My time with Lily":** one private suggestion for the next outing, from that parent's own outings and the child's shared wishes.
+- **Daily wish cards:** new questions for the child each day; a typed "Other" idea is cleaned into a short label before it's stored. An AI line on the parents' "Lily's week" card, with a rule-based fallback.
+
+No names or exact locations are sent to the model.
 
 ### Kids' space (Pebble the turtle)
-- Mood check-in with faces and colours (2–5 minutes a day)
-- "Tuck in" calming exercise led by Pebble
-- Wish cards: fun questions that reveal what the child wants to do
-- **The child chooses** which wishes to send to parents
-- Picture calendar: which home tonight, who picks me up
-- Packing helper ("What should we carry in our shell to Dad's?")
-- Pebble never gets sick or sad if the child doesn't play; no guilt mechanics
+- **Kid login:** family code + PIN (rate-limited), no email.
+- **Pebble home:** a 3D turtle the child names and colours; shell patterns to unlock.
+- **Mood and energy check-in.** The child chooses **"Yes, tell them"** or **"Keep it just for me"**. A shared feeling appears live on both parents' dashboards. After several hard days, Pebble gently offers to tell a grown-up (only the child sees this nudge).
+- **"Tuck in"** breathing exercise.
+- **Wish cards** with choose-to-share, and a **"What do Mom and Dad see?"** page (`/my-sharing`) where the child can stop sharing.
+- **Pond Pairs:** a calm memory game that earns pond friends. No streaks, no guilt mechanics.
+- **"Where am I tonight?":** nights for the week, today's plans and who picks the child up, a "sleeps until Dad's" countdown, and a packing helper that adds items for upcoming plans (swimsuit for "Swim class"). Hidden events and parents' notes never reach the child.
+- **"I need a grown-up"** button: sends an alert to both parents right away.
 
 ### Analytics
-- **Shared (both parents, identical numbers):** spending by category per month, and later the child's week, overnights per home, budget vs actual and a year-end report
-- **Private (one parent only):** "My time with Lily", covering outings together and the child's star ratings, plus an AI suggestion for the next activity
-- Never compares parents and never scores anyone (see [Analytics](#analytics))
+- **Shared (both parents, identical numbers):** spending by category per month, balance, and **"Lily's week"** (mood trend from the check-ins the child chose to share, counted per day, plus interests from shared wishes).
+- **Private (one parent only):** "My time with Lily" (outings together, the child's star ratings, one AI suggestion).
+- Never compares parents and never scores anyone (see [Analytics](#analytics)).
+
+### Planned / not built yet
+- **Pebble chat** (`/api/pebble/reply`): `src/lib/server/ai/pebble.ts` is a stub. The `kid_chat_raw` table and its 30-day purge exist, but nothing writes to them yet.
+- **Weekly insight cron** (`/api/cron/insights`): `ai/weeklyInsight.ts` is a stub. "Lily's week" is rebuilt after each check-in or share instead.
+- Thread summary ("What did we agree about X?").
+- Receipt photo → amount, date and category.
+- PDF export of records for lawyers or court.
+- Weekly digest for parents.
+- Email sending (Resend is not wired; invites are shared as links).
+- `LLM_PROVIDER=openai` (the provider is a placeholder that throws).
+- Holidays from the parenting plan applied to the calendar automatically.
+- Teen mode (`children.mode` exists in the schema only).
+- Analytics: child's week from the calendar, overnights per home, budget vs actual, year-end report.
 
 ---
 
@@ -89,30 +112,33 @@ One SvelteKit app does both the UI and the server work. One Vercel project, one 
 │   Svelte pages: parent workspace + kids' space (Pebble)       │
 └──────────────┬───────────────────────────────┬────────────────┘
                │ supabase-js (anon key)        │ form actions / fetch /api/*
-               │ CRUD + Realtime + Storage     │
+               │ Realtime + Storage uploads    │
                │ protected by RLS              ▼
                │              ┌──────────────────────────────────┐
                │              │  SvelteKit server (Vercel)       │
                │              │  hooks.server.ts → session       │
                │              │  src/lib/server/*  (secrets here)│
-               │              │  • AI (rewrite, plan PDF, Pebble)│
-               │              │  • Planner (Google Places)       │
+               │              │  • AI: rewrite, shield, plan PDF,│
+               │              │    planner, wish cards, My time  │
+               │              │  • Places (OpenStreetMap)        │
                │              │  • Stripe checkout + webhook     │
-               │              │  • Weekly insight job (cron)     │
+               │              │  • Weekly insight rebuild        │
                │              └───────┬──────────────┬───────────┘
                ▼                      ▼              ▼
-     ┌──────────────────────────────────────┐  ┌───────────────────────┐
-     │  Supabase                            │  │  External APIs        │
-     │  Postgres + RLS · Auth · Storage     │  │  LLM (Claude / GPT)   │
-     │  Realtime · pg_cron                  │  │  Stripe · Places      │
-     └──────────────────────────────────────┘  │  Resend               │
-                                               └───────────────────────┘
+     ┌──────────────────────────────────────┐  ┌───────────────────────────┐
+     │  Supabase                            │  │  External APIs            │
+     │  Postgres + RLS · Auth · Storage     │  │  Anthropic (Claude)       │
+     │  Realtime · pg_cron                  │  │  Stripe (test mode)       │
+     └──────────────────────────────────────┘  │  OpenStreetMap (Overpass) │
+                                               └───────────────────────────┘
 ```
 
 **Rule of thumb:**
-- **Browser → Supabase directly** for simple reads and writes: calendar, messages, expenses, pet state and live updates. Row-level security (RLS) protects it.
-- **Browser → SvelteKit server** for anything that needs a secret or heavy logic: AI calls, PDF reading, Stripe and the weekly insight summary.
-- Secrets live **only** in `src/lib/server/` and `$env/static/private`. SvelteKit refuses to bundle these into browser code.
+- **Server load functions and form actions** do most reads and writes, using the signed-in user's Supabase client, so row-level security (RLS) applies to every query.
+- **Browser → Supabase directly** only for Realtime subscriptions (live dashboard, messages, swaps, expenses, safety alerts, shared feelings) and for uploading a parenting-plan PDF straight to private Storage (Vercel limits request bodies to 4.5 MB).
+- **Service role** (`src/lib/server/supabaseAdmin.ts`) only on the server, where users have no write policy by design or aren't signed in yet: the audit log, weekly insights and daily wish cards, safety alerts, kid login, invites and adding a child, the income-based split suggestion, storage checks and the Stripe webhook.
+- **The child never reads `events` directly.** The kids' calendar goes through `kid_calendar()`, which returns safe columns only (no notes, no hidden events).
+- Secrets live **only** in `src/lib/server/env.ts` and are declared in `src/env.ts` (`$app/env/private`). SvelteKit refuses to bundle them into browser code, and `pnpm lint` checks it.
 
 ---
 
@@ -120,21 +146,21 @@ One SvelteKit app does both the UI and the server work. One Vercel project, one 
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| App framework | **SvelteKit + TypeScript** | Frontend and backend in one project; team experience |
+| App framework | **SvelteKit 3 + Svelte 5 + TypeScript** | Frontend and backend in one project |
 | Adapter | `@sveltejs/adapter-vercel` | Zero-config deploys to Vercel |
-| UI | Tailwind CSS + shadcn-svelte | Polished UI quickly |
-| Animation | Rive (or Lottie) | Pebble's states: idle, happy, sleepy, tuck-in |
-| Database | **Supabase Postgres** | Relational data, RLS, triggers for immutable records |
-| Auth | Supabase Auth via `@supabase/ssr` | Magic link for parents; PIN login for children |
-| Realtime | Supabase Realtime | Live messages, swap requests, insight cards |
-| Files | Supabase Storage (private buckets) | PDFs, receipts, photos |
-| AI | LLM provider's TypeScript SDK | Rewrite, PDF extraction (the model reads the PDF directly), planning, Pebble replies |
-| Validation | Zod | Validate requests and AI JSON output |
-| Payments | Stripe Checkout + Billing (test mode for demo) | Family Plus subscription |
-| Email | Resend | Invites, notifications |
-| Places | Google Places API | Real venues for "Plan my weekend" |
-| Scheduled jobs | Vercel Cron → `/api/cron/insights` | Weekly child insight summary |
-| Hosting | **Vercel** (one project) | Push to deploy |
+| UI | Tailwind CSS 4 + shadcn-svelte (bits-ui) | Polished UI quickly |
+| Pebble | Three.js via Threlte | The 3D turtle in the kids' space |
+| Database | **Supabase Postgres** | Relational data, RLS, triggers and functions for immutable records and swaps |
+| Auth | Supabase Auth via `@supabase/ssr` | Magic link or password for parents; family code + PIN for children |
+| Realtime | Supabase Realtime | Live dashboard, messages, swaps, expenses, alerts, shared feelings |
+| Files | Supabase Storage (private `documents` bucket) | Parenting plans, vault files, receipts; signed URLs only |
+| AI | `@anthropic-ai/sdk` behind one `ask()` wrapper | Fast tier (`LLM_MODEL_FAST`) and smart tier (`LLM_MODEL_SMART`); fake output without a key |
+| Validation | Zod 4 | Request bodies, form actions, AI JSON output, env vars |
+| Places | **OpenStreetMap** (Overpass API, no key) | Real venues for "Plan this weekend"; demo places as a fallback |
+| Payments | Stripe Checkout (REST, test mode) | Family Plus subscription |
+| Scheduled jobs | Supabase `pg_cron` | Purge of raw kid chat after 30 days |
+| Tests | Vitest + `scripts/test-rls.ts` | Unit tests and RLS tests with real signed-in clients |
+| Hosting | **Vercel** | Push to deploy |
 
 ---
 
@@ -144,239 +170,196 @@ One SvelteKit app does both the UI and the server work. One Vercel project, one 
 teamkid/
 ├── README.md
 ├── package.json
-├── svelte.config.js                # adapter-vercel
-├── vite.config.ts
-├── tailwind.config.ts
+├── vite.config.ts                  # SvelteKit 3: no svelte.config.js
 ├── tsconfig.json
-├── vercel.json                     # cron schedule
 ├── .env.example
-│
+├── docs/                           # MANUAL_STEPS (cloud setup), ARCHITECTURE_NOTES, member briefs
+├── scripts/
+│   ├── seed.ts                     # demo families (idempotent)
+│   ├── test-rls.ts                 # RLS test with real signed-in clients
+│   ├── smoke.ts                    # HTTP smoke test (needs pnpm dev)
+│   ├── make-sample-plan.ts         # regenerates static/demo/parenting-plan-carter.pdf
+│   ├── make-local-env.mjs          # writes .env from `supabase status`
+│   └── check-env-imports.ts        # lint: private env only in server files
 ├── static/
-│   └── pebble/                     # Rive / Lottie files for the turtle
+│   ├── demo/                       # sample parenting plan PDF
+│   └── landing/                    # Open Graph images
 │
 ├── src/
-│   ├── app.html
-│   ├── app.d.ts                    # Locals: supabase, session, member
+│   ├── env.ts                      # all env vars, declared and validated (Zod)
 │   ├── hooks.server.ts             # Supabase SSR client + session on every request
 │   │
 │   ├── lib/
 │   │   ├── supabase.ts             # browser client
-│   │   ├── types.ts                # DB types (generated by Supabase CLI)
-│   │   ├── stores/                 # session, family, realtime subscriptions
+│   │   ├── realtime.ts             # subscribeToFamily()
+│   │   ├── types/                  # database.ts (generated), domain.ts
+│   │   ├── safety/                 # help options for "I need a grown-up"
+│   │   ├── custody/                # schedule patterns, time zones, today/briefing helpers
+│   │   ├── expenses/               # balance, chart, income-based split
+│   │   ├── kids/                   # moods, insight rules, wish deck, nights, kid calendar, packing, pond
 │   │   ├── components/
-│   │   │   ├── calendar/           # CustodyCalendar, SwapRequestCard
-│   │   │   ├── messages/           # Thread, Composer (with AI rewrite)
-│   │   │   ├── expenses/           # ExpenseForm, Balance
-│   │   │   ├── insights/           # InsightCard (weekly child summary)
+│   │   │   ├── today/              # dashboard cards (incl. MoodToday)
+│   │   │   ├── calendar/           # month/week views, EventForm, swaps
+│   │   │   ├── messages/           # threads, composer with AI rewrite, ShieldButton
+│   │   │   ├── expenses/           # forms, balance, requests, monthly costs, My money
+│   │   │   ├── insights/           # InsightCard ("Lily's week")
 │   │   │   ├── analytics/          # SpendingChart (shared), MyTimeCard (private)
-│   │   │   ├── kids/               # Pebble, MoodWheel, WishCard, TuckIn
+│   │   │   ├── kids/               # Pebble, check-in choices, ShareAsk, PackingHelper
+│   │   │   ├── plan/, import/      # weekend planner cards, plan PDF review
+│   │   │   ├── documents/, family/ # vault upload/list, invite and add-child forms
+│   │   │   ├── pebble/             # 3D turtle (Threlte)
+│   │   │   ├── safety/             # SafetyAlerts
+│   │   │   ├── landing/            # marketing page
 │   │   │   └── ui/                 # shadcn-svelte components
 │   │   │
 │   │   └── server/                 # SERVER ONLY: never imported by the browser
-│   │       ├── env.ts              # re-exports $env/static/private
-│   │       ├── supabaseAdmin.ts    # service-role client (insights job, webhooks)
-│   │       ├── guards.ts           # requireParent(), requireChild(), requireFamily()
+│   │       ├── env.ts              # the only file that reads private env
+│   │       ├── supabaseAdmin.ts    # service-role client
+│   │       ├── guards.ts           # requireParent(), requireChild()
+│   │       ├── kidAuth.ts          # family code + PIN login
+│   │       ├── family.ts           # create family, invite, add child, consent
+│   │       ├── audit.ts, validation.ts, rateLimit.ts
 │   │       ├── ai/
-│   │       │   ├── llm.ts          # LLM client wrapper
-│   │       │   ├── rewrite.ts
-│   │       │   ├── shield.ts
-│   │       │   ├── planExtract.ts  # parenting plan PDF → schedule JSON
-│   │       │   ├── planner.ts
-│   │       │   ├── pebble.ts       # scripted replies + guarded LLM fallback
-│   │       │   ├── weeklyInsight.ts
-│   │       │   ├── parentSuggestion.ts  # private "My time" suggestion
-│   │       │   └── prompts/        # prompt templates (.md)
-│   │       ├── safety.ts           # crisis keyword + classifier checks
-│   │       ├── places.ts           # Google Places
-│   │       └── stripe.ts
+│   │       │   ├── llm.ts, llmCore.ts, providers.ts   # ask() wrapper, tiers, typed errors
+│   │       │   ├── rewrite.ts, factCheck.ts
+│   │       │   ├── shield.ts, shieldRules.ts
+│   │       │   ├── planExtract.ts, pdfCheck.ts        # parenting plan PDF
+│   │       │   ├── planner.ts                         # weekend planner
+│   │       │   ├── parentSuggestion.ts                # private "My time" suggestion
+│   │       │   ├── pebble.ts, weeklyInsight.ts        # STUBS (planned)
+│   │       │   └── prompts/                           # prompt templates (.md)
+│   │       ├── insights/           # weekly insight build, sharing, daily wish cards, AI week line, My time
+│   │       ├── places.ts, openingHours.ts             # OpenStreetMap (Overpass)
+│   │       ├── plannerContext.ts, plannerSlot.ts, planPanel.ts, planSwap.ts
+│   │       ├── safety.ts           # crisis keyword checks + safety alerts
+│   │       └── stripe.ts, stripeCore.ts
 │   │
 │   └── routes/
-│       ├── +layout.svelte
-│       ├── +layout.server.ts       # passes session to pages
-│       ├── +page.svelte            # landing page
-│       ├── login/                  # magic link
-│       ├── auth/callback/+server.ts
-│       ├── onboarding/             # create family, invite co-parent, add child (both consents)
+│       ├── (marketing)/            # landing, /privacy, /terms
+│       ├── login/, logout/, auth/callback/, auth/confirm/
+│       ├── onboarding/, invite/[token]/
+│       ├── kid-login/              # family code + PIN
 │       │
-│       ├── (parent)/               # +layout.server.ts guards parent role
-│       │   ├── dashboard/          # week overview + insight card
-│       │   ├── calendar/
+│       ├── (parent)/               # layout guards the parent role
+│       │   ├── dashboard/          # Today
+│       │   ├── calendar/           # calendar, swaps, "Plan this weekend" panel
 │       │   ├── messages/
 │       │   ├── expenses/
-│       │   ├── documents/
-│       │   ├── plan/               # "Plan my weekend"
+│       │   ├── documents/          # vault + signed URLs
+│       │   ├── family/             # members, invites, child profile
+│       │   ├── plan/import/        # parenting plan PDF → calendar (/plan redirects to /calendar)
 │       │   └── billing/
 │       │
-│       ├── kid-login/              # PIN login for children
-│       ├── (kid)/                  # +layout.server.ts guards child role
-│       │   ├── pebble/             # home screen with the turtle
-│       │   ├── checkin/
-│       │   ├── wishes/
-│       │   └── where-am-i/
+│       ├── (kid)/                  # layout guards the child role
+│       │   ├── pebble/             # home with the turtle
+│       │   ├── checkin/, tuck-in/, wishes/, my-sharing/
+│       │   ├── pond/               # Pond Pairs game
+│       │   ├── tonight/            # "Where am I tonight?"
+│       │   └── help/               # "I need a grown-up"
 │       │
-│       └── api/                    # JSON endpoints (+server.ts)
-│           ├── health/
-│           ├── ai/
-│           │   ├── rewrite/
-│           │   ├── shield/
-│           │   └── summarize-thread/
-│           ├── documents/
-│           │   ├── parse-plan/
-│           │   └── parse-receipt/
-│           ├── planner/weekend/
-│           ├── pebble/reply/
-│           ├── analytics/
-│           │   ├── spending/
-│           │   └── my-time/
-│           ├── billing/
-│           │   ├── checkout/
-│           │   └── webhook/
-│           └── cron/insights/
+│       └── api/                    # JSON endpoints (+server.ts), see Server endpoints
 │
 └── supabase/
     ├── config.toml
-    ├── migrations/
-    │   ├── 0001_core.sql           # families, members, children, consents
-    │   ├── 0002_parent.sql         # schedules, events, swaps, threads, messages, expenses, documents
-    │   ├── 0003_kids.sql           # pet_state, mood_checkins, wish_cards, kid_chat_raw, weekly_insights, safety_alerts
-    │   ├── 0004_rls.sql            # row-level security policies
-    │   ├── 0005_immutability.sql   # messages can't be edited/deleted + hash chain
-    │   ├── 0006_retention.sql      # pg_cron: delete kid_chat_raw after 30 days
-    │   └── 0007_analytics.sql      # outings table (if not in 0003), v_spending_by_category, v_parent_time
-    └── seed.sql                    # demo family, sample plan, a week of check-ins
+    └── migrations/                 # 0001–0007 backbone, then one file per feature (see Data model)
 ```
 
 ---
 
 ## Data model
 
+The full schema is in `supabase/migrations/` (types: `src/lib/types/database.ts`, generated with `pnpm db:types`). Every table has RLS on; the `anon` role reads nothing.
+
 ### Family and roles
 | Table | Key columns |
 | --- | --- |
-| `families` | id, name, created_at |
-| `members` | id, family_id, user_id, role (`parent` / `child` / `bonus` / `professional`), display_name |
-| `children` | id, family_id, member_id, first_name, birth_year, mode (`pet` / `teen`), pin_hash |
+| `families` | id, name, family_code (used by kid login) |
+| `members` | id, family_id, user_id, role (`parent` / `child` / `bonus` / `professional`), display_name, home (`A` / `B`) |
+| `children` | id, family_id, member_id, first_name, birth_year, mode, status, pin_hash (never selectable by users) |
 | `consents` | id, child_id, parent_member_id, consented_at (a child account needs **both** parents) |
+| `invites` | id, family_id, email, role, token, expires_at, accepted_at |
+| `child_profiles` | child_id, interests, dislikes, grade, birthday, notes (written by parents; feeds wish cards and the planner) |
+| `kid_login_attempts` | family_code, success, created_at (rate limit; service role only) |
 
 ### Parent workspace
 | Table | Key columns |
 | --- | --- |
-| `custody_schedules` | id, family_id, template, start_date, rules (jsonb) |
-| `events` | id, family_id, child_id, title, starts_at, ends_at, home (`A` / `B`), source (`manual` / `plan_pdf` / `planner`) |
-| `swap_requests` | id, family_id, requested_by, original_date, proposed_date, status, responded_at |
+| `custody_schedules` | id, family_id, template, start_date, exchange_time, rules (jsonb: exchange place, holidays) |
+| `events` | id, family_id, child_id, title, starts_at, ends_at, home, kind (`custody` / `school` / `activity` / `medical` / `handover` / `other`), place, notes, source (`manual` / `plan_pdf` / `planner`), **kid_visible**, pending_swap_id |
+| `swap_requests` | id, family_id, requested_by, original_date, proposed_date, status, note, counter_of, responded_by, responded_at |
+| `planner_ideas` | id, member_id, title, place, starts_at, ends_at (an activity returned to the planner after a declined swap; own parent only) |
 | `threads` | id, family_id, topic |
-| `messages` | id, thread_id, sender_id, body, original_body, ai_rewritten (bool), created_at, first_read_at, prev_hash, hash |
-| `expenses` | id, family_id, paid_by, amount_cents, category, receipt_path, split (jsonb), status |
-| `documents` | id, family_id, kind, storage_path, extracted (jsonb) |
-| `audit_log` | id, family_id, actor_id, action, entity, entity_id, at |
-| `subscriptions` | id, user_id, stripe_customer_id, status, current_period_end |
+| `messages` | id, thread_id, sender_id, body, original_body, ai_rewritten, first_read_at, prev_hash, hash |
+| `expenses` | id, family_id, paid_by, title, amount_cents, category, spent_on, receipt_path, split, status, request_id, recurring_id, settlement_id |
+| `expense_requests` | "Ask before spending": title, estimate_cents, split, status, response_note |
+| `recurring_expenses` | monthly costs: title, amount_cents, day_of_month, split, status |
+| `settlements` | settle up: paid_by, paid_to, amount_cents, method, confirmed_at |
+| `family_finance`, `split_proposals` | the agreed default split and proposals to change it (both parents agree) |
+| `parent_income` | member_id, band, share_for_split (**only that parent** can read it; never in Realtime, audit or exports) |
+| `documents` | id, family_id, kind, title, mime, storage_path, extracted (jsonb) |
+| `audit_log` | id, family_id, actor_member_id, action, entity, entity_id, meta, at (ids only, never content) |
+| `subscriptions` | id, user_id, family_id, plan, status, stripe_customer_id, current_period_end |
 
 ### Kids' space
 | Table | Key columns | Parents can read? |
 | --- | --- | --- |
-| `pet_state` | child_id, name, colors, shell_patterns, mood_shown | No |
-| `mood_checkins` | id, child_id, mood (label), energy, created_at | **No** |
-| `wish_cards` | id, child_id, interest, shared_with_parents (bool), created_at | Only rows the child chose to share |
-| `kid_chat_raw` | id, child_id, text, created_at (**deleted after 30 days**) | **Never** |
-| `weekly_insights` | id, child_id, week_start, mood_trend, interests, gentle_flag | **Yes**, identical for both parents |
-| `safety_alerts` | id, child_id, level, created_at, resolved_at | Yes (both parents) |
+| `pet_state` | child_id, name, colors, shell_patterns, mood_shown, pond | No |
+| `mood_checkins` | id, child_id, mood, energy, shared, created_at | **No** |
+| `shared_moods` | child_id, mood, energy, shared_at (one row per child: today's feeling, only after "Yes, tell them") | Yes (both parents) |
+| `wish_questions` | child_id, day, prompt, options, kind (daily AI questions) | No |
+| `wish_cards` | id, child_id, interest, tags, shared_with_parents, shared_at | Only rows the child chose to share |
+| `wish_refresh` | child_id, requested_at, handled_at (regenerate today's cards after parent edits) | No (server only) |
+| `kid_chat_raw` | id, child_id, role, text, created_at (**deleted after 30 days**; not written yet) | **Never** |
+| `weekly_insights` | id, child_id, week_start, mood_trend, interests, summary, ai_line, gentle_flag | **Yes**, identical for both parents |
+| `safety_alerts` | id, child_id, level, category, created_at, resolved_at, resolved_by | Yes (both parents) |
+
+The child never reads `events` directly: `kid_calendar(from, to)` returns custody nights and only `kid_visible` events, without notes. `kid_exchange_place()` returns the handover place.
 
 ### Analytics
 | Object | Type | Key columns | Who can read |
 | --- | --- | --- | --- |
-| `outings` | table | id, family_id, child_id, parent_member_id, event_id, title, child_rating (1–5), happened_on | Parents of the family (the private view filters to self) |
+| `outings` | table | id, family_id, child_id, parent_member_id, event_id, title, child_rating (1–5), happened_on | Only the parent who logged it |
 | `v_spending_by_category` | view | family_id, month, category, total_cents | Both parents of the family |
-| `v_parent_time` | view | parent_member_id, child_id, month, outings_count, avg_rating, top_activities | **Only that parent** (`parent_member_id` in `current_member_ids()`) |
+| `v_parent_time` | view | parent_member_id, child_id, month, outings_count, avg_rating, top_activities | **Only that parent** |
 
-> Create views with `security_invoker = true` so the RLS rules on the underlying tables still apply.
+> Views use `security_invoker = true`, so the RLS rules on the underlying tables still apply.
 
 ### Database-level guarantees
-```sql
--- Messages can never be edited or deleted
-create or replace function raise_immutable() returns trigger as $$
-begin
-  raise exception 'messages are immutable';
-end; $$ language plpgsql;
-
-create trigger messages_no_update before update on messages
-  for each row when (old.body is distinct from new.body) execute function raise_immutable();
-create trigger messages_no_delete before delete on messages
-  for each row execute function raise_immutable();
-
--- Parents may read weekly insights, never raw child data
-create policy parents_read_insights on weekly_insights
-  for select using (is_parent_in_family(auth.uid(), family_of_child(child_id)));
--- (no parent policy exists on mood_checkins or kid_chat_raw)
-```
+- **Messages are immutable:** a trigger blocks edits and deletes; the only allowed change is setting `first_read_at` once (read receipts). Each message carries `prev_hash` / `hash` (hash chain).
+- **No parent policy exists on `mood_checkins`, `kid_chat_raw` or `pet_state`.** Parents read `weekly_insights`, `shared_moods`, `safety_alerts` and shared `wish_cards` only.
+- **Multi-step changes run as `security definer` functions** in one transaction: `replace_custody_schedule`, `respond_to_swap` / `counter_swap`, `respond_to_expense`, `respond_to_expense_request`, `respond_to_recurring`, `settle_up` / `confirm_settlement`, `propose_family_split` / `respond_to_split_proposal`, `create_family`, `accept_invite`.
+- **Storage:** one private `documents` bucket; a parent can read and upload only under their own family's folder.
 
 ---
 
 ## Server endpoints
 
-All endpoints live in `src/routes/api/**/+server.ts`. Each one checks the session from `hooks.server.ts` and the role via `src/lib/server/guards.ts`. Simple form submissions (create event, send message, log expense) use **form actions** in the page's `+page.server.ts` instead.
+Endpoints live in `src/routes/api/**/+server.ts`. Each one checks the session from `hooks.server.ts` and the role with `requireParent()` / `requireChild()` from `src/lib/server/guards.ts`, validates the body with Zod, and rate-limits AI calls. Most writes (events, swaps, messages, expenses, check-ins, wish cards) are **form actions** in the page's `+page.server.ts` instead.
 
 | Method | Path | Role | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/health` | public | Health check |
+| GET | `/api/health` | public | Health check (also warms up the function) |
 | POST | `/api/ai/rewrite` | parent | Rewrite a draft message in a calm, BIFF tone |
-| POST | `/api/ai/shield` | parent | Summarise an incoming message into facts and requests |
-| POST | `/api/ai/summarize-thread` | parent | "What did we agree about X?" |
-| POST | `/api/documents/parse-plan` | parent | Parenting plan PDF → schedule template + holidays (writes `events`) |
-| POST | `/api/documents/parse-receipt` | parent | Receipt photo → amount, date, category |
-| POST | `/api/planner/weekend` | parent | Three activity suggestions from wish cards, schedule, budget, location |
-| POST | `/api/pebble/reply` | child | Pebble's guarded reply (scripted first, LLM fallback, safety check) |
-| GET | `/api/analytics/spending` | parent | Spending by category for a month range (shared) |
-| GET | `/api/analytics/my-time` | parent | The signed-in parent's private outing stats + one AI suggestion |
-| POST | `/api/billing/checkout` | parent | Create a Stripe Checkout session |
-| POST | `/api/billing/webhook` | Stripe | Verify signature → update `subscriptions` |
-| GET | `/api/cron/insights` | Vercel Cron | Build `weekly_insights` (checks `CRON_SECRET`) |
+| POST | `/api/ai/shield` | parent | Neutral facts + requests for a message the other parent sent |
+| POST | `/api/documents/register-plan` | parent | Register a parenting-plan PDF the browser uploaded to Storage |
+| POST | `/api/documents/parse-plan` | parent | Parenting plan PDF → schedule pattern, exchange time/place, holidays (with confidence + quotes) |
+| POST | `/api/documents/apply-plan` | parent | Apply the reviewed schedule (`replace_custody_schedule`) |
+| POST | `/api/planner/weekend` | parent | Weekend suggestions from OpenStreetMap places, free time, shared wishes and budget |
+| POST | `/api/planner/check-slot` | parent | Soft warnings for a time the parent edits on a suggestion |
+| GET / POST | `/api/analytics/my-time` | parent | The signed-in parent's private outings + one AI suggestion; log an outing |
+| POST | `/api/safety/alerts/:id/resolve` | parent | Mark a child's safety alert as handled |
+| POST | `/api/billing/checkout` | parent | Create a Stripe Checkout session (test mode) |
+| POST | `/api/billing/webhook` | Stripe | Verify the signature → update `subscriptions` |
 
-### Session in `hooks.server.ts`
-```ts
-import { createServerClient } from '@supabase/ssr';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
-import type { Handle } from '@sveltejs/kit';
+Other server routes:
 
-export const handle: Handle = async ({ event, resolve }) => {
-  event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-    cookies: {
-      getAll: () => event.cookies.getAll(),
-      setAll: (cookies) =>
-        cookies.forEach(({ name, value, options }) =>
-          event.cookies.set(name, value, { ...options, path: '/' })
-        )
-    }
-  });
-
-  event.locals.getUser = async () => {
-    const { data } = await event.locals.supabase.auth.getUser(); // verified with Supabase
-    return data.user;
-  };
-
-  return resolve(event, {
-    filterSerializedResponseHeaders: (name) => name === 'content-range' || name === 'x-supabase-api-version'
-  });
-};
-```
-
-### Example endpoint: `src/routes/api/ai/rewrite/+server.ts`
-```ts
-import { json, error } from '@sveltejs/kit';
-import { z } from 'zod';
-import { requireParent } from '$lib/server/guards';
-import { rewriteMessage } from '$lib/server/ai/rewrite';
-
-const Body = z.object({ draft: z.string().min(1).max(4000) });
-
-export async function POST({ request, locals }) {
-  await requireParent(locals);                       // 401/403 if not a parent
-  const parsed = Body.safeParse(await request.json());
-  if (!parsed.success) throw error(400, 'Invalid body');
-
-  const rewritten = await rewriteMessage(parsed.data.draft);
-  return json({ rewritten });
-}
-```
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/auth/callback`, `/auth/confirm` | Magic-link sign-in (PKCE and token-hash flows) |
+| POST | `/logout` | Sign out |
+| GET | `/documents/signed?path=…` | 60-second signed URL for a vault file (own family only) |
+| POST | `/messages/[threadId]/read` | Read receipts |
+| GET | `/plan` | Redirects to the Calendar ("Plan this weekend" panel) |
 
 ---
 
@@ -464,67 +447,81 @@ stripe listen --forward-to localhost:5173/api/billing/webhook
 ### Demo accounts (from `pnpm db:seed`)
 | Role | Login |
 | --- | --- |
-| Parent A (Mom) | `mom@demo.teamkid.app` / `DemoMom!2026` (or magic link via Mailpit) |
-| Parent B (Dad) | `dad@demo.teamkid.app` / `DemoDad!2026` |
+| Parent A (Mom, Carter family) | `mom@demo.teamkid.app` / `DemoMom!2026` (or magic link via Mailpit) |
+| Parent B (Dad, Carter family) | `dad@demo.teamkid.app` / `DemoDad!2026` |
 | Child (Lily, born 2018) | Kid login → family code `TURTLE-1234`, PIN `1234` |
-| RLS test only (Diaz family) | `ana@demo.teamkid.app` / `DemoAna!2026` |
+| RLS test only (Ana, Diaz family) | `ana@demo.teamkid.app` / `DemoAna!2026`. Her child Leo (`CORAL-5678`, PIN `4321`) stays pending: only one parent has consented |
+
+The seed is idempotent: it adds only what is missing. It creates two weeks of custody nights (2-2-3, Mom first) from the Monday of the current week, a few events, messages, expenses and outings, and two shared check-ins for Lily.
 
 ---
 
 ## Environment variables
 
-`.env` (one file for the whole app):
+Copy `.env.example` to `.env` (locally `pnpm env:local` fills it from `supabase status`). On Vercel, add the same variables to **Production** and **Preview**.
 
-```
-# Public (safe in the browser)
-PUBLIC_SUPABASE_URL=
-PUBLIC_SUPABASE_ANON_KEY=
-PUBLIC_STRIPE_PUBLISHABLE_KEY=
+| Variable | Needed? | What it's for |
+| --- | --- | --- |
+| `PUBLIC_SUPABASE_URL` | **yes** | Supabase project URL |
+| `PUBLIC_SUPABASE_ANON_KEY` | **yes** | Supabase anon key (safe in the browser; RLS protects data) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | Server-only admin client (see Architecture) |
+| `KID_AUTH_SECRET` | **yes** | ≥ 32 chars; derives the hidden kid passwords. Keep it stable: changing it locks every child out until the seed is re-run or the child is re-saved |
+| `LLM_PROVIDER` | yes | `anthropic` or `fake` (`openai` is a placeholder that throws) |
+| `LLM_API_KEY` | for real AI | Anthropic API key. Empty → deterministic fake output |
+| `LLM_MODEL_FAST` | optional | Fast tier (rewrite, shield, planner queries, wish cards), e.g. `claude-haiku-5-5` |
+| `LLM_MODEL_SMART` | optional | Smart tier (plan PDF, planner pick), e.g. `claude-sonnet-5-5` |
+| `LLM_MODEL` | optional | Fallback model when a tier variable is empty |
+| `STRIPE_SECRET_KEY` | for billing | Stripe test-mode secret key. Empty → billing page shows "not configured" |
+| `STRIPE_WEBHOOK_SECRET` | for billing | Signing secret of the webhook endpoint |
+| `STRIPE_PRICE_ID_FAMILY_PLUS` | for billing | Price of the Family Plus plan |
 
-# Private (server only; read them through src/lib/server/env.ts)
-SUPABASE_SERVICE_ROLE_KEY=
-LLM_API_KEY=
-LLM_MODEL=
-GOOGLE_PLACES_API_KEY=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID_FAMILY_PLUS=
-RESEND_API_KEY=
-CRON_SECRET=
-KID_AUTH_SECRET=               # >= 32 chars; derives the hidden kid passwords (keep it stable)
-LLM_PROVIDER=anthropic         # anthropic | openai | fake (empty LLM_API_KEY => fake output)
-```
+Declared in `src/env.ts` but **not used by the code yet**: `PUBLIC_STRIPE_PUBLISHABLE_KEY`, `GOOGLE_PLACES_API_KEY` (places come from OpenStreetMap, no key), `RESEND_API_KEY` (no email sending), `CRON_SECRET` (no cron endpoint). Leave them empty.
 
-> SvelteKit 3: variables are declared and validated in `src/env.ts` and imported from `$app/env/public` / `$app/env/private` (there is no `$env/static/*`). Never import a private variable outside `src/lib/server/` or a `+server.ts` / `+page.server.ts` / `+layout.server.ts` file; SvelteKit refuses to bundle it for the browser and `pnpm lint` fails.
+> SvelteKit 3: variables are declared and validated in `src/env.ts` and imported from `$app/env/public` / `$app/env/private` (there is no `$env/static/*`). Private variables are read only in `src/lib/server/env.ts`; SvelteKit refuses to bundle them for the browser and `pnpm lint` fails if one is imported elsewhere. Never put real keys in `.env.example`.
 
 ---
 
 ## Deployment
 
-One Vercel project and one Supabase project.
+One Vercel project, one Supabase project. Step-by-step notes for the cloud are in [docs/MANUAL_STEPS.md](docs/MANUAL_STEPS.md).
 
-1. **Supabase:** create a project (Free plan), then run:
+1. **Supabase:** create a project (Free plan), then link it and push the migrations. Supabase CLI 3 targets the local stack by default, so `--remote` is required:
    ```bash
-   supabase link --project-ref <ref>
-   supabase db push
+   pnpm exec supabase link --project-ref <ref>
+   pnpm exec supabase db push --remote --dry-run   # check the list first
+   pnpm exec supabase db push --remote
    ```
-2. **Vercel:** push the repo to GitHub, import it at vercel.com/new (SvelteKit is detected automatically), and add all environment variables.
-3. **Supabase Auth:** add your Vercel URL to *Authentication → URL Configuration* (site URL and redirect `https://teamkid.vercel.app/auth/callback`).
-4. **Stripe (test mode):** add a webhook to `https://teamkid.vercel.app/api/billing/webhook`.
-5. **Cron:** `vercel.json`
-   ```json
-   { "crons": [{ "path": "/api/cron/insights", "schedule": "0 6 * * 1" }] }
+   If the connection resets, set `SUPABASE_DB_PASSWORD` in the shell or try another network.
+2. **Demo data (optional):** with the cloud keys in `.env.cloud`:
+   ```bash
+   pnpm exec tsx --env-file=.env.cloud scripts/seed.ts
+   pnpm exec tsx --env-file=.env.cloud scripts/test-rls.ts
    ```
-   The endpoint checks the `Authorization: Bearer <CRON_SECRET>` header that Vercel sends.
+   The seed creates two weeks of custody nights starting this Monday. `static/demo/parenting-plan-carter.pdf` must match the seed's start date; regenerate it with `scripts/make-sample-plan.ts --start=YYYY-MM-DD` if needed.
+3. **Vercel:** import the GitHub repo (SvelteKit is detected automatically). The Vercel GitHub App must be installed on the account that owns the repo. Add the environment variables above to Production and Preview. Don't add Vercel's Supabase integration: the project already has its own.
+4. **Release branch:** Vercel → Settings → Environments → Production → Branch Tracking → `production`. Pushes to `main` and feature branches become Preview deployments. Vercel needs one deployment from `production` before it accepts the setting.
+5. **Supabase Auth → URL Configuration:**
+   - Site URL: `https://<your-app>.vercel.app`
+   - Redirect URLs: `https://<your-app>.vercel.app/auth/callback`, `https://<your-app>.vercel.app/auth/confirm`, plus a wildcard for previews such as `https://<project>-*-<team>.vercel.app/**`.
+6. **Stripe (optional, test mode):** add a webhook to `https://<your-app>.vercel.app/api/billing/webhook` and set the three Stripe variables.
+
+### Releasing
+```bash
+pnpm exec supabase db push --remote --dry-run   # new migrations first
+pnpm exec supabase db push --remote
+git fetch origin && git push origin origin/main:production
+```
+Push the migrations **before** the code that needs them, and release right after. Never force-push `production`; roll back with Vercel's Instant Rollback.
 
 ### Serverless rules
-- Keep each request short; no long-running jobs (process the weekly insights one family at a time).
+- Keep each request short; AI routes set `maxDuration` where they need it.
 - Use **Supabase Realtime** for live updates (no custom WebSockets).
-- Store files in **Supabase Storage**, never on disk.
+- Store files in **Supabase Storage**, never on disk. Large uploads go from the browser straight to Storage (Vercel caps request bodies at 4.5 MB).
 - Open `/api/health` right before the demo to warm up.
 
 ### Plan limits to remember
 - **Supabase Free** pauses a project after 7 days of inactivity. Restore it before any later demo.
+- **Supabase's built-in email** sends only a few auth emails per hour per project. For demos, sign in with the demo passwords; add custom SMTP for real use.
 - **Vercel Hobby** is for non-commercial use. Move to Pro before charging real customers.
 
 ---
