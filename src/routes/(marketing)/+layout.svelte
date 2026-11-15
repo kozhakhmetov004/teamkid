@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '@fontsource-variable/nunito';
 	import MarketingFooter from '#lib/components/landing/MarketingFooter.svelte';
 	import MarketingHeader from '#lib/components/landing/MarketingHeader.svelte';
 	import { homePathFor } from '#lib/types/domain.js';
@@ -8,6 +9,8 @@
 	 * Public marketing pages (/, /privacy, /terms). Nests inside the root
 	 * layout (unchanged). Marketing colours are scoped to `.marketing` here,
 	 * on top of the app tokens in src/routes/layout.css.
+	 * Brand type: headings, the wordmark and big numbers use Nunito, the same
+	 * rounded font as the kids' space; body text stays Geist like the parent app.
 	 */
 	let { data, children }: LayoutProps = $props();
 	const homePath = $derived(homePathFor(data.member));
@@ -51,6 +54,9 @@
 		.marketing {
 			scroll-behavior: auto;
 		}
+	}
+	.marketing :global(:is(h1, h2, h3, .mk-display)) {
+		font-family: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
 	}
 	.marketing :global(section[id]) {
 		scroll-margin-top: 5rem;

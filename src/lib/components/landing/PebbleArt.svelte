@@ -122,8 +122,8 @@
 		<ellipse cx="68" cy="80" rx="11" ry="6.5" fill="#f6ad9c" stroke="none" opacity="0.9" />
 		<ellipse cx="152" cy="80" rx="11" ry="6.5" fill="#f6ad9c" stroke="none" opacity="0.9" />
 		<!-- big brown eyes with highlights -->
-		<circle cx="86" cy="60" r="13" fill="#5a3a24" stroke="#22160e" stroke-width="2" />
-		<circle cx="134" cy="60" r="13" fill="#5a3a24" stroke="#22160e" stroke-width="2" />
+		<circle cx="86" cy="60" r="13" fill="#6b4428" stroke="#22160e" stroke-width="2" />
+		<circle cx="134" cy="60" r="13" fill="#6b4428" stroke="#22160e" stroke-width="2" />
 		<g stroke="none">
 			<circle cx="86" cy="61" r="8" fill="#22160e" />
 			<circle cx="134" cy="61" r="8" fill="#22160e" />
