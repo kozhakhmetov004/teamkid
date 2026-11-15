@@ -6,7 +6,8 @@
 	 *
 	 * Self-loading through the BROWSER Supabase client (RLS: parents only see the
 	 * weekly insight and wishes the child shared). Live: its own Realtime channel
-	 * `insight:${childId}` on weekly_insights + wish_cards → re-query (300 ms debounce).
+	 * `insight:${childId}` on weekly_insights + wish_cards + child_profiles → re-query
+	 * (300 ms debounce).
 	 * Never reads mood_checkins, pet_state or kid_chat_raw.
 	 */
 	import { onMount } from 'svelte';
@@ -49,7 +50,7 @@
 
 		async function refresh() {
 			try {
-				const next = await loadInsight(client, childId, new Date(), familyId);
+				const next = await loadInsight(client, childId, new Date(), familyId, { parent: true });
 				if (alive) {
 					data = next;
 					failed = false;
@@ -75,6 +76,11 @@
 			.on(
 				'postgres_changes',
 				{ event: '*', schema: 'public', table: 'wish_cards', filter },
+				debounced
+			)
+			.on(
+				'postgres_changes',
+				{ event: '*', schema: 'public', table: 'child_profiles', filter },
 				debounced
 			)
 			.subscribe();
@@ -110,9 +116,13 @@
 		{/if}
 	</Card.Content>
 	<Card.Footer class="flex flex-col items-start gap-3">
-		<Button href="/plan" variant="outline">Plan something together</Button>
+		<div class="flex flex-wrap gap-2">
+			<Button href="/calendar#plan" variant="outline">Plan this weekend</Button>
+			<Button href="/family/child" variant="ghost">Edit {childName}'s profile</Button>
+		</div>
 		<p class="text-xs text-muted-foreground">
-			{childName} chose what to share. You and your co-parent see the same summary.
+			{childName} chose what to share. You and your co-parent see the same card. Never
+			{childName}'s exact clicks or typed words.
 		</p>
 	</Card.Footer>
 </Card.Root>

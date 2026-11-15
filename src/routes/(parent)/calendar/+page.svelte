@@ -8,6 +8,7 @@
 	import SwapRequestDialog from '#lib/components/calendar/SwapRequestDialog.svelte';
 	import { subscribeToEvents } from '#lib/components/calendar/subscribeToEvents.js';
 	import WeekView from '#lib/components/calendar/WeekView.svelte';
+	import PlanWeekendPanel from '#lib/components/insights/PlanWeekendPanel.svelte';
 	import type { CalDay, CalEvent } from '#lib/components/calendar/types.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
@@ -129,6 +130,8 @@
 			Open a day to see its events, edit them or request a swap.
 		</p>
 	{/if}
+
+	<PlanWeekendPanel panel={data.plan} nudge={data.planNudge} />
 
 	<details class="rounded-xl border bg-card p-4">
 		<summary class="cursor-pointer font-medium">Set up the custody schedule</summary>

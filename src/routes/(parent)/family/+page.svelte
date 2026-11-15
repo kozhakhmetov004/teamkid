@@ -57,6 +57,9 @@
 						<p class="font-semibold">
 							{child.first_name}
 							<span class="font-normal text-muted-foreground">· born {child.birth_year}</span>
+							<a href="/family/child" class="ml-2 text-sm font-normal text-primary hover:underline"
+								>Edit profile</a
+							>
 						</p>
 						<div class="mt-1 flex flex-wrap items-center gap-2 text-sm">
 							<Badge variant={child.status === 'active' ? 'default' : 'outline'}

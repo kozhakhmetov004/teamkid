@@ -1,12 +1,12 @@
 <script lang="ts">
 	/**
-	 * Pure display of a weekly insight (no data loading). Text comes only from
-	 * templates + theme words; the trend chip has an icon AND words.
+	 * "Lily's week" (pure display, no loading). Only what the child SHARED plus
+	 * parent-noted interests (shown apart). Typed ideas appear only as their
+	 * cleaned label with an "own idea" badge. Icons always come with words.
 	 */
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { gentleText, isMoodTrend, TREND_DISPLAY } from '#lib/kids/insightRules.js';
-	import { themeLabel } from '#lib/kids/wishDeck.js';
-	import type { InsightData } from './loadInsight.js';
+	import type { InsightData, SharedWish } from './loadInsight.js';
 
 	let {
 		data,
@@ -19,33 +19,48 @@
 		insight && isMoodTrend(insight.mood_trend) ? TREND_DISPLAY[insight.mood_trend] : null
 	);
 	const notEnough = $derived(!insight || insight.mood_trend === 'not_enough');
-	const themes = $derived(
-		(insight?.interests ?? []).map((t) => themeLabel(t) ?? null).filter((t): t is string => !!t)
-	);
 	const gentle = $derived(insight?.gentle_flag ? gentleText(insight.mood_trend) : null);
+
+	const into = $derived(
+		data.sharedWishes.filter((w) => (w.kind === 'interest' && w.thisWeek) || w.kind === null)
+	);
+	const weekend = $derived(data.sharedWishes.filter((w) => w.kind === 'activity' && w.thisWeek));
+	const gifts = $derived(data.sharedWishes.filter((w) => w.kind === 'gift' && w.thisWeek));
+	const nothingShared = $derived(!into.length && !weekend.length && !gifts.length);
 </script>
 
+{#snippet chip(w: SharedWish)}
+	<li>
+		<Badge variant="secondary" class="gap-1.5 px-2.5 py-1 text-sm">
+			<span aria-hidden="true">{w.emoji ?? '⭐'}</span>{w.interest}
+			{#if w.custom}
+				<span class="rounded-full bg-background px-1.5 text-xs font-normal"
+					>{childName}'s own idea ✏️</span
+				>
+			{/if}
+		</Badge>
+	</li>
+{/snippet}
+
 <div class="space-y-4">
-	{#if notEnough}
-		<p class="text-muted-foreground">
-			No check-ins yet this week. Pebble will share a summary once {childName} checks in.
+	{#if insight?.ai_line}
+		<p class="text-lg leading-snug font-medium">
+			{insight.ai_line}
+			<span class="ml-1 align-middle text-xs font-normal text-muted-foreground">✨ AI summary</span>
 		</p>
-	{:else if insight}
-		<p class="text-lg leading-snug font-medium">{insight.summary}</p>
 	{/if}
 
-	{#if (trend && !notEnough) || themes.length}
-		<div class="flex flex-wrap gap-2">
-			{#if trend && !notEnough}
-				<Badge variant="outline" class="gap-1.5 px-2.5 py-1 text-sm">
-					<span aria-hidden="true">{trend.icon}</span>{trend.label}
-				</Badge>
-			{/if}
-			{#each themes as theme (theme)}
-				<Badge variant="secondary" class="px-2.5 py-1 text-sm">Into {theme}</Badge>
-			{/each}
-		</div>
-	{/if}
+	<div class="flex flex-wrap items-center gap-2">
+		{#if trend && !notEnough}
+			<Badge variant="outline" class="gap-1.5 px-2.5 py-1 text-sm">
+				<span aria-hidden="true">{trend.icon}</span>{trend.label}
+			</Badge>
+		{:else}
+			<span class="text-sm text-muted-foreground">
+				No mood summary yet. It appears after a couple of check-ins with Pebble.
+			</span>
+		{/if}
+	</div>
 
 	{#if gentle && showGentle}
 		<p
@@ -56,19 +71,49 @@
 		</p>
 	{/if}
 
-	{#if data.sharedWishes.length}
-		<div>
-			<p class="text-sm font-medium">{childName} chose to share:</p>
-			<ul class="mt-1 space-y-1 text-sm">
-				{#each data.sharedWishes as wish (wish.id)}
-					<li class="flex flex-wrap items-center gap-2">
-						<span aria-hidden="true">{wish.emoji ?? '⭐'}</span>{wish.interest}
-						{#if wish.custom}
-							<Badge variant="outline" class="text-xs">{childName}'s own idea ✏️</Badge>
-						{/if}
+	<section aria-label="Into right now" class="space-y-2">
+		<h3 class="text-sm font-semibold">Into right now</h3>
+		{#if into.length || data.parentNoted.length}
+			<ul class="flex flex-wrap gap-2">
+				{#each into as w (w.id)}{@render chip(w)}{/each}
+				{#each data.parentNoted as note (note)}
+					<li>
+						<Badge variant="outline" class="gap-1.5 border-dashed px-2.5 py-1 text-sm">
+							{note}<span class="text-xs text-muted-foreground">noted by parents</span>
+						</Badge>
 					</li>
 				{/each}
 			</ul>
-		</div>
+		{:else}
+			<p class="text-sm text-muted-foreground">Nothing shared yet.</p>
+		{/if}
+	</section>
+
+	<section aria-label="Wants to do this weekend" class="space-y-2">
+		<h3 class="text-sm font-semibold">Wants to do this weekend</h3>
+		{#if weekend.length}
+			<ul class="flex flex-wrap gap-2">
+				{#each weekend as w (w.id)}{@render chip(w)}{/each}
+			</ul>
+		{:else}
+			<p class="text-sm text-muted-foreground">Nothing shared yet.</p>
+		{/if}
+	</section>
+
+	{#if gifts.length}
+		<section aria-label="Present ideas" class="space-y-2">
+			<h3 class="text-sm font-semibold">Present ideas</h3>
+			<ul class="flex flex-wrap gap-2">
+				{#each gifts as w (w.id)}{@render chip(w)}{/each}
+			</ul>
+		</section>
+	{/if}
+
+	{#if nothingShared}
+		<p class="rounded-lg bg-secondary/50 p-3 text-sm text-muted-foreground">
+			<span aria-hidden="true">🐢</span>
+			{childName} hasn't shared any wish cards this week yet. That's okay: sharing is always {childName}'s
+			choice.
+		</p>
 	{/if}
 </div>
