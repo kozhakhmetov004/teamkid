@@ -6,7 +6,7 @@
  */
 import { error } from '@sveltejs/kit';
 import { z } from 'zod';
-import { parseList } from '#lib/kids/profile.js';
+import { birthdayProblem, parseList } from '#lib/kids/profile.js';
 import { logAudit } from '#lib/server/audit.js';
 import { requireParent } from '#lib/server/guards.js';
 import { supabaseAdmin } from '#lib/server/supabaseAdmin.js';
@@ -47,9 +47,9 @@ const Profile = z.object({
 	birthday: z
 		.string()
 		.trim()
-		.refine((v) => v === '' || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Enter a date')
-		.refine((v) => v === '' || (v >= '2005-01-01' && v <= new Date().toISOString().slice(0, 10)), {
-			message: 'Enter a birthday in the past'
+		.superRefine((v, ctx) => {
+			const problem = v ? birthdayProblem(v, new Date().toISOString().slice(0, 10)) : null;
+			if (problem) ctx.addIssue({ code: 'custom', message: problem });
 		}),
 	grade: z.string().trim().max(30, 'Keep it short'),
 	interests: z.string().max(800),

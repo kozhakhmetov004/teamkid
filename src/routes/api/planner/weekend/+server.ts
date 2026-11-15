@@ -1,7 +1,8 @@
 /**
  * POST /api/planner/weekend (parent only): "Plan my weekend".
  *   { saturday, center: { lat, lon }, radiusMiles: 5 | 10 | 25, budget, from?, to? }
- *   (from/to: the parent's local time range, default 09:00-19:00, within 07:00-21:00)
+ *   (from/to: the parent's local time range, default 09:00-19:00, within 07:00-21:00;
+ *    focus?: { category, title } for "More like this"; exclude?: place ids already seen)
  *   -> 200 { status: 'ok', weekend, suggestions, atHome, usedWishes, source, aiUsed }
  *    | 200 { status: 'not_with_you', saturday, nextSaturday }
  *    | 200 { status: 'no_time', saturday, from, to } (nothing free in that range)
@@ -25,7 +26,7 @@ import { safeTimeZone } from '#lib/custody/today.js';
 import { BUDGETS, planWeekend } from '#lib/server/ai/planner.js';
 import { requireParent } from '#lib/server/guards.js';
 import { loadPlannerContext, scrubName } from '#lib/server/plannerContext.js';
-import { roundCenter } from '#lib/server/places.js';
+import { PlaceCategorySchema, roundCenter } from '#lib/server/places.js';
 import { createRateLimiter } from '#lib/server/rateLimit.js';
 import { TIME_RE } from '#lib/server/plannerSlot.js';
 import type { RequestHandler } from './$types';
@@ -40,7 +41,16 @@ const Body = z
 		radiusMiles: z.union([z.literal(5), z.literal(10), z.literal(25)]),
 		budget: z.enum(BUDGETS),
 		from: z.string().regex(TIME_RE).default(DAY_START),
-		to: z.string().regex(TIME_RE).default(DAY_END)
+		to: z.string().regex(TIME_RE).default(DAY_END),
+		/** "More like this": the liked suggestion (its category + title). */
+		focus: z
+			.object({
+				category: PlaceCategorySchema,
+				title: z.string().trim().min(1).max(120)
+			})
+			.optional(),
+		/** Place ids already shown or dismissed ("Not this time"). */
+		exclude: z.array(z.string().min(1).max(100)).max(50).default([])
 	})
 	.refine(
 		(v) => {
@@ -103,12 +113,20 @@ export const POST: RequestHandler = async (event) => {
 	}
 
 	const scrubbed = scrubName(ctx.wishes, ctx.child?.firstName);
+	// "More like this": the liked idea becomes the top wish (name scrubbed like the rest).
+	const [liked] = v.focus ? scrubName([v.focus.title], ctx.child?.firstName) : [];
 	const result = await planWeekend({
-		child: { ageYears: ctx.child?.ageYears ?? null, wishes: scrubbed, moodTrend: ctx.moodTrend },
+		child: {
+			ageYears: ctx.child?.ageYears ?? null,
+			wishes: liked ? [liked, ...scrubbed] : scrubbed,
+			moodTrend: ctx.moodTrend
+		},
 		budget: v.budget,
 		windows,
 		center: roundCenter(v.center),
-		radiusMeters: v.radiusMiles * METERS_PER_MILE
+		radiusMeters: v.radiusMiles * METERS_PER_MILE,
+		focusCategory: v.focus?.category,
+		excludeIds: v.exclude
 	});
 
 	return json(

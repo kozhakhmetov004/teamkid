@@ -36,6 +36,7 @@ import {
 	type Home
 } from '#lib/custody/today.js';
 import type { CalDay, SwapView } from '#lib/components/calendar/types.js';
+import { birthdayOn } from '#lib/kids/profile.js';
 import { loadPlanPanel } from '#lib/server/planPanel.js';
 import { SlotFields, slotProblem } from '#lib/server/plannerSlot.js';
 import { postScheduleNote } from './swap/swaps.server.js';
@@ -61,7 +62,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const sb = event.locals.supabase;
 	const planPromise = loadPlanPanel(event, member, tz);
-	const [events, parents, children, swaps, schedule] = await Promise.all([
+	const [events, parents, children, swaps, schedule, profiles] = await Promise.all([
 		sb
 			.from('events')
 			.select('id, title, starts_at, ends_at, home, kind, place, notes, child_id')
@@ -91,8 +92,15 @@ export const load: PageServerLoad = async (event) => {
 			.eq('family_id', member.family_id)
 			.order('created_at', { ascending: false })
 			.limit(1)
-			.maybeSingle()
+			.maybeSingle(),
+		sb.from('child_profiles').select('child_id, birthday').eq('family_id', member.family_id)
 	]);
+
+	// 🎂 Birthdays from the child profile (shown highlighted on that day).
+	const birthdays = (profiles.data ?? []).flatMap((p) => {
+		const name = (children.data ?? []).find((c) => c.id === p.child_id)?.first_name;
+		return name && p.birthday ? [{ name, birthday: p.birthday }] : [];
+	});
 
 	const people = peopleFor(parents.data ?? [], member);
 	const rows = events.data ?? [];
@@ -121,6 +129,7 @@ export const load: PageServerLoad = async (event) => {
 			label: home ? people.nameOfHome(home) : 'Not set',
 			mine: home ? home === member.home : null,
 			pendingSwap: swapDates.has(date),
+			birthday: birthdays.map((b) => birthdayOn(date, b.birthday, b.name)).find(Boolean) ?? null,
 			events: others
 				.filter((e) => localDate(e.starts_at, tz) === date)
 				.map((e) => ({

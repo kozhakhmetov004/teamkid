@@ -52,9 +52,10 @@
 	let result = $state<PlanResponse | null>(null);
 	let lastParams = $state<PlanParams | null>(null);
 	let seconds = $state(0);
+	/** Place ids dismissed ("Not this time") or already shown before "More like this". */
 	let hidden = $state<string[]>([]);
-	/** "More like this": this category goes first in the next results. */
-	let preferred = $state<string | null>(null);
+	/** "More like this": the liked suggestion (shown as a note above the results). */
+	let liked = $state<{ category: string; title: string; name: string } | null>(null);
 
 	$effect(() => {
 		if (!loading) return;
@@ -71,7 +72,11 @@
 			const res = await fetch('/api/planner/weekend', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify(params),
+				body: JSON.stringify({
+					...params,
+					focus: liked ? { category: liked.category, title: liked.title } : undefined,
+					exclude: hidden.slice(-50)
+				}),
 				signal: AbortSignal.timeout(55_000)
 			});
 			const body = await res.json().catch(() => null);
@@ -95,21 +100,17 @@
 		hidden = [...hidden, s.place.id];
 	}
 
+	/** New places in the same spirit: the server searches the liked category first and skips what was already shown. */
 	function moreLikeThis(s: PlannedSuggestion) {
-		preferred = s.place.category;
-		hidden = [...hidden, s.place.id];
+		liked = { category: s.place.category, title: s.title, name: s.place.name };
+		const seen = result?.status === 'ok' ? result.suggestions.map((x) => x.place.id) : [];
+		hidden = [...new Set([...hidden, ...seen])];
 		if (lastParams) void plan(lastParams);
 	}
 
-	const shown = $derived.by(() => {
-		if (result?.status !== 'ok') return [];
-		const list = result.suggestions.filter((s) => !hidden.includes(s.place.id));
-		return preferred
-			? [...list].sort(
-					(a, b) => Number(b.place.category === preferred) - Number(a.place.category === preferred)
-				)
-			: list;
-	});
+	const shown = $derived(
+		result?.status === 'ok' ? result.suggestions.filter((s) => !hidden.includes(s.place.id)) : []
+	);
 
 	const dayName = (date: string) =>
 		new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' }).format(
@@ -182,7 +183,7 @@
 				otherParentName={otherName}
 				{loading}
 				onPlan={(p) => {
-					preferred = null;
+					liked = null;
 					hidden = [];
 					void plan(p);
 				}}
@@ -241,6 +242,20 @@
 	{:else if result?.status === 'ok'}
 		{@const demo = result.source === 'demo'}
 		<div class="space-y-4" aria-label="Suggestions">
+			{#if liked}
+				<p class="flex flex-wrap items-center gap-2 text-sm" role="status">
+					<span>More ideas like <strong>{liked.name}</strong></span>
+					<Button
+						size="sm"
+						variant="ghost"
+						onclick={() => {
+							liked = null;
+							hidden = [];
+							if (lastParams) void plan(lastParams);
+						}}>Show all ideas again</Button
+					>
+				</p>
+			{/if}
 			{#if demo}
 				<p class="rounded-lg border border-pebble bg-pebble/20 p-3 text-sm" role="status">
 					<strong>Demo places.</strong> Live map data isn't available right now, so these are sample places

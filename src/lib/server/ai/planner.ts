@@ -260,6 +260,10 @@ export interface PlanRequest {
 	windows: FreeWindow[];
 	center: LatLon;
 	radiusMeters: number;
+	/** "More like this": always search this category and offer its places first. */
+	focusCategory?: PlaceCategory;
+	/** Places the parent already saw or dismissed ("Not this time"): never suggested again. */
+	excludeIds?: string[];
 }
 
 export async function planWeekend(
@@ -304,8 +308,24 @@ export async function planWeekend(
 		aiUsed = false;
 	}
 
-	// 2. Places.
-	const found = await search(chosen.categories, req.center, req.radiusMeters);
+	// "More like this": the liked category leads (searched even if the AI didn't pick it).
+	if (req.focusCategory) {
+		chosen.categories = [
+			req.focusCategory,
+			...chosen.categories.filter((c) => c !== req.focusCategory)
+		].slice(0, 3);
+	}
+
+	// 2. Places (minus the ones already shown/dismissed; liked category first).
+	const searched = await search(chosen.categories, req.center, req.radiusMeters);
+	const exclude = new Set(req.excludeIds ?? []);
+	const focus = req.focusCategory;
+	const found = {
+		...searched,
+		places: searched.places
+			.filter((p) => !exclude.has(p.id))
+			.sort((a, b) => (focus ? Number(b.category === focus) - Number(a.category === focus) : 0))
+	};
 
 	// 3 + 4. Pick inside the windows, validate, fill gaps deterministically.
 	let suggestions: Suggestion[] = [];

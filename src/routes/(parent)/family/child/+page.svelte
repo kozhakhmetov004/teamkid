@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
-	import { ageOn } from '#lib/kids/profile.js';
+	import { ageOn, birthdayProblem, birthdayRange } from '#lib/kids/profile.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
@@ -18,8 +18,12 @@
 			? (form.errors as Record<string, string>)
 			: ({} as Record<string, string>)
 	);
+	const range = birthdayRange(today);
+	// Live: the age and any problem update as the parent picks a date.
+	let birthday = $derived(data.profile?.birthday ?? '');
+	const birthdayIssue = $derived(birthday ? birthdayProblem(birthday, today) : null);
 	const age = $derived(
-		data.child ? ageOn(today, data.profile?.birthday ?? null, data.child.birth_year) : null
+		data.child && !birthdayIssue ? ageOn(today, birthday || null, data.child.birth_year) : null
 	);
 	const updated = $derived(
 		data.profile?.updated_at
@@ -89,10 +93,14 @@
 								id="birthday"
 								name="birthday"
 								type="date"
-								value={data.profile?.birthday ?? ''}
-								max={today}
+								bind:value={birthday}
+								min={range.min}
+								max={range.max}
+								aria-invalid={birthdayIssue ? true : undefined}
 							/>
-							{#if errors.birthday}<p class="text-xs text-destructive">{errors.birthday}</p>{/if}
+							{#if birthdayIssue || errors.birthday}
+								<p class="text-xs text-destructive">{birthdayIssue ?? errors.birthday}</p>
+							{/if}
 						</div>
 						<div class="space-y-1">
 							<Label for="grade">Grade</Label>
@@ -157,7 +165,9 @@
 					{/if}
 				</Card.Content>
 				<Card.Footer>
-					<Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save profile'}</Button>
+					<Button type="submit" disabled={saving || !!birthdayIssue}
+						>{saving ? 'Saving…' : 'Save profile'}</Button
+					>
 				</Card.Footer>
 			</form>
 		</Card.Root>
