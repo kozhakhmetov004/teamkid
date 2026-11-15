@@ -87,6 +87,8 @@ export interface Pose {
 	eyeOpen: number;
 	/** 0..1 position of the shine sweeping across the shell (proud), or -1 for none */
 	shine: number;
+	/** 0..1 how far the waving arm is raised (0 = resting at the side) */
+	wave: number;
 }
 
 /** Blink: eyes close briefly once per `period` seconds. */
@@ -94,6 +96,17 @@ export function blink(t: number, period = 3.8, duration = 0.16): number {
 	const phase = t % period;
 	if (phase > duration) return 1;
 	return Math.abs(Math.cos((phase / duration) * Math.PI));
+}
+
+/**
+ * Friendly wave: the arm goes up quickly, waves, and comes back down.
+ * First wave `delay` seconds after the scene starts, then once every `period`.
+ */
+export function waveAt(t: number, period = 8, duration = 1.8, delay = 1): number {
+	if (t < delay) return 0;
+	const phase = (t - delay) % period;
+	if (phase > duration) return 0;
+	return Math.min(1, 3 * Math.sin((phase / duration) * Math.PI));
 }
 
 /** The animated pose for a mood at time t. Every mood animates continuously. */
@@ -104,21 +117,24 @@ export function moodPose(mood: Mood, t: number): Pose {
 				lift: Math.abs(Math.sin(t * Math.PI * 1.6)) * 0.14,
 				breath: 1,
 				eyeOpen: blink(t, 3.2),
-				shine: -1
+				shine: -1,
+				wave: 1
 			};
 		case 'sleepy':
 			return {
 				lift: Math.sin((t * Math.PI * 2) / 4.5) * 0.02,
 				breath: 1 + Math.sin((t * Math.PI * 2) / 4.5) * 0.025,
 				eyeOpen: 0.08,
-				shine: -1
+				shine: -1,
+				wave: 0
 			};
 		case 'proud':
 			return {
 				lift: 0.08 + Math.sin((t * Math.PI * 2) / 3) * 0.02,
 				breath: 1.01,
 				eyeOpen: blink(t, 4.2),
-				shine: (t % 2.6) / 2.6
+				shine: (t % 2.6) / 2.6,
+				wave: 0
 			};
 		case 'idle':
 		default:
@@ -126,7 +142,8 @@ export function moodPose(mood: Mood, t: number): Pose {
 				lift: Math.sin((t * Math.PI * 2) / 3.5) * 0.04,
 				breath: 1,
 				eyeOpen: blink(t),
-				shine: -1
+				shine: -1,
+				wave: waveAt(t)
 			};
 	}
 }
@@ -185,6 +202,38 @@ export function stepSpin(spin: Spin, dt: number): { spin: Spin; moving: boolean 
 	const settled = velocity === 0 && Math.abs(yaw - front) < 0.003 && Math.abs(pitch) < 0.003;
 	if (settled) return { spin: { yaw: front, pitch: 0, velocity: 0 }, moving: false };
 	return { spin: { yaw, pitch, velocity }, moving: true };
+}
+
+// ---------------------------------------------------------------------------
+// Living eyes: the pupil leads, the eye follows, and it darts now and then
+// ---------------------------------------------------------------------------
+export const PUPIL = {
+	/** easing speed of the pupil; the whole eye/head use 6, so the pupil gets there first */
+	lambda: 16,
+	/** how far the pupil can slide inside the iris (eye-local units) */
+	max: 0.024,
+	/** small random glances (saccades): size (look units) and pause between them (s) */
+	saccadeSize: 0.35,
+	saccadeMin: 0.8,
+	saccadeMax: 3
+} as const;
+
+/** Pupil offset inside the iris for a look direction, kept within a circle of `max`. */
+export function pupilOffset(look: Look, max: number = PUPIL.max): Look {
+	const len = Math.hypot(look.x, look.y);
+	const k = len > 1 ? 1 / len : 1;
+	return { x: look.x * k * max, y: look.y * k * max };
+}
+
+/** A new tiny glance and how long to hold it before the next one. */
+export function nextSaccade(rand: () => number = Math.random): { look: Look; wait: number } {
+	return {
+		look: {
+			x: (rand() * 2 - 1) * PUPIL.saccadeSize,
+			y: (rand() * 2 - 1) * PUPIL.saccadeSize * 0.6
+		},
+		wait: PUPIL.saccadeMin + rand() * (PUPIL.saccadeMax - PUPIL.saccadeMin)
+	};
 }
 
 /**

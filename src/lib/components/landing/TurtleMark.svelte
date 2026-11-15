@@ -4,11 +4,12 @@
 </script>
 
 <svg viewBox="0 0 40 40" class={className} aria-hidden="true">
-	<path d="M6 30 C 6 19 12 13 20 13 C 28 13 34 19 34 30 Z" fill="#2f6b45" />
-	<polygon points="15,22 18,18.5 22,18.5 25,22 22,25.5 18,25.5" fill="#3f8a5c" />
-	<circle cx="20" cy="11" r="8" fill="#a6d96a" />
-	<circle cx="17" cy="10" r="1.6" fill="#1d2a24" />
-	<circle cx="23" cy="10" r="1.6" fill="#1d2a24" />
+	<path d="M6 30 C 6 19 12 13 20 13 C 28 13 34 19 34 30 Z" fill="#5c9a45" />
+	<polygon points="15,22 18,18.5 22,18.5 25,22 22,25.5 18,25.5" fill="#3b6b2e" />
+	<circle cx="20" cy="11" r="8" fill="#9fc873" />
+	<path d="M14.5 17.6 Q20 20.4 25.5 17.6 L20 24 Z" fill="#ff6b0f" />
+	<circle cx="17" cy="10" r="1.6" fill="#5a3a24" />
+	<circle cx="23" cy="10" r="1.6" fill="#5a3a24" />
 	<path
 		d="M17.5 13.4 Q20 15.4 22.5 13.4"
 		fill="none"

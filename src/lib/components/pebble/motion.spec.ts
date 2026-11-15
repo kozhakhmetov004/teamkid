@@ -6,6 +6,11 @@ import {
 	LIMITS,
 	lookAngles,
 	moodPose,
+	waveAt,
+	pupilOffset,
+	nextSaccade,
+	stepLook as stepLookFn,
+	PUPIL,
 	nearestFront,
 	pointerTarget,
 	shouldDraw,
@@ -81,6 +86,14 @@ describe('moods', () => {
 		expect(p.shine).toBeLessThan(1);
 		expect(moodPose('idle', 1).shine).toBe(-1);
 	});
+	it('idle waves now and then, happy waves all the time, sleepy never', () => {
+		expect(waveAt(0.5)).toBe(0); // not before the first greeting
+		expect(waveAt(1.9)).toBe(1); // arm fully up mid-wave
+		expect(waveAt(5)).toBe(0); // resting between waves
+		expect(waveAt(9.9)).toBe(1); // next wave, one period later
+		expect(moodPose('happy', 3).wave).toBe(1);
+		for (let t = 0; t < 20; t += 0.5) expect(moodPose('sleepy', t).wave).toBe(0);
+	});
 });
 
 describe('drag to spin', () => {
@@ -109,6 +122,28 @@ describe('drag to spin', () => {
 		expect(nearestFront(0.4)).toBe(0);
 		expect(nearestFront(Math.PI * 1.2)).toBeCloseTo(Math.PI * 2);
 		expect(nearestFront(-Math.PI * 1.2)).toBeCloseTo(-Math.PI * 2);
+	});
+});
+
+describe('living eyes', () => {
+	it('the pupil reaches the target before the eye does', () => {
+		const target = { x: 1, y: 0 };
+		const eye = stepLookFn({ x: 0, y: 0 }, target, 0.1);
+		const pupil = stepLookFn({ x: 0, y: 0 }, target, 0.1, PUPIL.lambda);
+		expect(pupil.look.x).toBeGreaterThan(eye.look.x);
+	});
+	it('keeps the pupil inside the iris', () => {
+		const o = pupilOffset({ x: 3, y: 4 });
+		expect(Math.hypot(o.x, o.y)).toBeCloseTo(PUPIL.max);
+		expect(pupilOffset({ x: 0.5, y: 0 }).x).toBeCloseTo(PUPIL.max / 2);
+	});
+	it('darts are small and spaced out', () => {
+		const lo = nextSaccade(() => 0);
+		const hi = nextSaccade(() => 1);
+		expect(Math.abs(lo.look.x)).toBeLessThanOrEqual(PUPIL.saccadeSize);
+		expect(hi.look.y).toBeLessThanOrEqual(PUPIL.saccadeSize);
+		expect(lo.wait).toBe(PUPIL.saccadeMin);
+		expect(hi.wait).toBe(PUPIL.saccadeMax);
 	});
 });
 
