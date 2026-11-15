@@ -836,6 +836,7 @@ export type Database = {
 					energy: number | null;
 					id: string;
 					mood: string;
+					shared: boolean;
 				};
 				ComputedFields: never;
 				Insert: {
@@ -844,6 +845,7 @@ export type Database = {
 					energy?: number | null;
 					id?: string;
 					mood: string;
+					shared?: boolean;
 				};
 				Update: {
 					child_id?: string;
@@ -851,6 +853,7 @@ export type Database = {
 					energy?: number | null;
 					id?: string;
 					mood?: string;
+					shared?: boolean;
 				};
 				Relationships: [
 					{
@@ -1211,6 +1214,46 @@ export type Database = {
 						columns: ['paid_to'];
 						isOneToOne: false;
 						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			shared_moods: {
+				Row: {
+					child_id: string;
+					energy: number | null;
+					family_id: string;
+					mood: string | null;
+					shared_at: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					child_id: string;
+					energy?: number | null;
+					family_id: string;
+					mood?: string | null;
+					shared_at?: string;
+				};
+				Update: {
+					child_id?: string;
+					energy?: number | null;
+					family_id?: string;
+					mood?: string | null;
+					shared_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'shared_moods_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: true;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'shared_moods_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
 						referencedColumns: ['id'];
 					}
 				];

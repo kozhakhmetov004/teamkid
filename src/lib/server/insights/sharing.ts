@@ -13,7 +13,7 @@ export type ShareResult = 'ok' | 'not_found' | 'error';
 
 export async function setWishShared(
 	sb: SupabaseClient<Database>,
-	child: { childId: string; member: Membership },
+	child: { childId: string; member: Membership; tz?: string },
 	wishId: string,
 	shared: boolean
 ): Promise<ShareResult> {
@@ -39,7 +39,7 @@ export async function setWishShared(
 	});
 
 	try {
-		await rebuildWeeklyInsight(child.childId, new Date(), sb);
+		await rebuildWeeklyInsight(child.childId, new Date(), sb, child.tz);
 	} catch (err) {
 		console.error('insight rebuild failed', err instanceof Error ? err.message : 'unknown');
 	}

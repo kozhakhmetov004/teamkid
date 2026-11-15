@@ -455,9 +455,10 @@ async function seedCarter() {
 	// earlier today), so the live demo check-in still changes the insight card.
 	const earlierThisWeek = (fraction: number) =>
 		new Date(MONDAY.getTime() + (Date.now() - MONDAY.getTime()) * fraction).toISOString();
+	// Shared ("Yes, tell them"): only shared check-ins feed the parents' insight.
 	const seedCheckins = [
-		{ child_id: lily, mood: 'happy', energy: 4, created_at: earlierThisWeek(0.3) },
-		{ child_id: lily, mood: 'calm', energy: 3, created_at: earlierThisWeek(0.6) }
+		{ child_id: lily, mood: 'happy', energy: 4, shared: true, created_at: earlierThisWeek(0.3) },
+		{ child_id: lily, mood: 'calm', energy: 3, shared: true, created_at: earlierThisWeek(0.6) }
 	];
 	if (await isEmpty('mood_checkins', 'child_id', lily)) {
 		check(await db.from('mood_checkins').insert(seedCheckins), 'mood check-ins');
@@ -480,7 +481,7 @@ async function seedCarter() {
 	}
 
 	// Same rules as the app's insight builder.
-	const insight = computeInsight(seedCheckins, seedWishes);
+	const insight = computeInsight(seedCheckins, seedWishes, { tz: 'UTC' });
 	check(
 		await db.from('weekly_insights').upsert(
 			{
