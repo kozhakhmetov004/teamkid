@@ -7,7 +7,6 @@
 		{ href: '/messages', label: 'Messages' },
 		{ href: '/expenses', label: 'Expenses' },
 		{ href: '/documents', label: 'Documents' },
-		{ href: '/plan', label: 'Plan' },
 		{ href: '/family', label: 'Family' }
 	] as const;
 

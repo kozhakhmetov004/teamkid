@@ -26,6 +26,8 @@
 				? 'border-pebble bg-pebble/25'
 				: 'border-dashed bg-muted/60'
 	);
+	/** Birthday: warm ring on top of the custody tint (plus 🎂 + words, never colour alone). */
+	const bday = $derived(day.birthday ? 'ring-2 ring-amber-400 dark:ring-amber-300' : '');
 	const nightLabel = $derived(
 		day.mine === null ? 'No custody set' : day.mine ? 'With you' : `With ${day.label}`
 	);
@@ -36,8 +38,10 @@
 		href="/calendar?view=week&date={day.date}"
 		class="flex h-full min-h-20 flex-col gap-1 rounded-lg border p-1.5 text-left transition hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none {tone} {day.inMonth
 			? ''
-			: 'opacity-50'} {day.isToday ? 'ring-2 ring-primary' : ''}"
-		aria-label="{day.weekday} {day.dayOfMonth}: {nightLabel}{day.events.length
+			: 'opacity-50'} {day.isToday ? 'ring-2 ring-primary' : bday}"
+		aria-label="{day.weekday} {day.dayOfMonth}: {nightLabel}{day.birthday
+			? `, ${day.birthday}`
+			: ''}{day.events.length
 			? `, ${day.events.length} event${day.events.length === 1 ? '' : 's'}`
 			: ''}{day.pendingSwap ? ', swap pending' : ''}"
 	>
@@ -46,6 +50,13 @@
 			{#if day.pendingSwap}<span title="Swap pending">⇄</span>{/if}
 		</span>
 		<span class="truncate text-[11px] font-medium">{day.label}</span>
+		{#if day.birthday}
+			<span
+				class="truncate rounded bg-amber-100 px-1 text-[11px] font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+				><span aria-hidden="true">🎂</span>
+				<span class="hidden sm:inline">{day.birthday}</span></span
+			>
+		{/if}
 		{#each day.events.slice(0, 2) as ev (ev.id)}
 			<span class="hidden truncate text-[11px] text-muted-foreground sm:block">{ev.title}</span>
 		{/each}
@@ -60,7 +71,7 @@
 	<section
 		class="flex h-full flex-col gap-2 rounded-xl border p-2 {tone} {day.isToday
 			? 'ring-2 ring-primary'
-			: ''}"
+			: bday}"
 		aria-label="{day.weekday} {day.dayOfMonth}"
 	>
 		<header class="flex items-start justify-between gap-1">
@@ -71,6 +82,14 @@
 			<p class="text-right text-xs font-medium">{nightLabel}</p>
 		</header>
 
+		{#if day.birthday}
+			<p
+				class="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+			>
+				<span aria-hidden="true">🎂</span>
+				{day.birthday}
+			</p>
+		{/if}
 		{#if day.pendingSwap}
 			<p class="rounded bg-background/70 px-1.5 py-0.5 text-xs">⇄ Swap pending</p>
 		{/if}

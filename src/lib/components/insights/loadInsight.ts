@@ -17,8 +17,11 @@ export interface InsightData {
 		summary: string | null;
 		gentle_flag: boolean;
 		created_at: string;
+		ai_line: string | null;
 	} | null;
 	sharedWishes: SharedWish[];
+	/** Parent-noted interests (child_profiles). Only loaded for parents; kept separate. */
+	parentNoted: string[];
 }
 
 export interface SharedWish {
@@ -37,12 +40,13 @@ export async function loadInsight(
 	client: SupabaseClient<Database>,
 	childId: string,
 	now: Date = new Date(),
-	familyId?: string
+	familyId?: string,
+	opts: { parent?: boolean } = {}
 ): Promise<InsightData> {
 	const week = isoDate(utcWeekStart(now));
 	let insightQuery = client
 		.from('weekly_insights')
-		.select('week_start, mood_trend, interests, summary, gentle_flag, created_at')
+		.select('week_start, mood_trend, interests, summary, gentle_flag, created_at, ai_line')
 		.eq('child_id', childId)
 		.eq('week_start', week);
 	let wishQuery = client
@@ -54,9 +58,12 @@ export async function loadInsight(
 		insightQuery = insightQuery.eq('family_id', familyId);
 		wishQuery = wishQuery.eq('family_id', familyId);
 	}
-	const [insights, wishes] = await Promise.all([
+	const [insights, wishes, profile] = await Promise.all([
 		insightQuery.maybeSingle(),
-		wishQuery.order('shared_at', { ascending: false, nullsFirst: false }).limit(12)
+		wishQuery.order('shared_at', { ascending: false, nullsFirst: false }).limit(12),
+		opts.parent
+			? client.from('child_profiles').select('interests').eq('child_id', childId).maybeSingle()
+			: Promise.resolve({ data: null })
 	]);
 	if (insights.error) throw new Error(`insight load failed (${insights.error.code})`);
 	if (wishes.error) throw new Error(`wishes load failed (${wishes.error.code})`);
@@ -73,6 +80,7 @@ export async function loadInsight(
 			custom: w.is_custom,
 			tags: w.tags,
 			thisWeek: w.week_start === week
-		}))
+		})),
+		parentNoted: profile.data?.interests ?? []
 	};
 }

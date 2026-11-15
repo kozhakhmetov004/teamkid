@@ -28,6 +28,8 @@ export interface CalDay {
 	/** true = with you, false = with the other parent, null = no custody night */
 	mine: boolean | null;
 	pendingSwap: boolean;
+	/** "Lily turns 9" on the child's birthday (from the child profile), else null. */
+	birthday?: string | null;
 	events: CalEvent[];
 }
 

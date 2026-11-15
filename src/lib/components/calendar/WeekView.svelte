@@ -40,6 +40,14 @@
 					{day.mine === null ? 'No custody set' : day.mine ? 'With you' : `With ${day.label}`}
 				</p>
 			</div>
+			{#if day.birthday}
+				<p
+					class="mt-1 rounded bg-amber-100 px-2 py-1 text-sm font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+				>
+					<span aria-hidden="true">🎂</span>
+					{day.birthday}
+				</p>
+			{/if}
 			{#if day.pendingSwap}<p class="mt-1 text-xs">⇄ Swap pending</p>{/if}
 			{#if day.events.length}
 				<ul class="mt-2 space-y-1">

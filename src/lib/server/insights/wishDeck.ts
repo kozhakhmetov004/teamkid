@@ -45,8 +45,10 @@ type Db = SupabaseClient<Database>;
 export interface WeekendFacts {
 	saturday: string;
 	/** Who the child is with on Saturday and Sunday (display name), null if unknown. */
-	days: { date: string; with: string | null }[];
+	days: { date: string; with: string | null; home: string | null }[];
 	planned: string[];
+	/** Planned (non-custody) events this weekend, for the parents' panel. */
+	plannedEvents: { title: string; starts_at: string }[];
 }
 
 /** One line for the child: "This weekend you’re with Mom 🏠". */
@@ -83,7 +85,7 @@ export async function loadWeekendFacts(
 			.order('starts_at'),
 		db
 			.from('events')
-			.select('title')
+			.select('title, starts_at')
 			.eq('family_id', familyId)
 			.neq('kind', 'custody')
 			.or(`child_id.eq.${childId},child_id.is.null`)
@@ -98,9 +100,14 @@ export async function loadWeekendFacts(
 		const noon = zonedToUtc(date, '12:00', tz).getTime();
 		let home: string | null = null;
 		for (const b of custody.data ?? []) if (Date.parse(b.starts_at) <= noon) home = b.home;
-		return { date, with: nameOf(home) };
+		return { date, with: nameOf(home), home };
 	});
-	return { saturday, days, planned: (events.data ?? []).map((e) => e.title) };
+	return {
+		saturday,
+		days,
+		planned: (events.data ?? []).map((e) => e.title),
+		plannedEvents: events.data ?? []
+	};
 }
 
 const THEME_KEYS = Object.keys(THEMES) as [Theme, ...Theme[]];

@@ -31,10 +31,15 @@ import {
 	safeTimeZone,
 	shortDate,
 	timeLabel,
+	weekdayLong,
 	weekdayShort,
 	type Home
 } from '#lib/custody/today.js';
 import type { CalDay, SwapView } from '#lib/components/calendar/types.js';
+import { birthdayOn } from '#lib/kids/profile.js';
+import { loadPlanPanel } from '#lib/server/planPanel.js';
+import { SlotFields, slotProblem } from '#lib/server/plannerSlot.js';
+import { postScheduleNote } from './swap/swaps.server.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const SWAP_WINDOW_DAYS = 60;
@@ -56,7 +61,8 @@ export const load: PageServerLoad = async (event) => {
 	const to = zonedToUtc(addDays(start, dayCount), '00:00', tz).toISOString();
 
 	const sb = event.locals.supabase;
-	const [events, parents, children, swaps, schedule] = await Promise.all([
+	const planPromise = loadPlanPanel(event, member, tz);
+	const [events, parents, children, swaps, schedule, profiles] = await Promise.all([
 		sb
 			.from('events')
 			.select('id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible')
@@ -86,8 +92,15 @@ export const load: PageServerLoad = async (event) => {
 			.eq('family_id', member.family_id)
 			.order('created_at', { ascending: false })
 			.limit(1)
-			.maybeSingle()
+			.maybeSingle(),
+		sb.from('child_profiles').select('child_id, birthday').eq('family_id', member.family_id)
 	]);
+
+	// 🎂 Birthdays from the child profile (shown highlighted on that day).
+	const birthdays = (profiles.data ?? []).flatMap((p) => {
+		const name = (children.data ?? []).find((c) => c.id === p.child_id)?.first_name;
+		return name && p.birthday ? [{ name, birthday: p.birthday }] : [];
+	});
 
 	const people = peopleFor(parents.data ?? [], member);
 	const rows = events.data ?? [];
@@ -116,6 +129,7 @@ export const load: PageServerLoad = async (event) => {
 			label: home ? people.nameOfHome(home) : 'Not set',
 			mine: home ? home === member.home : null,
 			pendingSwap: swapDates.has(date),
+			birthday: birthdays.map((b) => birthdayOn(date, b.birthday, b.name)).find(Boolean) ?? null,
 			events: others
 				.filter((e) => localDate(e.starts_at, tz) === date)
 				.map((e) => ({
@@ -153,7 +167,10 @@ export const load: PageServerLoad = async (event) => {
 	const templateFromDb: PatternTemplate =
 		savedTemplate && PATTERN_TEMPLATES.includes(savedTemplate) ? savedTemplate : '2-2-3';
 
+	const plan = await planPromise;
 	return {
+		plan: plan.panel,
+		planNudge: plan.nudge,
 		view,
 		anchor,
 		today,
@@ -228,7 +245,106 @@ async function childOk(sb: App.Locals['supabase'], childId: string | null): Prom
 	return !!data;
 }
 
+const AddPlanned = z.object({
+	title: z.string().trim().min(1).max(200),
+	place: z.string().trim().max(200).optional(),
+	// Unchecked "Show to <child>" = a surprise, hidden from the child's calendar.
+	kidVisible: z
+		.literal('yes')
+		.optional()
+		.transform((v) => v === 'yes'),
+	...SlotFields
+});
+
 export const actions: Actions = {
+	/**
+	 * "Plan this weekend" → Add to calendar. The event goes on the home of the
+	 * parent who has the child at that time, and the other parent gets a note
+	 * in the "Schedule" thread.
+	 */
+	add: async (event) => {
+		const { member } = await requireParent(event);
+		const parsed = await parseForm(event.request, AddPlanned, 'add');
+		if (!parsed.ok) return parsed.failure;
+		const v = parsed.data;
+		const tz = safeTimeZone(event.cookies.get('tz'));
+		const problem = slotProblem(v, localDate(new Date(), tz));
+		if (problem) return formFailure('add', problem, 400, { to: problem });
+
+		const sb = event.locals.supabase;
+		const startsAt = zonedToUtc(v.date, v.from, tz);
+		const [child, custody, parents] = await Promise.all([
+			sb
+				.from('children')
+				.select('id, first_name')
+				.eq('family_id', member.family_id)
+				.order('created_at')
+				.limit(1)
+				.maybeSingle(),
+			sb
+				.from('events')
+				.select('home')
+				.eq('family_id', member.family_id)
+				.eq('kind', 'custody')
+				.lte('starts_at', startsAt.toISOString())
+				.order('starts_at', { ascending: false })
+				.limit(1)
+				.maybeSingle(),
+			sb
+				.from('members')
+				.select('id, display_name, home')
+				.eq('family_id', member.family_id)
+				.eq('role', 'parent')
+		]);
+		const custodyHome =
+			custody.data?.home === 'A' || custody.data?.home === 'B' ? custody.data.home : null;
+		const home = custodyHome ?? (member.home === 'A' || member.home === 'B' ? member.home : null);
+
+		const { data: created, error } = await sb
+			.from('events')
+			.insert({
+				family_id: member.family_id,
+				child_id: child.data?.id ?? null,
+				title: v.title,
+				starts_at: startsAt.toISOString(),
+				ends_at: zonedToUtc(v.date, v.to, tz).toISOString(),
+				home,
+				kind: 'activity',
+				kid_visible: v.kidVisible,
+				source: 'planner',
+				place: v.place || null,
+				created_by: member.member_id
+			})
+			.select('id')
+			.single();
+		if (error || !created) return formFailure('add', 'Could not add it to the calendar.', 500);
+
+		await logAudit({
+			familyId: member.family_id,
+			actorMemberId: member.member_id,
+			action: 'event.created',
+			entity: 'events',
+			entityId: created.id,
+			meta: { source: 'planner' }
+		});
+
+		// Let the co-parent know (immutable "Schedule" thread; best effort).
+		const hasOther = (parents.data ?? []).some((p) => p.id !== member.member_id);
+		if (hasOther) {
+			const withWhom = (parents.data ?? []).find((p) => p.home && p.home === home);
+			const childName = child.data?.first_name ?? 'our child';
+			const at = `${weekdayLong(v.date)} ${timeLabel(startsAt.toISOString(), tz)}`;
+			await postScheduleNote(
+				sb,
+				member.family_id,
+				member.member_id,
+				`Added “${v.title}” to the calendar for ${at}` +
+					(withWhom ? ` (${childName} is with ${withWhom.display_name} then).` : '.')
+			);
+		}
+		return { form: 'add', ok: true, message: `Added to ${weekdayLong(v.date)}` };
+	},
+
 	createEvent: async (event) => {
 		const { member } = await requireParent(event);
 		const parsed = await parseForm(event.request, EventFields, 'event');

@@ -1551,6 +1551,8 @@ export type Database = {
 			};
 			weekly_insights: {
 				Row: {
+					ai_line: string | null;
+					ai_line_key: string | null;
 					child_id: string;
 					created_at: string;
 					family_id: string;
@@ -1563,6 +1565,8 @@ export type Database = {
 				};
 				ComputedFields: never;
 				Insert: {
+					ai_line?: string | null;
+					ai_line_key?: string | null;
 					child_id: string;
 					created_at?: string;
 					family_id: string;
@@ -1574,6 +1578,8 @@ export type Database = {
 					week_start: string;
 				};
 				Update: {
+					ai_line?: string | null;
+					ai_line_key?: string | null;
 					child_id?: string;
 					created_at?: string;
 					family_id?: string;

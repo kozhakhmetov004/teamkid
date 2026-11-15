@@ -121,7 +121,7 @@
 
 	<div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4">
 		<p class="text-sm">Looking for ideas for your next weekend with {childName}?</p>
-		<Button href="/plan">Plan my weekend</Button>
+		<Button href="/calendar#plan">Plan this weekend</Button>
 	</div>
 
 	<div class="grid gap-4 md:grid-cols-2">
