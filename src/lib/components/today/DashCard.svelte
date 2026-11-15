@@ -50,7 +50,7 @@
 		{#if action}<a href={action.href} class={link}>{action.label}</a>{/if}
 	</Card.Root>
 {:else}
-	<Card.Root aria-labelledby="{id}-title" class={klass}>
+	<Card.Root aria-labelledby="{id}-title" class="h-full {klass}">
 		<Card.Header class="flex items-center gap-2">
 			{@render chip()}
 			<Card.Title id="{id}-title">{title}</Card.Title>

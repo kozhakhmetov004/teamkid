@@ -55,7 +55,7 @@
 			{:else}
 				<svg
 					viewBox="0 0 {W} {current.rows.length * ROW}"
-					class="w-full"
+					class="w-full max-w-[26rem]"
 					role="img"
 					aria-label="Spending by category in {current.label}: {current.rows
 						.map((r) => `${r.label} ${formatCents(r.totalCents)}`)
@@ -83,7 +83,7 @@
 		{:else}
 			<svg
 				viewBox="0 0 {W} 124"
-				class="w-full"
+				class="w-full max-w-[26rem]"
 				role="img"
 				aria-label="Monthly totals: {months
 					.map((m) => `${m.shortLabel} ${formatCents(m.totalCents)}`)

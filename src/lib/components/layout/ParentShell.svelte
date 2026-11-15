@@ -14,9 +14,9 @@
 	}: { familyName: string; displayName: string; children: Snippet } = $props();
 </script>
 
-<div class="min-h-dvh bg-background lg:flex">
+<div class="min-h-dvh bg-secondary/70 lg:flex">
 	<aside
-		class="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-6 border-r bg-card px-3 py-5 lg:flex"
+		class="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-6 bg-card px-3 py-5 shadow-sm lg:flex"
 	>
 		<a
 			href="/dashboard"

@@ -92,7 +92,7 @@
 
 <section
 	aria-label="Tonight and today"
-	class="min-w-0 overflow-hidden rounded-xl bg-gradient-to-br from-primary to-[oklch(0.42_0.08_185)] text-primary-foreground ring-1 ring-foreground/10"
+	class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-gradient-to-br from-primary to-[oklch(0.42_0.08_185)] text-primary-foreground shadow-sm"
 >
 	<!-- Top: tonight (left) + briefing (top right) -->
 	<div class="grid gap-4 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-start">
@@ -123,7 +123,7 @@
 	</div>
 
 	<!-- Today's activities: full width checklist -->
-	<div class="bg-card text-card-foreground">
+	<div class="flex-1 bg-card text-card-foreground">
 		<div class="flex min-h-11 items-center gap-2 border-b px-5 py-2.5 sm:px-6">
 			<h2 class="text-base font-semibold">Today's activities</h2>
 			{#if items.length}
@@ -163,7 +163,9 @@
 									aria-hidden="true"
 								></span>{/if}
 						</button>
-						<span class="w-16 shrink-0 text-sm font-semibold tabular-nums">{item.time}</span>
+						<span class="w-20 shrink-0 text-sm font-semibold whitespace-nowrap tabular-nums"
+							>{item.time}</span
+						>
 						<span class="min-w-0 flex-1">
 							<span
 								class="block truncate text-sm font-medium {item.done

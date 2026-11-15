@@ -28,7 +28,7 @@
 	<section
 		aria-label="{childName}'s feeling today"
 		aria-live="polite"
-		class="flex w-full items-start gap-4 rounded-xl border p-4 {TONE_CLASS[mood.tone]}"
+		class="flex w-full items-start gap-4 rounded-xl p-4 {TONE_CLASS[mood.tone]}"
 	>
 		<span
 			aria-hidden="true"

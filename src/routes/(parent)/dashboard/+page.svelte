@@ -27,6 +27,8 @@
 	const childName = $derived(data.child?.first_name ?? 'your child');
 	const tonight = $derived(data.strip.find((d) => d.isToday) ?? null);
 	const childActive = $derived(data.child?.status === 'active');
+	const swapsEmpty = $derived(data.swaps.length === 0);
+	const messagesEmpty = $derived(data.unread.threads.length === 0);
 
 	// Send the browser's time zone to the server once, then reload the data in it.
 	onMount(() => {
@@ -74,12 +76,12 @@
 {/snippet}
 
 <!--
-	One "section starter line" for every card on this page (ours and the ones
-	other workstreams drop in): a fixed-height header row with a divider and
-	the same title weight.
+	Every card on this page (ours and the ones other workstreams drop in):
+	white, no outline, a soft shadow on the pastel page, and one "section
+	starter line" (fixed-height header row, soft divider, same title weight).
 -->
 <div
-	class="space-y-6 sm:space-y-8 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold"
+	class="space-y-6 sm:space-y-8 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:border-border/60 [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold [&_[data-slot=card]]:shadow-[0_1px_2px_oklch(0.45_0.05_180/0.06),0_6px_20px_oklch(0.45_0.05_180/0.07)] [&_[data-slot=card]]:ring-0"
 >
 	<!-- Header: greeting + the main shortcut -->
 	<div class="flex flex-wrap items-end justify-between gap-4">
@@ -124,82 +126,92 @@
 	{/if}
 
 	<!--
-		Two columns on desktop that stack independently (no holes between cards).
-		On phones the column wrappers become `contents`, so every card sits in one
-		list ordered by importance (order-*): tonight + today, handover, week,
-		swaps, messages, child's week, feeling + My time, money.
+		Rows on a 12-column grid: cards in the same row line up (equal height).
+		An empty card never shares a row (it would stretch into a big box): it
+		becomes a full-width one-line strip instead. Phones: one column, same order.
 	-->
-	<div class="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
-		<div class="contents lg:col-span-8 lg:flex lg:flex-col lg:gap-6">
-			<div class="order-1 min-w-0 lg:order-none">
-				<TonightCard
-					{childName}
-					mine={tonight?.mine ?? null}
-					withName={tonight?.label ?? null}
-					custodyLine={data.header.custodyLine}
-					events={data.todayEvents}
-					briefing={data.briefing}
-				/>
-			</div>
-			<div class="order-3 min-w-0 lg:order-none">
-				<WeekStrip days={data.strip} />
-			</div>
-			{#if data.child}
-				<div class="order-6 min-w-0 lg:order-none">
-					<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
-						<InsightCard childId={data.child.id} {childName} familyId={data.parent.family_id} />
-					</DashboardSlot>
-				</div>
-			{/if}
-			<div class="order-8 min-w-0 lg:order-none">
-				<DashboardSlot name="spending" title="Spending" owner="Member 1">
-					<SpendingChart months={data.slots.chart} compact />
-				</DashboardSlot>
-			</div>
+	<div class="grid gap-4 lg:grid-cols-12 lg:gap-6">
+		<!-- Row 1: tonight + today | the child's feeling + next handover -->
+		<div class="min-w-0 lg:col-span-8">
+			<TonightCard
+				{childName}
+				mine={tonight?.mine ?? null}
+				withName={tonight?.label ?? null}
+				custodyLine={data.header.custodyLine}
+				events={data.todayEvents}
+				briefing={data.briefing}
+			/>
 		</div>
-
-		<div class="contents lg:col-span-4 lg:flex lg:flex-col lg:gap-6">
-			<div class="order-2 min-w-0 lg:order-none">
+		<div class="flex min-w-0 flex-col gap-4 lg:col-span-4 lg:gap-6">
+			{#if data.child && childActive}
+				<DashCard title="{childName}'s feeling" icon="💛">
+					<MoodToday {childName} mood={data.moodToday} />
+				</DashCard>
+			{/if}
+			<div class={data.nextHandover ? 'flex-1 [&>*]:h-full' : ''}>
 				<NextHandover
 					handover={data.nextHandover}
 					{childName}
 					onRequestSwap={data.canSwap ? () => (swapOpen = true) : undefined}
 				/>
 			</div>
-			<div class="order-4 min-w-0 lg:order-none">
+		</div>
+
+		<!-- Row 2: the week -->
+		<div class="min-w-0 lg:col-span-12">
+			<WeekStrip days={data.strip} />
+		</div>
+
+		<!-- Row 3: things to act on -->
+		{#if swapsEmpty || messagesEmpty}
+			<div class="grid min-w-0 gap-4 lg:col-span-12 lg:gap-6">
 				<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} window={data.swapWindow} />
-			</div>
-			<div class="order-5 min-w-0 lg:order-none">
 				<UnreadMessagesCard count={data.unread.count} threads={data.unread.threads} />
 			</div>
-			{#if data.child}
-				<div class="order-7 grid min-w-0 gap-4 lg:order-none lg:gap-6">
-					{#if childActive}
-						<DashCard title="{childName}'s feeling" icon="💛">
-							<MoodToday {childName} mood={data.moodToday} />
-						</DashCard>
-					{/if}
-					<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">
-						<MyTimeCard childId={data.child.id} {childName} />
-					</DashboardSlot>
-				</div>
-			{/if}
-			<div class="order-9 min-w-0 lg:order-none">
-				<DashCard
-					title="Balance"
-					icon="💰"
-					action={data.slots.balance.items > 0
-						? { href: '/expenses?status=approved', label: 'See them' }
-						: { href: '/expenses', label: 'Expenses' }}
-				>
-					<p class="text-lg leading-snug font-semibold">{data.slots.balance.text}</p>
-					<p class="mt-1 text-sm text-muted-foreground">
-						{data.slots.balance.items === 0
-							? 'Nothing outstanding.'
-							: `From ${data.slots.balance.items} approved expense${data.slots.balance.items === 1 ? '' : 's'} not reimbursed yet.`}
-					</p>
-				</DashCard>
+		{:else}
+			<div class="min-w-0 lg:col-span-6">
+				<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} window={data.swapWindow} />
 			</div>
+			<div class="min-w-0 lg:col-span-6">
+				<UnreadMessagesCard count={data.unread.count} threads={data.unread.threads} />
+			</div>
+		{/if}
+
+		<!-- Row 4: the child's week | my time -->
+		{#if data.child}
+			<div class="min-w-0 lg:col-span-8 [&>section]:h-full">
+				<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
+					<InsightCard childId={data.child.id} {childName} familyId={data.parent.family_id} />
+				</DashboardSlot>
+			</div>
+			<div class="min-w-0 lg:col-span-4 [&>section]:h-full">
+				<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">
+					<MyTimeCard childId={data.child.id} {childName} />
+				</DashboardSlot>
+			</div>
+		{/if}
+
+		<!-- Row 5: money -->
+		<div class="min-w-0 lg:col-span-7 [&>section]:h-full">
+			<DashboardSlot name="spending" title="Spending" owner="Member 1">
+				<SpendingChart months={data.slots.chart} compact />
+			</DashboardSlot>
+		</div>
+		<div class="min-w-0 lg:col-span-5">
+			<DashCard
+				title="Balance"
+				icon="💰"
+				action={data.slots.balance.items > 0
+					? { href: '/expenses?status=approved', label: 'See them' }
+					: { href: '/expenses', label: 'Expenses' }}
+			>
+				<p class="text-lg leading-snug font-semibold">{data.slots.balance.text}</p>
+				<p class="mt-1 text-sm text-muted-foreground">
+					{data.slots.balance.items === 0
+						? 'Nothing outstanding.'
+						: `From ${data.slots.balance.items} approved expense${data.slots.balance.items === 1 ? '' : 's'} not reimbursed yet.`}
+				</p>
+			</DashCard>
 		</div>
 	</div>
 </div>
