@@ -54,9 +54,26 @@
 					{/each}
 				</ul>
 			</div>
-			<div use:reveal={120}>
-				<ProductPreview {...screenshots.pebble} />
+			<div class="rounded-[32px] bg-(--mk-white) p-8 shadow-sm" use:reveal={120}>
+				<h3 class="text-2xl font-bold text-(--mk-ink)">{pebble.extrasTitle}</h3>
+				<ul class="mt-4 space-y-3">
+					{#each pebble.extras as extra (extra.text)}
+						<li class="flex items-start gap-3 text-lg text-(--mk-text)">
+							<span
+								class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-(--mk-peach) text-lg"
+								aria-hidden="true">{extra.icon}</span
+							>
+							<span class="pt-1">{extra.text}</span>
+						</li>
+					{/each}
+				</ul>
 			</div>
 		</div>
+
+		{#if screenshots.pebble.available}
+			<div class="mx-auto mt-14 max-w-4xl" use:reveal>
+				<ProductPreview {...screenshots.pebble} />
+			</div>
+		{/if}
 	</div>
 </section>

@@ -6,7 +6,7 @@
 <footer class="bg-(--mk-ink) text-(--mk-on-ink)">
 	<div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
 		<div class="space-y-3">
-			<p class="flex items-center gap-2 text-xl font-bold text-white">
+			<p class="mk-display flex items-center gap-2 text-xl font-black text-white">
 				<TurtleMark class="size-8" />
 				{site.name}
 			</p>

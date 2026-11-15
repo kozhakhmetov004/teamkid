@@ -1,10 +1,12 @@
 /**
- * Shared look for the kids' space (no new packages, no external fonts):
- * a rounded system font where available (macOS/iOS `ui-rounded`), else the app's Geist.
- * Apply with `style="font-family: {KID_FONT}"` on a page root (and on portalled dialogs).
+ * Shared look for the kids' space: Nunito (self-hosted via @fontsource, loaded by
+ * KidShell, no external requests), then rounded system fonts.
+ * KidShell already applies it; also set `style="font-family: {KID_FONT}"` on
+ * portalled dialogs, which render outside the shell. The rest of the design kit
+ * lives in src/lib/components/kids/ui/ (kid.css + components).
  */
 export const KID_FONT =
-	"ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', 'Geist Variable', system-ui, sans-serif";
+	"'Nunito Variable', ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif";
 
 /** Visible, thick focus ring for big kid buttons. */
 export const KID_FOCUS =

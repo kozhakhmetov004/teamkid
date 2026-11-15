@@ -7,7 +7,7 @@
 	 * anywhere. No pressure: nothing happens if skipped.
 	 */
 	import type { PackItem } from '#lib/kids/packing.js';
-	import { KID_FOCUS } from '#lib/kids/ui.js';
+	import Celebrate from './ui/Celebrate.svelte';
 
 	let { person, date, items }: { person: string; date: string; items: PackItem[] } = $props();
 
@@ -36,11 +36,20 @@
 
 <section
 	aria-labelledby="pack-title"
-	class="flex flex-col gap-4 rounded-[2rem] bg-kid-surface p-6 shadow-sm"
+	class="k-card k-card--accent k-sun relative flex flex-col gap-5 p-6"
 >
-	<h2 id="pack-title" class="text-3xl font-bold">
-		<span aria-hidden="true">🐢</span> What should we carry in our shell to {person}’s?
-	</h2>
+	<div class="flex items-start gap-4">
+		<span
+			class="grid size-16 shrink-0 place-items-center rounded-[1.4rem] bg-[var(--a-solid)] text-4xl shadow-[inset_0_-5px_0_var(--a-edge)]"
+			aria-hidden="true">🎒</span
+		>
+		<div>
+			<h2 id="pack-title" class="k-title">What should we carry in our shell to {person}’s?</h2>
+			<p class="mt-1 text-lg font-bold text-muted-foreground">
+				{packed.filter((k) => items.some((i) => i.key === k)).length} of {items.length} packed
+			</p>
+		</div>
+	</div>
 	<ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 		{#each items as item (item.key)}
 			{@const on = packed.includes(item.key)}
@@ -49,23 +58,27 @@
 					type="button"
 					aria-pressed={on}
 					onclick={() => toggle(item.key)}
-					class="flex min-h-28 w-full flex-col items-center justify-center gap-1 rounded-3xl border-4 p-3 text-xl font-semibold transition {on
-						? 'border-primary bg-secondary'
-						: 'border-transparent bg-kid-background'} {KID_FOCUS}"
+					class="k-choice min-h-32 w-full text-xl"
 				>
 					<span class="text-4xl" aria-hidden="true">{item.icon}</span>
 					{item.label}
-					{#if item.reason}<span class="text-sm font-normal text-muted-foreground"
+					{#if item.reason}<span class="text-sm font-semibold text-muted-foreground"
 							>{item.reason}</span
 						>{/if}
-					<span class="text-base font-normal text-muted-foreground">{on ? '✓ Packed' : 'Tap'}</span>
+					{#if on}
+						<span class="k-choice__check" aria-hidden="true">✓</span>
+						<span class="text-base font-extrabold text-[var(--a-deep)]">Packed!</span>
+					{:else}
+						<span class="text-base font-bold text-muted-foreground">Tap to pack</span>
+					{/if}
 				</button>
 			</li>
 		{/each}
 	</ul>
 	{#if done}
-		<p role="status" class="text-2xl font-semibold">
-			<span aria-hidden="true">🎉</span> Your shell is ready!
+		<Celebrate />
+		<p role="status" class="k-note k-mint">
+			<span class="k-note__icon" aria-hidden="true">🎉</span> Your shell is ready!
 		</p>
 	{/if}
 </section>

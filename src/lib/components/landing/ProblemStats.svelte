@@ -15,7 +15,7 @@
 		<ul class="mt-10 grid gap-5 md:grid-cols-3">
 			{#each problem.stats as stat, i (stat.href)}
 				<li class="flex flex-col rounded-[28px] bg-(--mk-mint) p-7" use:reveal={i * 90}>
-					<p class="text-4xl font-extrabold tracking-tight text-(--mk-ink) sm:text-5xl">
+					<p class="mk-display text-4xl font-black tracking-tight text-(--mk-ink) sm:text-5xl">
 						{stat.value}
 					</p>
 					<p class="mt-3 flex-1 text-lg text-(--mk-text)">{stat.text}</p>

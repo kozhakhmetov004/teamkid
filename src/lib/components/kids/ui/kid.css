@@ -1,0 +1,470 @@
+/*
+ * TeamKid kids' space design kit ("pond world").
+ * Loaded by KidShell only, so parent pages never see it.
+ *
+ *  - The kids' space is always light and warm, whatever theme a parent picked
+ *    (tokens are re-set while a .kid-app is on the page; portalled dialogs too).
+ *  - Accent families (mint / sky / sun / peach / lilac / rose): pick one with a
+ *    `k-mint`… class and use --a-soft / --a-solid / --a-deep / --a-edge inside it.
+ *    Text on --a-solid is --a-deep (dark), which keeps AA contrast.
+ *  - Buttons and tiles "press" down (a solid edge shadow that collapses on tap).
+ *  - All motion stops with prefers-reduced-motion.
+ *  - Tokens are unlayered; classes are in @layer components (utilities win).
+ */
+
+html:has(.kid-app) {
+	color-scheme: light;
+
+	/* app tokens, light and slightly warmer for kids */
+	--background: oklch(0.985 0.012 150);
+	--foreground: oklch(0.27 0.035 230);
+	--card: oklch(0.997 0.006 95);
+	--card-foreground: oklch(0.27 0.035 230);
+	--popover: oklch(0.997 0.006 95);
+	--popover-foreground: oklch(0.27 0.035 230);
+	--primary: oklch(0.5 0.1 172);
+	--primary-foreground: oklch(0.99 0 0);
+	--secondary: oklch(0.95 0.04 165);
+	--secondary-foreground: oklch(0.32 0.06 175);
+	--muted: oklch(0.955 0.015 190);
+	--muted-foreground: oklch(0.46 0.035 228);
+	--accent: oklch(0.94 0.04 165);
+	--accent-foreground: oklch(0.32 0.06 175);
+	--destructive: oklch(0.53 0.2 27);
+	--border: oklch(0.9 0.02 195);
+	--input: oklch(0.88 0.02 195);
+	--ring: oklch(0.6 0.15 255);
+	--kid-background: oklch(0.975 0.02 160);
+	--kid-surface: oklch(0.997 0.006 95);
+
+	/* accent families: soft (backgrounds), solid (fills), deep (text on solid), edge (press shadow) */
+	--k-mint-soft: oklch(0.95 0.05 165);
+	--k-mint-solid: oklch(0.82 0.13 165);
+	--k-mint-deep: oklch(0.36 0.08 172);
+	--k-mint-edge: oklch(0.68 0.12 168);
+
+	--k-sky-soft: oklch(0.95 0.04 235);
+	--k-sky-solid: oklch(0.82 0.1 235);
+	--k-sky-deep: oklch(0.36 0.09 248);
+	--k-sky-edge: oklch(0.66 0.11 242);
+
+	--k-sun-soft: oklch(0.97 0.06 92);
+	--k-sun-solid: oklch(0.88 0.15 88);
+	--k-sun-deep: oklch(0.4 0.09 62);
+	--k-sun-edge: oklch(0.74 0.15 74);
+
+	--k-peach-soft: oklch(0.955 0.04 50);
+	--k-peach-solid: oklch(0.84 0.11 50);
+	--k-peach-deep: oklch(0.4 0.1 40);
+	--k-peach-edge: oklch(0.7 0.13 42);
+
+	--k-lilac-soft: oklch(0.955 0.035 300);
+	--k-lilac-solid: oklch(0.82 0.09 300);
+	--k-lilac-deep: oklch(0.37 0.1 300);
+	--k-lilac-edge: oklch(0.66 0.11 300);
+
+	--k-rose-soft: oklch(0.955 0.035 15);
+	--k-rose-solid: oklch(0.8 0.12 15);
+	--k-rose-deep: oklch(0.4 0.13 20);
+	--k-rose-edge: oklch(0.63 0.15 18);
+
+	--k-shadow: 0 18px 40px -26px oklch(0.32 0.06 225 / 0.45);
+	--k-line: oklch(0.9 0.02 195);
+}
+
+/* Component classes live in Tailwind's `components` layer, so utility classes on the
+   same element (text-2xl, bg-…, self-start) can always fine-tune them. */
+@layer components {
+	/* ---- accents ------------------------------------------------------------------------- */
+	.kid-app,
+	.k-mint {
+		--a-soft: var(--k-mint-soft);
+		--a-solid: var(--k-mint-solid);
+		--a-deep: var(--k-mint-deep);
+		--a-edge: var(--k-mint-edge);
+	}
+	.k-sky {
+		--a-soft: var(--k-sky-soft);
+		--a-solid: var(--k-sky-solid);
+		--a-deep: var(--k-sky-deep);
+		--a-edge: var(--k-sky-edge);
+	}
+	.k-sun {
+		--a-soft: var(--k-sun-soft);
+		--a-solid: var(--k-sun-solid);
+		--a-deep: var(--k-sun-deep);
+		--a-edge: var(--k-sun-edge);
+	}
+	.k-peach {
+		--a-soft: var(--k-peach-soft);
+		--a-solid: var(--k-peach-solid);
+		--a-deep: var(--k-peach-deep);
+		--a-edge: var(--k-peach-edge);
+	}
+	.k-lilac {
+		--a-soft: var(--k-lilac-soft);
+		--a-solid: var(--k-lilac-solid);
+		--a-deep: var(--k-lilac-deep);
+		--a-edge: var(--k-lilac-edge);
+	}
+	.k-rose {
+		--a-soft: var(--k-rose-soft);
+		--a-solid: var(--k-rose-solid);
+		--a-deep: var(--k-rose-deep);
+		--a-edge: var(--k-rose-edge);
+	}
+
+	/* ---- page ------------------------------------------------------------------------------ */
+	.kid-app {
+		font-family: 'Nunito Variable', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+		color: var(--foreground);
+		background:
+			radial-gradient(55rem 28rem at 92% -6%, oklch(0.97 0.07 92 / 0.85), transparent 62%),
+			radial-gradient(48rem 30rem at -8% 8%, oklch(0.95 0.045 235 / 0.8), transparent 60%),
+			linear-gradient(180deg, oklch(0.975 0.022 205) 0%, oklch(0.972 0.03 165) 100%);
+		-webkit-font-smoothing: antialiased;
+	}
+	.kid-app :focus-visible {
+		outline: 4px solid var(--ring);
+		outline-offset: 4px;
+	}
+
+	/* ---- type ------------------------------------------------------------------------------ */
+	.k-display {
+		font-weight: 900;
+		font-size: clamp(2.25rem, 1.7rem + 2.2vw, 3.4rem);
+		line-height: 1.04;
+		letter-spacing: -0.02em;
+	}
+	.k-title {
+		font-weight: 850;
+		font-size: clamp(1.6rem, 1.35rem + 1vw, 2.1rem);
+		line-height: 1.12;
+		letter-spacing: -0.015em;
+	}
+	.k-lead {
+		font-size: 1.3rem;
+		font-weight: 650;
+		line-height: 1.4;
+		color: var(--muted-foreground);
+	}
+	.k-eyebrow {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.35rem 0.9rem;
+		border-radius: 999px;
+		background: var(--a-soft);
+		color: var(--a-deep);
+		font-size: 1rem;
+		font-weight: 800;
+		letter-spacing: 0.01em;
+	}
+
+	/* ---- surfaces -------------------------------------------------------------------------- */
+	.k-card {
+		background: var(--kid-surface);
+		border: 2px solid var(--k-line);
+		border-radius: 2rem;
+		box-shadow:
+			0 4px 0 oklch(0.9 0.02 195 / 0.9),
+			var(--k-shadow);
+	}
+	.k-card--accent {
+		background: linear-gradient(165deg, var(--kid-surface) 10%, var(--a-soft) 100%);
+		border-color: color-mix(in oklch, var(--a-edge) 35%, transparent);
+		box-shadow:
+			0 5px 0 color-mix(in oklch, var(--a-edge) 40%, transparent),
+			var(--k-shadow);
+	}
+	.k-well {
+		background: var(--a-soft);
+		border-radius: 1.5rem;
+	}
+
+	/* Pebble's scene: sky above, a lily pad under Pebble */
+	.k-stage {
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		padding: 1.5rem;
+		border-radius: 2.5rem;
+		border: 2px solid oklch(0.88 0.04 200 / 0.8);
+		background:
+			radial-gradient(14rem 14rem at 88% 8%, oklch(0.96 0.09 92 / 0.95), transparent 60%),
+			linear-gradient(
+				180deg,
+				oklch(0.93 0.05 230) 0%,
+				oklch(0.96 0.035 200) 55%,
+				oklch(0.93 0.06 165) 100%
+			);
+		box-shadow:
+			0 6px 0 oklch(0.82 0.06 190 / 0.7),
+			var(--k-shadow);
+	}
+	@media (min-width: 1024px) {
+		.k-stage {
+			padding: 2rem;
+		}
+	}
+	.k-stage__pet {
+		position: relative;
+		margin-inline: auto;
+		width: 100%;
+		padding-inline: 0.5rem;
+	}
+	.k-stage__pet::after {
+		/* lily pad */
+		content: '';
+		position: absolute;
+		z-index: 0;
+		left: 12%;
+		right: 12%;
+		bottom: 2%;
+		height: 16%;
+		border-radius: 50%;
+		background: radial-gradient(
+			closest-side,
+			oklch(0.78 0.12 150 / 0.55),
+			oklch(0.78 0.12 150 / 0.25) 70%,
+			transparent
+		);
+	}
+	.k-stage__pet > * {
+		position: relative;
+		z-index: 1;
+	}
+
+	/* ---- press buttons --------------------------------------------------------------------- */
+	.k-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.6rem;
+		min-height: 4rem;
+		padding: 0 1.75rem;
+		border: 0;
+		border-radius: 1.4rem;
+		background: var(--a-solid);
+		color: var(--a-deep);
+		font-size: 1.35rem;
+		font-weight: 850;
+		line-height: 1.15;
+		text-align: center;
+		text-decoration: none;
+		cursor: pointer;
+		box-shadow: 0 5px 0 var(--a-edge);
+		transform: translateY(0);
+		transition:
+			transform 0.12s ease,
+			box-shadow 0.12s ease,
+			filter 0.15s ease;
+		user-select: none;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.k-btn:hover {
+		filter: brightness(1.03) saturate(1.06);
+	}
+	.k-btn:active:not(:disabled) {
+		transform: translateY(4px);
+		box-shadow: 0 1px 0 var(--a-edge);
+	}
+	.k-btn:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+	.k-btn--quiet {
+		background: var(--kid-surface);
+		color: var(--foreground);
+		border: 2px solid var(--k-line);
+		box-shadow: 0 5px 0 oklch(0.87 0.025 200);
+	}
+	.k-btn--quiet:active:not(:disabled) {
+		box-shadow: 0 1px 0 oklch(0.87 0.025 200);
+	}
+	.k-btn--lg {
+		min-height: 5rem;
+		padding: 0 2rem;
+		font-size: 1.55rem;
+		border-radius: 1.75rem;
+	}
+	.k-btn--sm {
+		min-height: 3rem;
+		padding: 0 1.15rem;
+		font-size: 1.1rem;
+		border-radius: 999px;
+		box-shadow: 0 3px 0 var(--a-edge);
+	}
+	.k-btn--sm.k-btn--quiet {
+		box-shadow: 0 3px 0 oklch(0.87 0.025 200);
+	}
+	.k-btn--block {
+		display: flex;
+		width: 100%;
+	}
+	.k-btn__icon {
+		font-size: 1.4em;
+		line-height: 1;
+	}
+
+	/* ---- big picture choices (moods, wishes, packing…) ------------------------------------ */
+	.k-choice {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.6rem;
+		padding: 1.1rem;
+		border-radius: 1.75rem;
+		border: 3px solid var(--k-line);
+		background: var(--kid-surface);
+		color: var(--foreground);
+		font-weight: 800;
+		text-align: center;
+		cursor: pointer;
+		box-shadow: 0 5px 0 oklch(0.88 0.025 200);
+		transition:
+			transform 0.12s ease,
+			box-shadow 0.12s ease,
+			border-color 0.15s ease,
+			background-color 0.15s ease;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.k-choice:hover:not(:disabled) {
+		transform: translateY(-2px);
+		border-color: color-mix(in oklch, var(--a-edge) 60%, var(--k-line));
+	}
+	.k-choice:active:not(:disabled) {
+		transform: translateY(4px);
+		box-shadow: 0 1px 0 oklch(0.88 0.025 200);
+	}
+	.k-choice:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+	.k-choice[aria-checked='true'],
+	.k-choice[aria-pressed='true'] {
+		border-color: var(--a-edge);
+		background: var(--a-soft);
+		box-shadow: 0 5px 0 var(--a-edge);
+		animation: k-pop 0.32s ease;
+	}
+	.k-choice__icon {
+		font-size: 3.25rem;
+		line-height: 1;
+		filter: drop-shadow(0 4px 0 oklch(0.3 0.04 220 / 0.08));
+	}
+	.k-choice__check {
+		position: absolute;
+		top: 0.6rem;
+		right: 0.6rem;
+		display: grid;
+		place-items: center;
+		width: 2.1rem;
+		height: 2.1rem;
+		border-radius: 999px;
+		background: var(--a-solid);
+		color: var(--a-deep);
+		font-size: 1.15rem;
+		font-weight: 900;
+		box-shadow: 0 2px 0 var(--a-edge);
+	}
+	.k-choice--dashed {
+		border-style: dashed;
+		box-shadow: none;
+		background: transparent;
+	}
+
+	/* ---- status notes ---------------------------------------------------------------------- */
+	.k-note {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		padding: 1rem 1.25rem;
+		border-radius: 1.5rem;
+		background: var(--a-soft);
+		color: var(--a-deep);
+		font-size: 1.25rem;
+		font-weight: 700;
+		line-height: 1.4;
+	}
+	.k-note__icon {
+		font-size: 1.6rem;
+		line-height: 1.1;
+	}
+
+	/* ---- motion ---------------------------------------------------------------------------- */
+	@keyframes k-pop {
+		0% {
+			transform: scale(0.94);
+		}
+		60% {
+			transform: scale(1.04);
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+	@keyframes k-rise {
+		from {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	@keyframes k-float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-6px);
+		}
+	}
+	@keyframes k-wiggle {
+		0%,
+		100% {
+			transform: rotate(0deg);
+		}
+		30% {
+			transform: rotate(-8deg);
+		}
+		60% {
+			transform: rotate(6deg);
+		}
+	}
+	.k-rise {
+		animation: k-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+	.k-float {
+		animation: k-float 4s ease-in-out infinite;
+	}
+	.k-pop {
+		animation: k-pop 0.35s ease both;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.kid-app *,
+		.kid-app *::before,
+		.kid-app *::after,
+		.k-rise,
+		.k-float,
+		.k-pop,
+		.k-btn,
+		.k-choice {
+			animation: none !important;
+			transition: none !important;
+		}
+		.k-btn:active:not(:disabled),
+		.k-choice:active:not(:disabled),
+		.k-choice:hover:not(:disabled) {
+			transform: none;
+		}
+	}
+}

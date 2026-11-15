@@ -1,17 +1,15 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import InsightView from '#lib/components/insights/InsightView.svelte';
-	import Pebble from '#lib/components/kids/Pebble.svelte';
-	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
-	import { shellColorByKey } from '#lib/kids/pet.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
+	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
+	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	let pendingId = $state<string | null>(null);
 	let said = $state<string | null>(null);
 
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 	const speech = $derived(
 		said ?? 'This is what Mom and Dad see. You can stop sharing a wish any time.'
 	);
@@ -19,60 +17,56 @@
 
 <svelte:head><title>What do Mom and Dad see? · TeamKid</title></svelte:head>
 
-<div
-	class="grid items-start gap-8 lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)] lg:gap-10"
-	style="font-family: {KID_FONT}"
->
-	<section
-		aria-label="{data.pet.name} the turtle"
-		class="flex flex-col gap-6 rounded-[2.5rem] bg-gradient-to-b from-kid-surface to-secondary p-6 shadow-sm lg:sticky lg:top-6 lg:p-8"
-	>
-		<PebbleSay text={speech} />
-		<div class="mx-auto w-full max-w-[20rem] px-2">
-			<Pebble state="idle" name={data.pet.name} {color} pattern={data.pet.pattern} />
-		</div>
-	</section>
+<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)] lg:gap-10">
+	<KidStage {speech} label="{data.pet.name} the turtle" petWidth="20rem">
+		<KidPebble name={data.pet.name} color={data.pet.colorKey} />
+	</KidStage>
 
-	<section class="flex flex-col gap-6">
-		<a
-			href="/pebble"
-			class="inline-flex min-h-12 items-center gap-2 self-start rounded-2xl px-3 text-xl font-semibold text-muted-foreground hover:text-foreground {KID_FOCUS}"
-		>
-			<span aria-hidden="true">←</span> Back to {data.pet.name}
-		</a>
-		<h1 class="text-4xl font-bold lg:text-5xl">What do Mom and Dad see?</h1>
-		<p class="text-2xl">
-			Mom and Dad see the same thing. They never see your exact clicks or words.
-		</p>
+	<section class="k-sky flex flex-col gap-6">
+		<KidBack label="Back to {data.pet.name}" />
+		<header class="k-rise flex flex-col items-start gap-3">
+			<span class="k-eyebrow"><span aria-hidden="true">👀</span> Sharing</span>
+			<h1 class="k-display">What do Mom and Dad see?</h1>
+			<p class="k-lead">
+				Mom and Dad see the same thing. They never see your exact clicks or words.
+			</p>
+		</header>
 
-		<article class="rounded-[2rem] bg-kid-surface p-6 text-xl shadow-sm">
-			<h2 class="mb-4 text-2xl font-bold">{data.firstName}'s week</h2>
+		<article class="k-card k-rise p-6 text-xl" style:animation-delay="60ms">
+			<h2 class="k-title mb-4 flex items-center gap-2">
+				<span aria-hidden="true">📖</span>
+				{data.firstName}'s week
+			</h2>
 			<InsightView data={data.view} childName={data.firstName} showGentle={false} />
 			{#if data.view.insight?.gentle_flag}
-				<p class="mt-4 text-lg text-muted-foreground">
-					Mom and Dad also get a gentle tip on how to help.
+				<p class="k-note k-sun mt-4 text-lg">
+					<span class="k-note__icon" aria-hidden="true">💡</span> Mom and Dad also get a gentle tip on
+					how to help.
 				</p>
 			{/if}
 		</article>
 
-		<article class="rounded-[2rem] bg-kid-surface p-6 shadow-sm">
-			<h2 class="text-2xl font-bold">Wishes I shared</h2>
+		<article class="k-card k-rise p-6" style:animation-delay="120ms">
+			<h2 class="k-title flex items-center gap-2">
+				<span aria-hidden="true">💌</span> Wishes I shared
+			</h2>
 			{#if data.view.sharedWishes.length === 0}
-				<p class="mt-3 text-xl text-muted-foreground">
-					Nothing shared right now. Your wishes are just for you.
+				<p class="k-note mt-4 text-xl">
+					<span class="k-note__icon" aria-hidden="true">🤫</span> Nothing shared right now. Your wishes
+					are just for you.
 				</p>
 			{:else}
 				<ul class="mt-4 grid gap-3">
 					{#each data.view.sharedWishes as wish (wish.id)}
 						<li
-							class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-secondary p-4"
+							class="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] bg-[var(--a-soft)] p-4"
 						>
 							<span class="grid gap-1">
-								<span class="text-2xl font-semibold">
+								<span class="text-2xl font-extrabold">
 									<span aria-hidden="true">{wish.emoji ?? '⭐'}</span>
 									{wish.interest}
 								</span>
-								<span class="text-lg text-muted-foreground">
+								<span class="text-lg font-semibold text-muted-foreground">
 									{wish.kind === 'activity'
 										? 'This weekend'
 										: wish.kind === 'interest'
@@ -100,11 +94,7 @@
 								}}
 							>
 								<input type="hidden" name="wishId" value={wish.id} />
-								<button
-									type="submit"
-									disabled={pendingId === wish.id}
-									class="min-h-16 rounded-2xl bg-kid-surface px-5 text-xl font-bold shadow-sm disabled:opacity-60 {KID_FOCUS}"
-								>
+								<button type="submit" disabled={pendingId === wish.id} class="k-btn k-btn--quiet">
 									{pendingId === wish.id ? 'Stopping…' : 'Stop sharing'}
 									<span class="sr-only">{wish.interest}</span>
 								</button>
