@@ -8,6 +8,8 @@ export interface CalEvent {
 	childId: string | null;
 	/** Planner activity waiting for a swap request to be accepted. */
 	pendingSwap?: boolean;
+	/** false = hidden from the child's calendar (e.g. a surprise) */
+	kidVisible: boolean;
 	/** "4:00 PM" */
 	time: string;
 	/** local 'YYYY-MM-DD' / 'HH:MM' for the edit form */

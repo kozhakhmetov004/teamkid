@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { loadInsight } from '#lib/components/insights/loadInsight.js';
+import { safeTimeZone } from '#lib/custody/today.js';
 import { requireChild } from '#lib/server/guards.js';
 import { setWishShared } from '#lib/server/insights/sharing.js';
 import { formFailure, parseForm } from '#lib/server/validation.js';
@@ -23,7 +24,7 @@ export const actions: Actions = {
 		if (!parsed.ok) return parsed.failure;
 		const result = await setWishShared(
 			event.locals.supabase,
-			{ childId, member },
+			{ childId, member, tz: safeTimeZone(event.cookies.get('tz')) },
 			parsed.data.wishId,
 			false
 		);

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	BANNED_WORDS,
 	CHECKIN_PROMPTS,
+	HARD_DAYS_LINES,
 	customizeThanks,
 	MOOD_REPLIES,
 	moodReply,
@@ -26,6 +27,7 @@ function allLines(): string[] {
 		rewardLine('Stars'),
 		...Object.values(MOOD_REPLIES),
 		...Object.values(CHECKIN_PROMPTS),
+		...Object.values(HARD_DAYS_LINES),
 		...Object.values(WISH_LINES),
 		...WISH_DECK.flatMap((card) => card.options.map((o) => wishAsk(o.ask)))
 	];

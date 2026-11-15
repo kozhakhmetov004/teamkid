@@ -62,6 +62,7 @@
 		}}
 	>
 		<input type="hidden" name="ideaId" value={idea.id} />
+		<input type="hidden" name="kidVisible" value="yes" />
 		<input type="hidden" name="title" value={idea.title} />
 		<input type="hidden" name="place" value={idea.place ?? ''} />
 		<div class="grid grid-cols-[1.4fr_1fr_1fr] gap-2">

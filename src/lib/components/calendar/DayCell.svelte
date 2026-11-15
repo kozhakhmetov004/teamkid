@@ -108,7 +108,9 @@
 						<span class="font-medium tabular-nums">{ev.time}</span>
 						{ev.title}
 						<span class="block text-muted-foreground"
-							>{kindLabel(ev.kind)}{ev.place ? ` · ${ev.place}` : ''}</span
+							>{kindLabel(ev.kind)}{ev.place ? ` · ${ev.place}` : ''}{ev.kidVisible
+								? ''
+								: ' · 🤫 Hidden from child'}</span
 						>
 						{#if ev.pendingSwap}
 							<span class="mt-0.5 inline-block rounded bg-pebble/40 px-1 font-medium"

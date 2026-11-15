@@ -326,6 +326,7 @@ export type Database = {
 					family_id: string;
 					home: string | null;
 					id: string;
+					kid_visible: boolean;
 					kind: string;
 					notes: string | null;
 					pending_swap_id: string | null;
@@ -343,6 +344,7 @@ export type Database = {
 					family_id: string;
 					home?: string | null;
 					id?: string;
+					kid_visible?: boolean;
 					kind?: string;
 					notes?: string | null;
 					pending_swap_id?: string | null;
@@ -359,6 +361,7 @@ export type Database = {
 					family_id?: string;
 					home?: string | null;
 					id?: string;
+					kid_visible?: boolean;
 					kind?: string;
 					notes?: string | null;
 					pending_swap_id?: string | null;
@@ -398,6 +401,97 @@ export type Database = {
 					}
 				];
 			};
+			expense_requests: {
+				Row: {
+					category: string;
+					child_id: string | null;
+					created_at: string;
+					estimate_cents: number;
+					expense_id: string | null;
+					family_id: string;
+					id: string;
+					note: string | null;
+					requested_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					response_note: string | null;
+					split: NonNullable<Json>;
+					status: string;
+					title: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					category: string;
+					child_id?: string | null;
+					created_at?: string;
+					estimate_cents: number;
+					expense_id?: string | null;
+					family_id: string;
+					id?: string;
+					note?: string | null;
+					requested_by: string;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					response_note?: string | null;
+					split?: NonNullable<Json>;
+					status?: string;
+					title: string;
+				};
+				Update: {
+					category?: string;
+					child_id?: string | null;
+					created_at?: string;
+					estimate_cents?: number;
+					expense_id?: string | null;
+					family_id?: string;
+					id?: string;
+					note?: string | null;
+					requested_by?: string;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					response_note?: string | null;
+					split?: NonNullable<Json>;
+					status?: string;
+					title?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'expense_requests_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: false;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expense_requests_expense_id_fkey';
+						columns: ['expense_id'];
+						isOneToOne: false;
+						referencedRelation: 'expenses';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expense_requests_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expense_requests_requested_by_fkey';
+						columns: ['requested_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expense_requests_responded_by_fkey';
+						columns: ['responded_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
 			expenses: {
 				Row: {
 					amount_cents: number;
@@ -410,10 +504,14 @@ export type Database = {
 					note: string | null;
 					paid_by: string;
 					receipt_path: string | null;
+					recurring_id: string | null;
+					recurring_month: string | null;
 					reimbursed_at: string | null;
+					request_id: string | null;
 					responded_at: string | null;
 					responded_by: string | null;
 					resubmit_of: string | null;
+					settlement_id: string | null;
 					spent_on: string;
 					split: NonNullable<Json>;
 					status: string;
@@ -432,10 +530,14 @@ export type Database = {
 					note?: string | null;
 					paid_by: string;
 					receipt_path?: string | null;
+					recurring_id?: string | null;
+					recurring_month?: string | null;
 					reimbursed_at?: string | null;
+					request_id?: string | null;
 					responded_at?: string | null;
 					responded_by?: string | null;
 					resubmit_of?: string | null;
+					settlement_id?: string | null;
 					spent_on?: string;
 					split?: NonNullable<Json>;
 					status?: string;
@@ -453,10 +555,14 @@ export type Database = {
 					note?: string | null;
 					paid_by?: string;
 					receipt_path?: string | null;
+					recurring_id?: string | null;
+					recurring_month?: string | null;
 					reimbursed_at?: string | null;
+					request_id?: string | null;
 					responded_at?: string | null;
 					responded_by?: string | null;
 					resubmit_of?: string | null;
+					settlement_id?: string | null;
 					spent_on?: string;
 					split?: NonNullable<Json>;
 					status?: string;
@@ -486,6 +592,20 @@ export type Database = {
 						referencedColumns: ['id'];
 					},
 					{
+						foreignKeyName: 'expenses_recurring_id_fkey';
+						columns: ['recurring_id'];
+						isOneToOne: false;
+						referencedRelation: 'recurring_expenses';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expenses_request_id_fkey';
+						columns: ['request_id'];
+						isOneToOne: false;
+						referencedRelation: 'expense_requests';
+						referencedColumns: ['id'];
+					},
+					{
 						foreignKeyName: 'expenses_responded_by_fkey';
 						columns: ['responded_by'];
 						isOneToOne: false;
@@ -497,6 +617,13 @@ export type Database = {
 						columns: ['resubmit_of'];
 						isOneToOne: false;
 						referencedRelation: 'expenses';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'expenses_settlement_id_fkey';
+						columns: ['settlement_id'];
+						isOneToOne: false;
+						referencedRelation: 'settlements';
 						referencedColumns: ['id'];
 					}
 				];
@@ -522,6 +649,36 @@ export type Database = {
 					name?: string;
 				};
 				Relationships: [];
+			};
+			family_finance: {
+				Row: {
+					agreed_at: string;
+					basis: string;
+					default_shares: NonNullable<Json>;
+					family_id: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					agreed_at?: string;
+					basis: string;
+					default_shares: NonNullable<Json>;
+					family_id: string;
+				};
+				Update: {
+					agreed_at?: string;
+					basis?: string;
+					default_shares?: NonNullable<Json>;
+					family_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'family_finance_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: true;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					}
+				];
 			};
 			invites: {
 				Row: {
@@ -751,6 +908,7 @@ export type Database = {
 					energy: number | null;
 					id: string;
 					mood: string;
+					shared: boolean;
 				};
 				ComputedFields: never;
 				Insert: {
@@ -759,6 +917,7 @@ export type Database = {
 					energy?: number | null;
 					id?: string;
 					mood: string;
+					shared?: boolean;
 				};
 				Update: {
 					child_id?: string;
@@ -766,6 +925,7 @@ export type Database = {
 					energy?: number | null;
 					id?: string;
 					mood?: string;
+					shared?: boolean;
 				};
 				Relationships: [
 					{
@@ -838,6 +998,46 @@ export type Database = {
 						foreignKeyName: 'outings_parent_member_id_fkey';
 						columns: ['parent_member_id'];
 						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			parent_income: {
+				Row: {
+					band: string;
+					family_id: string;
+					member_id: string;
+					share_for_split: boolean;
+					updated_at: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					band: string;
+					family_id: string;
+					member_id: string;
+					share_for_split?: boolean;
+					updated_at?: string;
+				};
+				Update: {
+					band?: string;
+					family_id?: string;
+					member_id?: string;
+					share_for_split?: boolean;
+					updated_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'parent_income_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'parent_income_member_id_fkey';
+						columns: ['member_id'];
+						isOneToOne: true;
 						referencedRelation: 'members';
 						referencedColumns: ['id'];
 					}
@@ -934,6 +1134,90 @@ export type Database = {
 					}
 				];
 			};
+			recurring_expenses: {
+				Row: {
+					amount_cents: number;
+					category: string;
+					child_id: string | null;
+					created_at: string;
+					created_by: string;
+					day_of_month: number;
+					family_id: string;
+					id: string;
+					last_month: string | null;
+					responded_at: string | null;
+					responded_by: string | null;
+					split: NonNullable<Json>;
+					start_month: string;
+					status: string;
+					title: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					amount_cents: number;
+					category: string;
+					child_id?: string | null;
+					created_at?: string;
+					created_by: string;
+					day_of_month: number;
+					family_id: string;
+					id?: string;
+					last_month?: string | null;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					split?: NonNullable<Json>;
+					start_month: string;
+					status?: string;
+					title: string;
+				};
+				Update: {
+					amount_cents?: number;
+					category?: string;
+					child_id?: string | null;
+					created_at?: string;
+					created_by?: string;
+					day_of_month?: number;
+					family_id?: string;
+					id?: string;
+					last_month?: string | null;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					split?: NonNullable<Json>;
+					start_month?: string;
+					status?: string;
+					title?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'recurring_expenses_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: false;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'recurring_expenses_created_by_fkey';
+						columns: ['created_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'recurring_expenses_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'recurring_expenses_responded_by_fkey';
+						columns: ['responded_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
 			safety_alerts: {
 				Row: {
 					category: string | null;
@@ -984,6 +1268,170 @@ export type Database = {
 					{
 						foreignKeyName: 'safety_alerts_resolved_by_fkey';
 						columns: ['resolved_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			settlements: {
+				Row: {
+					amount_cents: number;
+					confirmed_at: string | null;
+					created_at: string;
+					credit_cents: number;
+					family_id: string;
+					id: string;
+					kind: string;
+					method: string;
+					note: string | null;
+					paid_by: string;
+					paid_to: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					amount_cents: number;
+					confirmed_at?: string | null;
+					created_at?: string;
+					credit_cents?: number;
+					family_id: string;
+					id?: string;
+					kind: string;
+					method: string;
+					note?: string | null;
+					paid_by: string;
+					paid_to: string;
+				};
+				Update: {
+					amount_cents?: number;
+					confirmed_at?: string | null;
+					created_at?: string;
+					credit_cents?: number;
+					family_id?: string;
+					id?: string;
+					kind?: string;
+					method?: string;
+					note?: string | null;
+					paid_by?: string;
+					paid_to?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'settlements_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'settlements_paid_by_fkey';
+						columns: ['paid_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'settlements_paid_to_fkey';
+						columns: ['paid_to'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			shared_moods: {
+				Row: {
+					child_id: string;
+					energy: number | null;
+					family_id: string;
+					mood: string | null;
+					shared_at: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					child_id: string;
+					energy?: number | null;
+					family_id: string;
+					mood?: string | null;
+					shared_at?: string;
+				};
+				Update: {
+					child_id?: string;
+					energy?: number | null;
+					family_id?: string;
+					mood?: string | null;
+					shared_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'shared_moods_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: true;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'shared_moods_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			split_proposals: {
+				Row: {
+					basis: string;
+					created_at: string;
+					family_id: string;
+					id: string;
+					proposed_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					shares: NonNullable<Json>;
+					status: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					basis: string;
+					created_at?: string;
+					family_id: string;
+					id?: string;
+					proposed_by: string;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					shares: NonNullable<Json>;
+					status?: string;
+				};
+				Update: {
+					basis?: string;
+					created_at?: string;
+					family_id?: string;
+					id?: string;
+					proposed_by?: string;
+					responded_at?: string | null;
+					responded_by?: string | null;
+					shares?: NonNullable<Json>;
+					status?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'split_proposals_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'split_proposals_proposed_by_fkey';
+						columns: ['proposed_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'split_proposals_responded_by_fkey';
+						columns: ['responded_by'];
 						isOneToOne: false;
 						referencedRelation: 'members';
 						referencedColumns: ['id'];
@@ -1450,6 +1898,28 @@ export type Database = {
 					member_id: string;
 				}[];
 			};
+			confirm_settlement: {
+				Args: { p_settlement_id: string };
+				Returns: {
+					amount_cents: number;
+					confirmed_at: string | null;
+					created_at: string;
+					credit_cents: number;
+					family_id: string;
+					id: string;
+					kind: string;
+					method: string;
+					note: string | null;
+					paid_by: string;
+					paid_to: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'settlements';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
 			counter_swap: {
 				Args: {
 					p_note?: string;
@@ -1490,6 +1960,7 @@ export type Database = {
 			current_member_ids: { Args: Record<PropertyKey, never>; Returns: string[] };
 			family_of_child: { Args: { cid: string }; Returns: string };
 			generate_family_code: { Args: Record<PropertyKey, never>; Returns: string };
+			generate_recurring_expenses: { Args: { p_family_id: string }; Returns: number };
 			invite_preview: {
 				Args: { p_token: string };
 				Returns: {
@@ -1502,6 +1973,19 @@ export type Database = {
 			};
 			is_family_member: { Args: { fid: string }; Returns: boolean };
 			is_family_parent: { Args: { fid: string }; Returns: boolean };
+			kid_calendar: {
+				Args: { p_from: string; p_to: string };
+				Returns: {
+					ends_at: string;
+					home: string;
+					id: string;
+					kind: string;
+					place: string;
+					starts_at: string;
+					title: string;
+				}[];
+			};
+			kid_exchange_place: { Args: Record<PropertyKey, never>; Returns: string };
 			my_memberships: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
@@ -1516,7 +2000,28 @@ export type Database = {
 					role: Database['public']['Enums']['member_role'];
 				}[];
 			};
+			other_parent_of: { Args: { p_family_id: string; p_member_id: string }; Returns: string };
 			parent_member_in_family: { Args: { fid: string }; Returns: string };
+			propose_family_split: {
+				Args: { p_basis: string; p_family_id: string; p_my_pct: number };
+				Returns: {
+					basis: string;
+					created_at: string;
+					family_id: string;
+					id: string;
+					proposed_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					shares: NonNullable<Json>;
+					status: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'split_proposals';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
 			purge_old_kid_chat: { Args: Record<PropertyKey, never>; Returns: number };
 			replace_custody_schedule: {
 				Args: {
@@ -1532,6 +2037,16 @@ export type Database = {
 				};
 				Returns: string;
 			};
+			request_covers: {
+				Args: {
+					p_amount: number;
+					p_family_id: string;
+					p_paid_by: string;
+					p_request_id: string;
+					p_split: Json;
+				};
+				Returns: boolean;
+			};
 			request_wish_refresh_for_family: { Args: { fid: string }; Returns: undefined };
 			respond_to_expense: {
 				Args: { p_action: string; p_expense_id: string; p_note?: string };
@@ -1546,10 +2061,14 @@ export type Database = {
 					note: string | null;
 					paid_by: string;
 					receipt_path: string | null;
+					recurring_id: string | null;
+					recurring_month: string | null;
 					reimbursed_at: string | null;
+					request_id: string | null;
 					responded_at: string | null;
 					responded_by: string | null;
 					resubmit_of: string | null;
+					settlement_id: string | null;
 					spent_on: string;
 					split: NonNullable<Json>;
 					status: string;
@@ -1559,6 +2078,78 @@ export type Database = {
 				SetofOptions: {
 					from: '*';
 					to: 'expenses';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
+			respond_to_expense_request: {
+				Args: { p_action: string; p_note?: string; p_request_id: string };
+				Returns: {
+					category: string;
+					child_id: string | null;
+					created_at: string;
+					estimate_cents: number;
+					expense_id: string | null;
+					family_id: string;
+					id: string;
+					note: string | null;
+					requested_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					response_note: string | null;
+					split: NonNullable<Json>;
+					status: string;
+					title: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'expense_requests';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
+			respond_to_recurring: {
+				Args: { p_action: string; p_recurring_id: string };
+				Returns: {
+					amount_cents: number;
+					category: string;
+					child_id: string | null;
+					created_at: string;
+					created_by: string;
+					day_of_month: number;
+					family_id: string;
+					id: string;
+					last_month: string | null;
+					responded_at: string | null;
+					responded_by: string | null;
+					split: NonNullable<Json>;
+					start_month: string;
+					status: string;
+					title: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'recurring_expenses';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
+			respond_to_split_proposal: {
+				Args: { p_action: string; p_proposal_id: string };
+				Returns: {
+					basis: string;
+					created_at: string;
+					family_id: string;
+					id: string;
+					proposed_by: string;
+					responded_at: string | null;
+					responded_by: string | null;
+					shares: NonNullable<Json>;
+					status: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'split_proposals';
 					isOneToOne: true;
 					isSetofReturn: false;
 				};
@@ -1587,7 +2178,30 @@ export type Database = {
 				};
 			};
 			safe_tz: { Args: { p_tz: string }; Returns: string };
+			settle_up: {
+				Args: { p_amount_cents: number; p_family_id: string; p_method: string; p_note?: string };
+				Returns: {
+					amount_cents: number;
+					confirmed_at: string | null;
+					created_at: string;
+					credit_cents: number;
+					family_id: string;
+					id: string;
+					kind: string;
+					method: string;
+					note: string | null;
+					paid_by: string;
+					paid_to: string;
+				};
+				SetofOptions: {
+					from: '*';
+					to: 'settlements';
+					isOneToOne: true;
+					isSetofReturn: false;
+				};
+			};
 			storage_family_id: { Args: { object_name: string }; Returns: string };
+			valid_split: { Args: { s: Json }; Returns: boolean };
 		};
 		Enums: {
 			child_mode: 'pet' | 'teen';

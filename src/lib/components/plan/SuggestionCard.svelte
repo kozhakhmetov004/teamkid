@@ -8,7 +8,13 @@
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { CATEGORY_LABEL, miles, type PlannedSuggestion } from './types.js';
 
-	let { suggestion, demo }: { suggestion: PlannedSuggestion; demo: boolean } = $props();
+	let {
+		suggestion,
+		demo,
+		childName = 'your child'
+	}: { suggestion: PlannedSuggestion; demo: boolean; childName?: string } = $props();
+	// Off = a surprise: hidden from the child's calendar.
+	let kidVisible = $state(true);
 
 	const p = $derived(suggestion.place);
 	const mapsUrl = $derived(`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`);
@@ -203,6 +209,21 @@
 		<Card.Footer class="flex-col items-start gap-2">
 			<input type="hidden" name="title" value={suggestion.title} />
 			<input type="hidden" name="place" value={placeText.slice(0, 200)} />
+			<label class="flex items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					name="kidVisible"
+					value="yes"
+					bind:checked={kidVisible}
+					disabled={added}
+					class="size-4 accent-primary"
+				/>
+				{#if kidVisible}
+					<span><span aria-hidden="true">👀</span> {childName} can see this</span>
+				{:else}
+					<span><span aria-hidden="true">🤫</span> Surprise: hidden from {childName}</span>
+				{/if}
+			</label>
 			{#if saveError}<p role="alert" class="text-xs text-destructive">{saveError}</p>{/if}
 			{#if swapAsk && !added}
 				<div class="w-full space-y-2 rounded-md border border-pebble bg-pebble/20 p-3" role="alert">

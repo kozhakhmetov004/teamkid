@@ -66,7 +66,9 @@ export const load: PageServerLoad = async (event) => {
 	const [events, parents, children, swaps, schedule, profiles] = await Promise.all([
 		sb
 			.from('events')
-			.select('id, title, starts_at, ends_at, home, kind, place, notes, child_id, pending_swap_id')
+			.select(
+				'id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible, pending_swap_id'
+			)
 			.eq('family_id', member.family_id)
 			.gte('starts_at', from)
 			.lt('starts_at', to)
@@ -141,6 +143,7 @@ export const load: PageServerLoad = async (event) => {
 					notes: e.notes,
 					childId: e.child_id,
 					pendingSwap: !!e.pending_swap_id,
+					kidVisible: e.kid_visible,
 					time: timeLabel(e.starts_at, tz),
 					date,
 					start: localTime(e.starts_at, tz),
@@ -217,6 +220,11 @@ const EventFields = z
 		kind: z.enum(['school', 'activity', 'medical', 'handover', 'other']),
 		place: optionalText(200),
 		notes: optionalText(2000),
+		// Checkbox "Show to <child>": unchecked (absent) = hidden, e.g. a surprise.
+		kidVisible: z
+			.literal('yes')
+			.optional()
+			.transform((v) => v === 'yes'),
 		childId: z
 			.string()
 			.optional()
@@ -248,6 +256,11 @@ const AddPlanned = z.object({
 	swap: z.literal('1').optional(),
 	/** Re-adding an idea that came back from a declined swap. */
 	ideaId: z.uuid().optional(),
+	// Unchecked "Show to <child>" = a surprise, hidden from the child's calendar.
+	kidVisible: z
+		.literal('yes')
+		.optional()
+		.transform((v) => v === 'yes'),
 	...SlotFields
 });
 
@@ -393,6 +406,7 @@ export const actions: Actions = {
 				// On my day: my home. Pending swap: it becomes my day once accepted.
 				home: myHome ?? (blockHome === 'A' || blockHome === 'B' ? blockHome : null),
 				kind: 'activity',
+				kid_visible: v.kidVisible,
 				source: 'planner',
 				place: v.place || null,
 				created_by: member.member_id,
@@ -460,6 +474,7 @@ export const actions: Actions = {
 				kind: v.kind,
 				place: v.place,
 				notes: v.notes,
+				kid_visible: v.kidVisible,
 				home: null,
 				source: 'manual',
 				created_by: member.member_id
@@ -497,7 +512,8 @@ export const actions: Actions = {
 				ends_at: zonedToUtc(v.date, v.end, tz).toISOString(),
 				kind: v.kind,
 				place: v.place,
-				notes: v.notes
+				notes: v.notes,
+				kid_visible: v.kidVisible
 			})
 			.eq('id', v.id)
 			.neq('kind', 'custody')

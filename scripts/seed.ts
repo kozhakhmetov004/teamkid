@@ -190,7 +190,9 @@ async function isEmpty(
 		| 'outings'
 		| 'mood_checkins'
 		| 'wish_cards'
-		| 'custody_schedules',
+		| 'custody_schedules'
+		| 'expense_requests'
+		| 'recurring_expenses',
 	column: string,
 	value: string
 ) {
@@ -392,6 +394,39 @@ async function seedCarter() {
 		);
 	}
 
+	// Expenses v2 demo: Dad asks before spending; Mom proposes a monthly cost.
+	// Both wait for the other parent, so each sees "Needs your answer".
+	if (await isEmpty('expense_requests', 'family_id', family.id)) {
+		check(
+			await db.from('expense_requests').insert({
+				family_id: family.id,
+				child_id: lily,
+				requested_by: dad,
+				title: 'Soccer season',
+				category: 'activities',
+				estimate_cents: 18000,
+				note: 'Lily wants to join her friends this spring.'
+			}),
+			'expense_requests'
+		);
+	}
+	if (await isEmpty('recurring_expenses', 'family_id', family.id)) {
+		const now = new Date();
+		check(
+			await db.from('recurring_expenses').insert({
+				family_id: family.id,
+				child_id: lily,
+				created_by: mom,
+				title: 'After-school club',
+				category: 'childcare',
+				amount_cents: 12000,
+				day_of_month: 1,
+				start_month: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`
+			}),
+			'recurring_expenses'
+		);
+	}
+
 	if (await isEmpty('outings', 'family_id', family.id)) {
 		check(
 			await db.from('outings').insert([
@@ -420,9 +455,10 @@ async function seedCarter() {
 	// earlier today), so the live demo check-in still changes the insight card.
 	const earlierThisWeek = (fraction: number) =>
 		new Date(MONDAY.getTime() + (Date.now() - MONDAY.getTime()) * fraction).toISOString();
+	// Shared ("Yes, tell them"): only shared check-ins feed the parents' insight.
 	const seedCheckins = [
-		{ child_id: lily, mood: 'happy', energy: 4, created_at: earlierThisWeek(0.3) },
-		{ child_id: lily, mood: 'calm', energy: 3, created_at: earlierThisWeek(0.6) }
+		{ child_id: lily, mood: 'happy', energy: 4, shared: true, created_at: earlierThisWeek(0.3) },
+		{ child_id: lily, mood: 'calm', energy: 3, shared: true, created_at: earlierThisWeek(0.6) }
 	];
 	if (await isEmpty('mood_checkins', 'child_id', lily)) {
 		check(await db.from('mood_checkins').insert(seedCheckins), 'mood check-ins');
@@ -445,7 +481,7 @@ async function seedCarter() {
 	}
 
 	// Same rules as the app's insight builder.
-	const insight = computeInsight(seedCheckins, seedWishes);
+	const insight = computeInsight(seedCheckins, seedWishes, { tz: 'UTC' });
 	check(
 		await db.from('weekly_insights').upsert(
 			{

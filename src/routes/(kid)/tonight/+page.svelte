@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Pebble from '#lib/components/kids/Pebble.svelte';
+	import PackingHelper from '#lib/components/kids/PackingHelper.svelte';
 	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
 	import { rememberTimeZone } from '#lib/kids/tz.js';
 	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
@@ -16,6 +17,7 @@
 	} as const;
 
 	const tonight = $derived(data.nights[0]);
+	const todayPlans = $derived(tonight?.plans ?? []);
 	const speech = $derived.by(() => {
 		if (!tonight?.place) return 'I’m not sure about tonight. Ask a grown-up, they’ll know!';
 		const line = `Tonight you sleep at ${tonight.place}.`;
@@ -44,24 +46,109 @@
 		<div class="flex flex-col gap-4">
 			<h1 class="text-4xl font-bold lg:text-5xl">Where am I tonight?</h1>
 			<PebbleSay text={speech} />
+			{#if data.sleeps}
+				<p
+					class="inline-flex items-center gap-2 self-start rounded-full bg-kid-surface px-5 py-2 text-xl font-semibold shadow-sm"
+				>
+					<span aria-hidden="true">🌙</span>
+					{data.sleeps.sleeps === 1
+						? `1 more sleep until ${data.sleeps.person}’s house`
+						: `${data.sleeps.sleeps} more sleeps until ${data.sleeps.person}’s house`}
+				</p>
+			{/if}
 		</div>
 	</section>
 
+	<section
+		aria-labelledby="today-title"
+		class="flex flex-col gap-4 rounded-[2rem] bg-kid-surface p-6 shadow-sm"
+	>
+		<h2 id="today-title" class="text-3xl font-bold">Today</h2>
+		{#if data.pickup}
+			<p class="flex items-center gap-3 rounded-3xl bg-secondary p-4 text-2xl font-semibold">
+				<span class="text-4xl" aria-hidden="true">🚗</span>
+				<span>
+					{data.pickup.who} picks you up at {data.pickup.time}{#if data.pickup.place}
+						at {data.pickup.place}{/if}.
+				</span>
+			</p>
+		{/if}
+		{#if todayPlans.length}
+			<ul class="flex flex-col gap-3">
+				{#each todayPlans as p (p.id)}
+					<li class="flex items-center gap-3 text-2xl">
+						<span class="text-4xl" aria-hidden="true">{p.icon}</span>
+						<span>
+							{#if p.time}<span class="font-bold">{p.time}</span>{/if}
+							{p.title}{#if p.with}<span class="text-muted-foreground"> with {p.with}</span>{/if}
+							{#if p.place}<span class="block text-lg text-muted-foreground">📍 {p.place}</span
+								>{/if}
+						</span>
+					</li>
+				{/each}
+			</ul>
+		{:else if !data.pickup}
+			<p class="text-2xl text-muted-foreground">
+				<span aria-hidden="true">🌤️</span> Nothing special planned today. A cozy day!
+			</p>
+		{/if}
+	</section>
+
+	{#if data.packing}
+		<PackingHelper {...data.packing} />
+	{/if}
+
 	<section aria-labelledby="week-title" class="flex flex-col gap-4">
-		<h2 id="week-title" class="text-3xl font-bold">My nights this week</h2>
-		<ol class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
+		<h2 id="week-title" class="text-3xl font-bold">My week</h2>
+		<ol class="flex flex-col gap-3">
 			{#each data.nights as n (n.date)}
 				{@const style = n.home ? HOME_STYLE[n.home] : null}
 				<li
-					class="flex flex-col items-center gap-2 rounded-3xl p-4 text-center shadow-sm {style
+					class="grid items-center gap-4 rounded-3xl p-4 shadow-sm sm:grid-cols-[13rem_1fr] {style
 						? style.bg
 						: 'bg-kid-surface'} {n.tonight ? `ring-4 ${style?.ring ?? 'ring-primary'}` : ''}"
 					aria-current={n.tonight ? 'date' : undefined}
 				>
-					<span class="text-lg font-semibold">{n.tonight ? 'Tonight' : n.weekday}</span>
-					<span class="text-sm text-muted-foreground">{n.short}</span>
-					<span class="text-5xl" aria-hidden="true">{style ? style.emoji : '❔'}</span>
-					<span class="text-xl font-bold">{n.place ?? 'Ask a grown-up'}</span>
+					<div class="flex items-center gap-3">
+						<span class="text-5xl" aria-hidden="true">{style ? style.emoji : '❔'}</span>
+						<div class="flex flex-col">
+							<span class="text-lg font-semibold"
+								>{n.tonight ? 'Tonight' : n.weekday}
+								<span class="font-normal text-muted-foreground">{n.short}</span></span
+							>
+							{#if n.switch}
+								<span class="text-lg">
+									<span aria-hidden="true">☀️</span>
+									{n.switch.dayPlace}
+									<span aria-hidden="true">→</span>
+								</span>
+								<span class="text-xl font-bold"
+									><span aria-hidden="true">🌙</span>
+									{n.place ?? 'Ask a grown-up'}
+									<span class="text-base font-normal text-muted-foreground"
+										>from {n.switch.nightFrom}</span
+									></span
+								>
+							{:else}
+								<span class="text-xl font-bold">{n.place ?? 'Ask a grown-up'}</span>
+							{/if}
+						</div>
+					</div>
+					{#if n.plans.length}
+						<ul class="flex flex-wrap gap-2">
+							{#each n.plans as p (p.id)}
+								<li
+									class="inline-flex items-center gap-2 rounded-2xl bg-kid-surface/80 px-3 py-2 text-lg"
+								>
+									<span aria-hidden="true">{p.icon}</span>
+									{#if p.time}<span class="font-semibold">{p.time}</span>{/if}
+									{p.title}{#if p.with}<span class="text-muted-foreground">with {p.with}</span>{/if}
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<p class="text-lg text-muted-foreground">No plans yet</p>
+					{/if}
 				</li>
 			{/each}
 		</ol>

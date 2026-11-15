@@ -8,6 +8,7 @@
 	import SafetyAlerts from '#lib/components/safety/SafetyAlerts.svelte';
 	import BriefingCard from '#lib/components/today/BriefingCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
+	import MoodToday from '#lib/components/today/MoodToday.svelte';
 	import NextHandover from '#lib/components/today/NextHandover.svelte';
 	import PendingSwapsCard from '#lib/components/today/PendingSwapsCard.svelte';
 	import TodayEvents from '#lib/components/today/TodayEvents.svelte';
@@ -18,6 +19,7 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import SwapRequestDialog from '#lib/components/calendar/SwapRequestDialog.svelte';
 	import { subscribeToEvents } from '#lib/components/calendar/subscribeToEvents.js';
+	import { subscribeToSharedMood } from '#lib/components/today/subscribeToSharedMood.js';
 	import { subscribeToFamily } from '#lib/realtime.js';
 	import type { PageProps } from './$types';
 
@@ -35,7 +37,7 @@
 		}
 	});
 
-	// Live updates: swaps and messages for this family (debounced reload).
+	// Live updates: swaps, messages, events and the shared feeling (debounced reload).
 	$effect(() => {
 		const familyId = data.parent.family_id;
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -46,7 +48,8 @@
 		const unsubscribe = [
 			subscribeToFamily('swap_requests', familyId, refresh),
 			subscribeToFamily('messages', familyId, refresh),
-			subscribeToEvents(familyId, refresh)
+			subscribeToEvents(familyId, refresh),
+			subscribeToSharedMood(familyId, refresh)
 		];
 		return () => {
 			clearTimeout(timer);
@@ -58,7 +61,14 @@
 <svelte:head><title>Today · TeamKid</title></svelte:head>
 
 <div class="space-y-6">
-	<TodayHeader {...data.header} />
+	<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+		<TodayHeader {...data.header} />
+		{#if data.child?.status === 'active'}
+			<div class="md:w-80 md:shrink-0 lg:w-96">
+				<MoodToday {childName} mood={data.moodToday} />
+			</div>
+		{/if}
+	</div>
 
 	<SafetyAlerts familyId={data.parent.family_id} {childName} />
 
