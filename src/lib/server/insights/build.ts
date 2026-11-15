@@ -41,7 +41,7 @@ export async function rebuildWeeklyInsight(
 			.lt('created_at', end),
 		reader
 			.from('wish_cards')
-			.select('interest, shared_with_parents, shared_at, created_at')
+			.select('interest, shared_with_parents, shared_at, created_at, tags')
 			.eq('child_id', childId)
 			.eq('shared_with_parents', true)
 			.gte('shared_at', start)

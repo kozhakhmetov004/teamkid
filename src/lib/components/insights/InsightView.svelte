@@ -61,8 +61,11 @@
 			<p class="text-sm font-medium">{childName} chose to share:</p>
 			<ul class="mt-1 space-y-1 text-sm">
 				{#each data.sharedWishes as wish (wish.id)}
-					<li class="flex items-center gap-2">
-						<span aria-hidden="true">⭐</span>{wish.interest}
+					<li class="flex flex-wrap items-center gap-2">
+						<span aria-hidden="true">{wish.emoji ?? '⭐'}</span>{wish.interest}
+						{#if wish.custom}
+							<Badge variant="outline" class="text-xs">{childName}'s own idea ✏️</Badge>
+						{/if}
 					</li>
 				{/each}
 			</ul>

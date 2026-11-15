@@ -21,7 +21,7 @@
  */
 import { localDate } from '../custody/today.js';
 import { LOW_ENERGY_MAX } from './moods.js';
-import { THEMES, themeOfInterest, type Theme } from './wishDeck.js';
+import { THEMES, isTheme, themeOfInterest, type Theme } from './wishDeck.js';
 
 export const MOOD_TRENDS = [
 	'mostly_happy',
@@ -54,6 +54,8 @@ export interface WishRow {
 	shared_with_parents: boolean;
 	shared_at?: string | null;
 	created_at?: string | null;
+	/** Weekly cards store theme tags; older preset wishes are matched by label. */
+	tags?: string[] | null;
 }
 
 export interface Insight {
@@ -199,8 +201,9 @@ export function topThemes(wishes: readonly WishRow[], max = 3): Theme[] {
 	for (const w of [...wishes]
 		.filter((w) => w.shared_with_parents)
 		.sort((a, b) => when(b) - when(a))) {
-		const t = themeOfInterest(w.interest);
-		if (t && !out.includes(t)) out.push(t);
+		const tagged = (w.tags ?? []).filter(isTheme);
+		const themes = tagged.length ? tagged : [themeOfInterest(w.interest)];
+		for (const t of themes) if (t && !out.includes(t) && out.length < max) out.push(t);
 		if (out.length === max) break;
 	}
 	return out;

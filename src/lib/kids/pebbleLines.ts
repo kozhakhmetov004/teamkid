@@ -109,6 +109,23 @@ export function wishAsk(ask: string): string {
 	return `Want me to tell Mom and Dad you’d love to ${ask}?`;
 }
 
+/** The share question after the child answers a whole weekly card. */
+export function cardShareAsk(kind: string, labels: readonly string[]): string {
+	const list = labels.join(', ');
+	if (kind === 'interest') return `Want me to tell Mom and Dad you’re into ${list}?`;
+	if (kind === 'gift') return `Want me to tell Mom and Dad you’d like ${list}?`;
+	return `Want me to tell Mom and Dad you’d like to do ${list}?`;
+}
+
+/** Pebble during the weekly cards. */
+export const DECK_LINES = {
+	loading: 'Shuffling my cards for this week…',
+	start: 'Here are this week’s cards! Tap the ones you like.',
+	saved: 'Got it! Thanks for telling me.',
+	next: 'Here’s another card!',
+	end: 'You answered all of this week’s cards! You can change them until Sunday.'
+} as const;
+
 /** Words Pebble must never use with a child (checked by tests). */
 export const BANNED_WORDS = [
 	'streak',
