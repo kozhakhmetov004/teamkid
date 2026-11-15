@@ -21,10 +21,10 @@
 
 	const tone = $derived(
 		day.mine === true
-			? 'border-primary/40 bg-primary/10'
+			? 'border-transparent bg-[oklch(0.9_0.055_172)] dark:bg-primary/25'
 			: day.mine === false
-				? 'border-pebble bg-pebble/25'
-				: 'border-dashed bg-muted/60'
+				? 'border-transparent bg-[oklch(0.92_0.07_82)] dark:bg-pebble/30'
+				: 'border-dashed border-border bg-card'
 	);
 	/** Birthday: warm ring on top of the custody tint (plus 🎂 + words, never colour alone). */
 	const bday = $derived(day.birthday ? 'ring-2 ring-amber-400 dark:ring-amber-300' : '');
@@ -47,7 +47,11 @@
 	>
 		<span class="flex items-center justify-between text-xs">
 			<span class="font-semibold">{day.dayOfMonth}</span>
-			{#if day.pendingSwap}<span title="Swap pending">⇄</span>{/if}
+			{#if day.pendingSwap}<span
+					title="Swap pending"
+					class="rounded-full bg-amber-100 px-1 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
+					>⇄</span
+				>{/if}
 		</span>
 		<span class="truncate text-[11px] font-medium">{day.label}</span>
 		{#if day.birthday}
@@ -93,7 +97,11 @@
 			</p>
 		{/if}
 		{#if day.pendingSwap}
-			<p class="rounded bg-background/70 px-1.5 py-0.5 text-xs">⇄ Swap pending</p>
+			<p
+				class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
+			>
+				⇄ Swap pending
+			</p>
 		{/if}
 
 		<ul class="flex-1 space-y-1">
@@ -113,7 +121,8 @@
 								: ' · 🤫 Hidden from child'}</span
 						>
 						{#if ev.pendingSwap}
-							<span class="mt-0.5 inline-block rounded bg-pebble/40 px-1 font-medium"
+							<span
+								class="mt-0.5 inline-block rounded-full bg-amber-100 px-2 font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
 								>⇄ Pending swap</span
 							>
 						{/if}

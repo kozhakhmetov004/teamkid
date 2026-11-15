@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Notice from '#lib/components/layout/Notice.svelte';
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
 	import ThreadList from '#lib/components/messages/ThreadList.svelte';
@@ -28,21 +30,20 @@
 <svelte:head><title>Messages · TeamKid</title></svelte:head>
 
 <div class="mx-auto max-w-3xl space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold">Messages</h1>
-		<p class="text-sm text-muted-foreground">
-			One conversation per topic. Messages can't be edited or deleted. They're kept as a record.
-		</p>
-	</div>
+	<PageHeader
+		title="Messages"
+		icon="💬"
+		description="One conversation per topic. Messages can't be edited or deleted. They're kept as a record."
+	/>
 
 	{#if !data.hasCoParent}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Invite your co-parent first</Card.Title>
-				<Card.Description>Messages are between the two parents of the family.</Card.Description>
-			</Card.Header>
-			<Card.Footer><Button href="/family">Invite on Family</Button></Card.Footer>
-		</Card.Root>
+		<Notice
+			icon="🤝"
+			title="Invite your co-parent first"
+			text="Messages are between the two parents of the family."
+			href="/family"
+			label="Invite"
+		/>
 	{/if}
 
 	<ThreadList threads={data.threads} />

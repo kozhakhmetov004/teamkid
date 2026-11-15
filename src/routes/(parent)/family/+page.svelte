@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import AddChildForm from '#lib/components/family/AddChildForm.svelte';
@@ -33,12 +34,14 @@
 <svelte:head><title>Family · TeamKid</title></svelte:head>
 
 <div class="space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold">{o.family?.name ?? 'Family'}</h1>
-		<p class="text-muted-foreground">
-			Kid login code: <strong class="font-mono text-foreground">{o.family?.family_code}</strong>
-		</p>
-	</div>
+	<PageHeader title={o.family?.name ?? 'Family'} icon="🏡">
+		{#snippet actions()}
+			<p class="rounded-xl bg-card px-4 py-2 text-sm shadow-sm">
+				Kid login code:
+				<strong class="font-mono text-base">{o.family?.family_code}</strong>
+			</p>
+		{/snippet}
+	</PageHeader>
 
 	<!-- Children + consent -->
 	<Card.Root>

@@ -67,7 +67,7 @@ export const load: PageServerLoad = async (event) => {
 		sb
 			.from('events')
 			.select(
-				'id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible, pending_swap_id'
+				'id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible, pending_swap_id, created_by'
 			)
 			.eq('family_id', member.family_id)
 			.gte('starts_at', from)
@@ -144,6 +144,9 @@ export const load: PageServerLoad = async (event) => {
 					childId: e.child_id,
 					pendingSwap: !!e.pending_swap_id,
 					kidVisible: e.kid_visible,
+					// Only the parent who added an event may change it (also enforced by RLS).
+					canEdit: !e.created_by || e.created_by === member.member_id,
+					addedBy: e.created_by ? people.nameById(e.created_by) : null,
 					time: timeLabel(e.starts_at, tz),
 					date,
 					start: localTime(e.starts_at, tz),
@@ -519,7 +522,9 @@ export const actions: Actions = {
 			.neq('kind', 'custody')
 			.select('id');
 		if (error) return formFailure('event', 'Could not save the event. Please try again.', 500);
-		if (!data?.length) return formFailure('event', "This event can't be edited here.", 404);
+		if (!data?.length) {
+			return formFailure('event', 'Only the parent who added this event can change it.', 403);
+		}
 		await logAudit({
 			familyId: member.family_id,
 			actorMemberId: member.member_id,
@@ -528,6 +533,31 @@ export const actions: Actions = {
 			entityId: v.id
 		});
 		return { form: 'event', ok: true };
+	},
+
+	deleteEvent: async (event) => {
+		const { member } = await requireParent(event);
+		const parsed = await parseForm(event.request, z.object({ id: z.uuid() }), 'event');
+		if (!parsed.ok) return parsed.failure;
+		// RLS: own (or creator-less) non-custody events of this family only.
+		const { data, error } = await event.locals.supabase
+			.from('events')
+			.delete()
+			.eq('id', parsed.data.id)
+			.neq('kind', 'custody')
+			.select('id');
+		if (error) return formFailure('event', 'Could not delete the event. Please try again.', 500);
+		if (!data?.length) {
+			return formFailure('event', 'Only the parent who added this event can delete it.', 403);
+		}
+		await logAudit({
+			familyId: member.family_id,
+			actorMemberId: member.member_id,
+			action: 'event.deleted',
+			entity: 'events',
+			entityId: parsed.data.id
+		});
+		return { form: 'event', ok: true, deleted: true };
 	},
 
 	setupSchedule: async (event) => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import { ageOn, birthdayProblem, birthdayRange } from '#lib/kids/profile.js';
@@ -41,13 +42,12 @@
 <svelte:head><title>{name}'s profile · TeamKid</title></svelte:head>
 
 <div class="mx-auto max-w-2xl space-y-6">
-	<div>
-		<a href="/family" class="text-sm text-muted-foreground hover:underline">← Family</a>
-		<h1 class="text-2xl font-bold">{name}'s profile</h1>
-		<p class="text-muted-foreground">
-			Shared by both parents. Birthday and interests help Pebble pick {name}'s weekly wish cards.
-		</p>
-	</div>
+	<PageHeader
+		title="{name}'s profile"
+		icon="🧒"
+		description="Shared by both parents. Birthday and interests help Pebble pick {name}'s wish cards."
+		back={{ href: '/family', label: 'Family' }}
+	/>
 
 	{#if !data.child}
 		<Card.Root>

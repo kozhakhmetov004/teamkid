@@ -31,7 +31,7 @@
 	bind:this={formEl}
 	method="POST"
 	action="?/register"
-	class="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+	class="grid gap-4"
 	use:enhance={async ({ cancel }) => {
 		if (!path) {
 			cancel();
@@ -69,7 +69,7 @@
 	}}
 >
 	<input type="hidden" name="path" value={path} />
-	<div class="space-y-1 sm:col-span-3">
+	<div class="space-y-1">
 		<Label for="doc-file">File (PDF, PNG or JPEG, up to 10 MB)</Label>
 		<input
 			id="doc-file"
@@ -92,8 +92,10 @@
 				>{/each}
 		</select>
 	</div>
-	<div class="flex items-end">
-		<Button type="submit" disabled={busy || !file}>{busy ? 'Uploading…' : 'Add document'}</Button>
+	<div>
+		<Button type="submit" class="w-full sm:w-auto" disabled={busy || !file}
+			>{busy ? 'Uploading…' : 'Add document'}</Button
+		>
 	</div>
-	{#if error}<p role="alert" class="text-sm text-destructive sm:col-span-3">{error}</p>{/if}
+	{#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
 </form>

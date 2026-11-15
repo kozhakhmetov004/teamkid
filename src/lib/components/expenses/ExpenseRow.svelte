@@ -22,8 +22,11 @@
 			<Badge variant="secondary"
 				><span aria-hidden="true">{expense.categoryIcon}</span> {expense.categoryLabel}</Badge
 			>
-			<Badge variant={statusVariant}
-				><span aria-hidden="true">{expense.statusIcon}</span> {expense.statusLabel}</Badge
+			<Badge
+				variant={statusVariant}
+				class={expense.status === 'pending'
+					? 'border-transparent bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100'
+					: ''}><span aria-hidden="true">{expense.statusIcon}</span> {expense.statusLabel}</Badge
 			>
 			{#if expense.receiptPath}<ReceiptViewer
 					path={expense.receiptPath}
@@ -35,24 +38,27 @@
 			{expense.spentOnLabel} · paid by {expense.paidBy} · split {expense.splitLabel}
 			{#if expense.childName}· for {expense.childName}{/if}
 		</p>
-		<p class="text-sm">
-			{#if expense.paidByMe}
-				{expense.otherShare === '$0.00'
-					? 'Nothing owed to you'
-					: `Owed to you: ${expense.otherShare}`}
-			{:else}
-				{expense.otherShare === '$0.00'
-					? 'Nothing owed by you'
-					: `Your share: ${expense.otherShare}`}
-			{/if}
-		</p>
 		{#if expense.note}<p class="text-sm text-muted-foreground">“{expense.note}”</p>{/if}
 		{#if expense.statusNote}<p class="text-sm text-destructive">
 				Dispute: “{expense.statusNote}”
 			</p>{/if}
 	</div>
 	<div class="flex shrink-0 flex-col items-start gap-2 md:items-end">
-		<span class="text-lg font-semibold tabular-nums">{expense.amount}</span>
+		<!-- Total first, then what is owed (same size, side by side). -->
+		<p class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-lg tabular-nums">
+			<span
+				><span class="sr-only">Total </span><span class="font-semibold">{expense.amount}</span
+				></span
+			>
+			<span class="text-muted-foreground">
+				{#if expense.otherShare === '$0.00'}
+					{expense.paidByMe ? 'Nothing owed to you' : 'Nothing owed by you'}
+				{:else}
+					{expense.paidByMe ? 'Owed to you' : 'Your share'}
+					<span class="font-semibold text-foreground">{expense.otherShare}</span>
+				{/if}
+			</span>
+		</p>
 		<ExpenseActions {expense} {onResubmit} />
 	</div>
 </li>

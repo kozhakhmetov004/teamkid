@@ -128,44 +128,95 @@
 </script>
 
 <section id="plan" aria-labelledby="plan-title" class="scroll-mt-6 space-y-4">
-	<div>
-		<h2 id="plan-title" class="text-xl font-bold">Plan this weekend</h2>
-		<p class="text-sm text-muted-foreground">
-			Ideas near you for your time with {childName}, based on what {childName} chose to share.
-		</p>
-	</div>
+	<Card.Root>
+		<Card.Header class="flex items-center gap-2">
+			<span
+				class="grid size-7 shrink-0 place-items-center rounded-lg bg-accent text-sm"
+				aria-hidden="true">🧭</span
+			>
+			<Card.Title id="plan-title">Plan this weekend</Card.Title>
+			{#if panel.weekend}
+				<span class="ml-auto text-sm text-muted-foreground"
+					>{weekendLabel(panel.weekend.saturday)}</span
+				>
+			{/if}
+		</Card.Header>
+		<Card.Content class="space-y-4">
+			<p class="text-sm text-muted-foreground">
+				Ideas near you for your time with {childName}, based on what {childName} chose to share.
+			</p>
 
-	{#if panel.weekend}
-		{@const w = panel.weekend}
-		<div class="grid gap-3 rounded-xl border bg-card p-4 text-sm sm:grid-cols-2">
-			<div>
-				<p class="font-medium">{weekendLabel(w.saturday)}</p>
-				<ul class="mt-1 space-y-0.5 text-muted-foreground">
+			{#if panel.weekend}
+				{@const w = panel.weekend}
+				<div class="grid gap-3 sm:grid-cols-3">
 					{#each w.days as d (d.date)}
-						<li>
-							{dayName(d.date)}: {d.with === 'you'
-								? `${childName} is with you`
-								: d.with
-									? `${childName} is with ${d.with}`
-									: 'not set on the calendar'}
-						</li>
+						<div class="rounded-xl bg-muted/60 p-3">
+							<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+								{dayName(d.date)}
+							</p>
+							<p class="mt-1 text-sm font-semibold">
+								{d.with === 'you' ? 'With you' : d.with ? `With ${d.with}` : 'Not set'}
+							</p>
+						</div>
 					{/each}
-				</ul>
-			</div>
-			<div>
-				<p class="font-medium">Already planned</p>
-				{#if w.planned.length}
-					<ul class="mt-1 space-y-0.5 text-muted-foreground">
-						{#each w.planned as e (e.title + e.when)}
-							<li>{e.title} · {e.when}</li>
-						{/each}
-					</ul>
-				{:else}
-					<p class="mt-1 text-muted-foreground">Nothing yet.</p>
+					<div class="rounded-xl bg-muted/60 p-3">
+						<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Already planned
+						</p>
+						{#if w.planned.length}
+							<ul class="mt-1 space-y-0.5 text-sm">
+								{#each w.planned as e (e.title + e.when)}
+									<li class="truncate">
+										<span class="font-semibold">{e.title}</span>
+										<span class="text-muted-foreground">· {e.when}</span>
+									</li>
+								{/each}
+							</ul>
+						{:else}
+							<p class="mt-1 text-sm font-semibold">Nothing yet</p>
+						{/if}
+					</div>
+				</div>
+			{/if}
+
+			{#await nudge then n}
+				{#if n}
+					<div class="flex items-start gap-3 rounded-xl bg-secondary p-4 text-secondary-foreground">
+						<span class="text-2xl" aria-hidden="true">🐢</span>
+						<div class="min-w-0 flex-1 space-y-1">
+							<p class="font-medium">{n.text}</p>
+							<p class="text-xs text-muted-foreground">
+								{n.ai ? '✨ Suggested by AI' : 'Based on shared wish cards'} · only what {childName}
+								chose to share
+							</p>
+						</div>
+					</div>
 				{/if}
+			{/await}
+
+			<div class="border-t border-border/60 pt-4">
+				<PlanForm
+					weekends={panel.weekends}
+					{childName}
+					otherParentName={otherName}
+					{loading}
+					onPlan={(p) => {
+						liked = null;
+						hidden = [];
+						void plan(p);
+					}}
+					bind:saturday
+				/>
 			</div>
-		</div>
-	{/if}
+
+			{#if !panel.hasWishes}
+				<p class="text-xs text-muted-foreground">
+					Tip: ask {childName} to share wish cards with Pebble for better ideas. Until then, ideas are
+					based on {childName}'s age and week.
+				</p>
+			{/if}
+		</Card.Content>
+	</Card.Root>
 
 	{#if panel.returnedIdeas.length}
 		<section aria-label="Back in your ideas" class="space-y-2">
@@ -176,47 +227,6 @@
 				{/each}
 			</ul>
 		</section>
-	{/if}
-
-	{#await nudge then n}
-		{#if n}
-			<div
-				class="flex flex-wrap items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4"
-			>
-				<span class="text-2xl" aria-hidden="true">🐢</span>
-				<div class="flex-1 space-y-1">
-					<p class="font-medium">{n.text}</p>
-					<p class="text-xs text-muted-foreground">
-						{n.ai ? 'Suggested by AI' : 'Based on shared wish cards'} · from what {childName} chose to
-						share
-					</p>
-				</div>
-			</div>
-		{/if}
-	{/await}
-
-	<Card.Root>
-		<Card.Content class="pt-6">
-			<PlanForm
-				weekends={panel.weekends}
-				{childName}
-				otherParentName={otherName}
-				{loading}
-				onPlan={(p) => {
-					liked = null;
-					hidden = [];
-					void plan(p);
-				}}
-				bind:saturday
-			/>
-		</Card.Content>
-	</Card.Root>
-
-	{#if !panel.hasWishes}
-		<p class="text-sm text-muted-foreground">
-			Ask {childName} to share wish cards with Pebble for better ideas. Until then, ideas are based on
-			{childName}'s age and week.
-		</p>
 	{/if}
 
 	{#if loading}
@@ -321,10 +331,4 @@
 			</p>
 		</div>
 	{/if}
-
-	<p class="text-sm text-muted-foreground">
-		Have a parenting plan PDF? <a href="/plan/import" class="text-primary underline"
-			>Import it to the calendar</a
-		>.
-	</p>
 </section>

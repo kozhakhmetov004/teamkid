@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { onMount } from 'svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
@@ -171,14 +172,13 @@
 
 <svelte:head><title>Import your parenting plan · TeamKid</title></svelte:head>
 
-<div class="space-y-5">
-	<div>
-		<a href="/plan" class="text-sm text-muted-foreground hover:underline">← Plan</a>
-		<h1 class="text-2xl font-bold">Import your parenting plan</h1>
-		<p class="text-muted-foreground">
-			Upload your plan, check what we found, then add the custody schedule to your calendar.
-		</p>
-	</div>
+<div class="space-y-6">
+	<PageHeader
+		title="Import your parenting plan"
+		icon="📄"
+		description="Upload your plan, check what we found, then add the custody schedule to your calendar."
+		back={{ href: '/documents', label: 'Documents' }}
+	/>
 
 	{#if step.kind === 'pick' || step.kind === 'uploading'}
 		<Card.Root class="max-w-2xl">

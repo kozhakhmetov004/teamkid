@@ -73,97 +73,113 @@
 
 <Card.Root id="requests">
 	<Card.Header>
-		<div class="flex flex-wrap items-start justify-between gap-2">
-			<div>
-				<Card.Title class="flex items-center gap-2">
-					Ask before spending
-					{#if waiting}<Badge>{waiting} to answer</Badge>{/if}
-				</Card.Title>
-				<Card.Description>
-					Agree on bigger costs first, like a camp or new glasses. No surprises later.
-				</Card.Description>
-			</div>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<Card.Title class="flex items-center gap-2">
+				<span
+					class="grid size-7 shrink-0 place-items-center rounded-lg bg-accent text-sm"
+					aria-hidden="true">🤝</span
+				>
+				Ask before spending
+				{#if waiting}<Badge>{waiting} to answer</Badge>{/if}
+			</Card.Title>
 			<Button size="sm" onclick={ask} disabled={!canShare}>Ask {otherName}</Button>
 		</div>
 	</Card.Header>
-	<Card.Content>
+	<Card.Content class="space-y-3">
+		<p class="text-sm text-muted-foreground">
+			Planning a bigger cost, like a camp or new glasses? Ask {otherName} first. Once they say yes, it's
+			already approved when you log what it cost.
+		</p>
 		{#if requests.length === 0}
-			<p class="text-sm text-muted-foreground">
-				No requests yet. Ask {otherName} before a big purchase, and once they say yes it's already approved
-				when you log it.
-			</p>
+			<p class="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">No requests yet.</p>
 		{:else}
-			<ul class="divide-y">
+			<ul class="space-y-3">
 				{#each requests as r (r.id)}
-					<li class="space-y-2 py-3">
-						<div class="flex flex-wrap items-baseline justify-between gap-2">
-							<p class="font-medium">
+					<li class="space-y-3 rounded-xl bg-muted/50 p-4">
+						<div class="flex flex-wrap items-start justify-between gap-2">
+							<p class="text-base font-semibold">
 								<span aria-hidden="true">{r.categoryIcon}</span>
 								{r.title}
-								<span class="text-sm font-normal text-muted-foreground"
-									>· about {r.estimate} · {r.splitLabel}{r.childName
-										? ` · ${r.childName}`
-										: ''}</span
-								>
 							</p>
-							<span class="text-xs text-muted-foreground"
-								>{r.mine ? 'You asked' : `${r.requestedBy} asked`} · {r.whenLabel}</span
+							<span
+								class="rounded-full px-2.5 py-0.5 text-xs font-medium {r.status === 'approved'
+									? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+									: r.status === 'declined'
+										? 'bg-destructive/10 text-destructive'
+										: r.status === 'pending'
+											? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100'
+											: 'bg-card text-foreground shadow-sm'}">{r.statusLabel}</span
 							>
 						</div>
-						<p class="text-sm">
-							<span
-								class="rounded-full border px-2 py-0.5 text-xs {r.status === 'approved'
-									? 'border-emerald-500 text-emerald-700 dark:text-emerald-300'
-									: r.status === 'declined'
-										? 'border-destructive text-destructive'
-										: ''}">{r.statusLabel}</span
-							>
-							<span class="ms-2 text-muted-foreground">Your part: {r.myPart}</span>
-						</p>
-						{#if r.note}<p class="text-sm text-muted-foreground">“{r.note}”</p>{/if}
+						<dl class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+							<div>
+								<dt class="text-xs text-muted-foreground">Estimate</dt>
+								<dd class="font-semibold tabular-nums">about {r.estimate}</dd>
+							</div>
+							<div>
+								<dt class="text-xs text-muted-foreground">Your part</dt>
+								<dd class="font-semibold tabular-nums">{r.myPart}</dd>
+							</div>
+							<div>
+								<dt class="text-xs text-muted-foreground">Split</dt>
+								<dd class="font-semibold">
+									{r.splitLabel}{r.childName ? ` · ${r.childName}` : ''}
+								</dd>
+							</div>
+						</dl>
+						{#if r.note}
+							<p class="rounded-lg bg-card px-3 py-2 text-sm">
+								<span class="text-muted-foreground">Why:</span> “{r.note}”
+							</p>
+						{/if}
 						{#if r.responseNote}
-							<p class="text-sm">
+							<p class="rounded-lg bg-card px-3 py-2 text-sm">
 								<span class="text-muted-foreground">{r.mine ? otherName : 'You'} said:</span>
 								“{r.responseNote}”
 							</p>
 						{/if}
-						{#if r.can.approve || r.can.cancel || r.can.log}
-							<div class="flex flex-wrap gap-2">
-								{#if r.can.log}
-									<Button size="sm" onclick={() => onLog(r)}>Log what it cost</Button>
-								{/if}
-								{#if r.can.approve}
-									<AnswerButtons
-										formAction="?/requestRespond"
-										id={r.id}
-										options={[
-											{ action: 'approve', label: 'Yes, go ahead', done: 'Approved' },
-											{
-												action: 'decline',
-												label: 'Not this time',
-												variant: 'outline',
-												note: true,
-												done: 'Answer sent'
-											}
-										]}
-									/>
-								{/if}
-								{#if r.can.cancel}
-									<AnswerButtons
-										formAction="?/requestRespond"
-										id={r.id}
-										options={[
-											{
-												action: 'cancel',
-												label: 'Cancel',
-												variant: 'ghost',
-												done: 'Request cancelled'
-											}
-										]}
-									/>
-								{/if}
-							</div>
-						{/if}
+						<div class="flex flex-wrap items-center justify-between gap-2">
+							<span class="text-xs text-muted-foreground"
+								>{r.mine ? 'You asked' : `${r.requestedBy} asked`} · {r.whenLabel}</span
+							>
+							{#if r.can.approve || r.can.cancel || r.can.log}
+								<div class="flex flex-wrap gap-2">
+									{#if r.can.log}
+										<Button size="sm" onclick={() => onLog(r)}>Log what it cost</Button>
+									{/if}
+									{#if r.can.approve}
+										<AnswerButtons
+											formAction="?/requestRespond"
+											id={r.id}
+											options={[
+												{ action: 'approve', label: 'Yes, go ahead', done: 'Approved' },
+												{
+													action: 'decline',
+													label: 'Not this time',
+													variant: 'outline',
+													note: true,
+													done: 'Answer sent'
+												}
+											]}
+										/>
+									{/if}
+									{#if r.can.cancel}
+										<AnswerButtons
+											formAction="?/requestRespond"
+											id={r.id}
+											options={[
+												{
+													action: 'cancel',
+													label: 'Cancel request',
+													variant: 'outline',
+													done: 'Request cancelled'
+												}
+											]}
+										/>
+									{/if}
+								</div>
+							{/if}
+						</div>
 					</li>
 				{/each}
 			</ul>

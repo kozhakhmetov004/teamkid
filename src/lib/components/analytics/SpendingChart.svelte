@@ -6,7 +6,7 @@
 
 	/**
 	 * Shared spending chart: identical for both parents, never split by who
-	 * paid. Plain SVG; a visually hidden table carries the same numbers.
+	 * paid. Plain HTML bars; a visually hidden table carries the same numbers.
 	 */
 	let { months, compact = false }: { months: ChartMonth[]; compact?: boolean } = $props();
 
@@ -14,8 +14,6 @@
 	const current = $derived(months[0]);
 	const maxCat = $derived(Math.max(1, ...(current?.rows.map((r) => r.totalCents) ?? [1])));
 	const maxMonth = $derived(Math.max(1, ...months.map((m) => m.totalCents)));
-	const W = 320;
-	const ROW = 30;
 </script>
 
 <Card.Root class={compact ? 'h-full' : ''}>
@@ -50,57 +48,54 @@
 					>.
 				</p>
 			{:else}
-				<svg
-					viewBox="0 0 {W} {current.rows.length * ROW}"
-					class="w-full"
+				<!-- HTML bars: they fill the card's width; text stays at normal size. -->
+				<ul
+					class="space-y-2.5"
 					role="img"
 					aria-label="Spending by category in {current.label}: {current.rows
 						.map((r) => `${r.label} ${formatCents(r.totalCents)}`)
 						.join(', ')}. Total {formatCents(current.totalCents)}."
 				>
-					{#each current.rows as r, i (r.category)}
-						{@const w = Math.max(4, (r.totalCents / maxCat) * (W - 150))}
-						<text x="0" y={i * ROW + 19} class="fill-foreground text-[12px]"
-							>{r.icon} {r.label}</text
+					{#each current.rows as r (r.category)}
+						<li
+							class="grid grid-cols-[minmax(6rem,9rem)_minmax(0,1fr)_auto] items-center gap-3 text-sm"
 						>
-						<rect x="120" y={i * ROW + 6} width={w} height="18" rx="6" class="fill-primary" />
-						<text
-							x={120 + w + 6}
-							y={i * ROW + 19}
-							class="fill-foreground text-[12px] font-semibold tabular-nums"
-							>{formatCents(r.totalCents)}</text
-						>
+							<span class="truncate">{r.icon} {r.label}</span>
+							<span class="h-3 overflow-hidden rounded-full bg-muted">
+								<span
+									class="block h-full rounded-full bg-primary"
+									style="width: {Math.max(3, (r.totalCents / maxCat) * 100)}%"
+								></span>
+							</span>
+							<span class="font-semibold tabular-nums">{formatCents(r.totalCents)}</span>
+						</li>
 					{/each}
-				</svg>
-				<p class="mt-2 text-right text-sm font-semibold tabular-nums">
+				</ul>
+				<p class="mt-3 border-t pt-3 text-right text-sm font-semibold tabular-nums">
 					Total {formatCents(current.totalCents)}
 				</p>
 			{/if}
 		{:else}
-			<svg
-				viewBox="0 0 {W} 110"
-				class="w-full"
+			<div
+				class="grid grid-cols-3 items-end gap-4"
 				role="img"
 				aria-label="Monthly totals: {months
 					.map((m) => `${m.shortLabel} ${formatCents(m.totalCents)}`)
 					.join(', ')}"
 			>
-				{#each [...months].reverse() as m, i (m.month)}
-					{@const h = Math.max(3, (m.totalCents / maxMonth) * 70)}
-					{@const x = 30 + i * 100}
-					<rect {x} y={80 - h} width="60" height={h} rx="6" class="fill-primary" />
-					<text x={x + 30} y="96" text-anchor="middle" class="fill-foreground text-[12px]"
-						>{m.shortLabel}</text
-					>
-					<text
-						x={x + 30}
-						y={74 - h}
-						text-anchor="middle"
-						class="fill-foreground text-[11px] font-semibold tabular-nums"
-						>{formatCents(m.totalCents)}</text
-					>
+				{#each [...months].reverse() as m (m.month)}
+					<div class="flex flex-col items-center gap-1.5 text-sm">
+						<span class="font-semibold tabular-nums">{formatCents(m.totalCents)}</span>
+						<span class="flex h-28 w-full max-w-16 items-end">
+							<span
+								class="block w-full rounded-t-lg bg-primary"
+								style="height: {Math.max(3, (m.totalCents / maxMonth) * 100)}%"
+							></span>
+						</span>
+						<span class="text-muted-foreground">{m.shortLabel}</span>
+					</div>
 				{/each}
-			</svg>
+			</div>
 		{/if}
 
 		<table class="sr-only">
