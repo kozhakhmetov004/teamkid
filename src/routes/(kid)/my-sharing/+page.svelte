@@ -67,9 +67,20 @@
 						<li
 							class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-secondary p-4"
 						>
-							<span class="text-2xl font-semibold">
-								<span aria-hidden="true">⭐</span>
-								{wish.interest}
+							<span class="grid gap-1">
+								<span class="text-2xl font-semibold">
+									<span aria-hidden="true">{wish.emoji ?? '⭐'}</span>
+									{wish.interest}
+								</span>
+								<span class="text-lg text-muted-foreground">
+									{wish.kind === 'activity'
+										? 'This weekend'
+										: wish.kind === 'interest'
+											? 'Into right now'
+											: wish.kind === 'gift'
+												? 'Present idea'
+												: 'Wish'}{wish.custom ? ' · My own idea ✏️ (they see these words)' : ''}
+								</span>
 							</span>
 							<form
 								method="POST"

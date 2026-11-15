@@ -18,7 +18,19 @@ export interface InsightData {
 		gentle_flag: boolean;
 		created_at: string;
 	} | null;
-	sharedWishes: { id: string; interest: string }[];
+	sharedWishes: SharedWish[];
+}
+
+export interface SharedWish {
+	id: string;
+	/** The preset label, or the cleaned label of the child's own typed idea (never raw text). */
+	interest: string;
+	emoji: string | null;
+	kind: 'activity' | 'interest' | 'gift' | null;
+	custom: boolean;
+	tags: string[];
+	/** True for this week's cards (older preset wishes are false). */
+	thisWeek: boolean;
 }
 
 export async function loadInsight(
@@ -27,14 +39,15 @@ export async function loadInsight(
 	now: Date = new Date(),
 	familyId?: string
 ): Promise<InsightData> {
+	const week = isoDate(utcWeekStart(now));
 	let insightQuery = client
 		.from('weekly_insights')
 		.select('week_start, mood_trend, interests, summary, gentle_flag, created_at')
 		.eq('child_id', childId)
-		.eq('week_start', isoDate(utcWeekStart(now)));
+		.eq('week_start', week);
 	let wishQuery = client
 		.from('wish_cards')
-		.select('id, interest, shared_at')
+		.select('id, interest, shared_at, emoji, card_kind, is_custom, tags, week_start')
 		.eq('child_id', childId)
 		.eq('shared_with_parents', true);
 	if (familyId) {
@@ -43,12 +56,23 @@ export async function loadInsight(
 	}
 	const [insights, wishes] = await Promise.all([
 		insightQuery.maybeSingle(),
-		wishQuery.order('shared_at', { ascending: false, nullsFirst: false }).limit(6)
+		wishQuery.order('shared_at', { ascending: false, nullsFirst: false }).limit(12)
 	]);
 	if (insights.error) throw new Error(`insight load failed (${insights.error.code})`);
 	if (wishes.error) throw new Error(`wishes load failed (${wishes.error.code})`);
 	return {
 		insight: insights.data ?? null,
-		sharedWishes: (wishes.data ?? []).map((w) => ({ id: w.id, interest: w.interest }))
+		sharedWishes: (wishes.data ?? []).map((w) => ({
+			id: w.id,
+			interest: w.interest,
+			emoji: w.emoji,
+			kind:
+				w.card_kind === 'activity' || w.card_kind === 'interest' || w.card_kind === 'gift'
+					? w.card_kind
+					: null,
+			custom: w.is_custom,
+			tags: w.tags,
+			thisWeek: w.week_start === week
+		}))
 	};
 }

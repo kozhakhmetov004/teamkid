@@ -38,10 +38,47 @@ export async function setWishShared(
 		entityId: wishId
 	});
 
+	await rebuildQuietly(sb, child.childId);
+	return 'ok';
+}
+
+/** Rebuild the weekly insight; a failure never breaks the child's action. */
+export async function rebuildQuietly(sb: SupabaseClient<Database>, childId: string) {
 	try {
-		await rebuildWeeklyInsight(child.childId, new Date(), sb);
+		await rebuildWeeklyInsight(childId, new Date(), sb);
 	} catch (err) {
 		console.error('insight rebuild failed', err instanceof Error ? err.message : 'unknown');
 	}
+}
+
+/** Share every answer of one card (this week) with both parents. */
+export async function setCardShared(
+	sb: SupabaseClient<Database>,
+	child: { childId: string; member: Membership },
+	kind: string,
+	weekStart: string
+): Promise<ShareResult> {
+	const { data, error } = await sb
+		.from('wish_cards')
+		.update({ shared_with_parents: true, shared_at: new Date().toISOString() })
+		.eq('child_id', child.childId)
+		.eq('week_start', weekStart)
+		.eq('card_kind', kind)
+		.select('id');
+	if (error) {
+		console.error('card share update failed', error.code);
+		return 'error';
+	}
+	if (!data?.length) return 'not_found';
+	for (const row of data) {
+		await logAudit({
+			familyId: child.member.family_id,
+			actorMemberId: child.member.member_id,
+			action: 'wish.shared',
+			entity: 'wish_cards',
+			entityId: row.id
+		});
+	}
+	await rebuildQuietly(sb, child.childId);
 	return 'ok';
 }

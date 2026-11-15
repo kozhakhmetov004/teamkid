@@ -55,6 +55,65 @@ export type Database = {
 					}
 				];
 			};
+			child_profiles: {
+				Row: {
+					birthday: string | null;
+					child_id: string;
+					dislikes: string[];
+					family_id: string;
+					grade: string | null;
+					interests: string[];
+					notes: string | null;
+					updated_at: string;
+					updated_by: string | null;
+				};
+				ComputedFields: never;
+				Insert: {
+					birthday?: string | null;
+					child_id: string;
+					dislikes?: string[];
+					family_id: string;
+					grade?: string | null;
+					interests?: string[];
+					notes?: string | null;
+					updated_at?: string;
+					updated_by?: string | null;
+				};
+				Update: {
+					birthday?: string | null;
+					child_id?: string;
+					dislikes?: string[];
+					family_id?: string;
+					grade?: string | null;
+					interests?: string[];
+					notes?: string | null;
+					updated_at?: string;
+					updated_by?: string | null;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'child_profiles_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: true;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'child_profiles_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'child_profiles_updated_by_fkey';
+						columns: ['updated_by'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
 			children: {
 				Row: {
 					birth_year: number;
@@ -1096,35 +1155,53 @@ export type Database = {
 			};
 			wish_cards: {
 				Row: {
+					card_kind: string | null;
 					child_id: string;
 					created_at: string;
+					emoji: string | null;
 					family_id: string;
 					id: string;
 					interest: string;
+					is_custom: boolean;
+					option_key: string | null;
 					prompt: string | null;
 					shared_at: string | null;
 					shared_with_parents: boolean;
+					tags: string[];
+					week_start: string | null;
 				};
 				ComputedFields: never;
 				Insert: {
+					card_kind?: string | null;
 					child_id: string;
 					created_at?: string;
+					emoji?: string | null;
 					family_id: string;
 					id?: string;
 					interest: string;
+					is_custom?: boolean;
+					option_key?: string | null;
 					prompt?: string | null;
 					shared_at?: string | null;
 					shared_with_parents?: boolean;
+					tags?: string[];
+					week_start?: string | null;
 				};
 				Update: {
+					card_kind?: string | null;
 					child_id?: string;
 					created_at?: string;
+					emoji?: string | null;
 					family_id?: string;
 					id?: string;
 					interest?: string;
+					is_custom?: boolean;
+					option_key?: string | null;
 					prompt?: string | null;
 					shared_at?: string | null;
 					shared_with_parents?: boolean;
+					tags?: string[];
+					week_start?: string | null;
 				};
 				Relationships: [
 					{
@@ -1136,6 +1213,52 @@ export type Database = {
 					},
 					{
 						foreignKeyName: 'wish_cards_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			wish_decks: {
+				Row: {
+					cards: NonNullable<Json>;
+					child_id: string;
+					created_at: string;
+					family_id: string;
+					id: string;
+					source: string;
+					week_start: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					cards: NonNullable<Json>;
+					child_id: string;
+					created_at?: string;
+					family_id: string;
+					id?: string;
+					source: string;
+					week_start: string;
+				};
+				Update: {
+					cards?: NonNullable<Json>;
+					child_id?: string;
+					created_at?: string;
+					family_id?: string;
+					id?: string;
+					source?: string;
+					week_start?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'wish_decks_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: false;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'wish_decks_family_id_fkey';
 						columns: ['family_id'];
 						isOneToOne: false;
 						referencedRelation: 'families';

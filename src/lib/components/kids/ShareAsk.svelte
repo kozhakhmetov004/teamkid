@@ -12,7 +12,8 @@
 
 	let {
 		open = $bindable(false),
-		ask,
+		ask = '',
+		question,
 		icon,
 		petName,
 		color,
@@ -21,7 +22,9 @@
 		onanswer
 	}: {
 		open?: boolean;
-		ask: string;
+		ask?: string;
+		/** Full question; overrides `ask` (used for multi-pick weekly cards). */
+		question?: string;
 		icon: string;
 		petName: string;
 		color: ShellColor;
@@ -66,7 +69,7 @@
 			<div class="grid gap-3">
 				<Dialog.Title class="text-3xl leading-snug font-bold">
 					<span aria-hidden="true">{icon}</span>
-					{wishAsk(ask)}
+					{question ?? wishAsk(ask)}
 				</Dialog.Title>
 				<Dialog.Description class="text-xl text-muted-foreground">
 					You choose. Both answers are okay!
