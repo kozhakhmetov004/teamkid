@@ -20,7 +20,17 @@ export interface Balance {
 	direction: 'they_owe_me' | 'i_owe_them' | 'settled';
 }
 
-export function computeBalance(expenses: BalanceInput[], myMemberId: string): Balance {
+/** Unmatched part of a partial "settle up" payment (settlements.credit_cents). */
+export interface CreditInput {
+	paid_by: string;
+	credit_cents: number;
+}
+
+export function computeBalance(
+	expenses: BalanceInput[],
+	myMemberId: string,
+	credits: CreditInput[] = []
+): Balance {
 	let net = 0;
 	let items = 0;
 	for (const e of expenses) {
@@ -29,6 +39,11 @@ export function computeBalance(expenses: BalanceInput[], myMemberId: string): Ba
 		if (share === 0) continue;
 		items++;
 		net += e.paid_by === myMemberId ? share : -share;
+	}
+	// A payment I already made lowers what I owe (and vice versa).
+	for (const c of credits) {
+		if (c.credit_cents <= 0) continue;
+		net += c.paid_by === myMemberId ? c.credit_cents : -c.credit_cents;
 	}
 	return {
 		netCents: net,
