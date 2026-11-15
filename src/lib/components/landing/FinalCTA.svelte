@@ -21,7 +21,7 @@
 			<div class="relative z-10 flex items-center gap-4">
 				<PebbleArt class="hidden size-24 sm:block" bob={false} label="" />
 				<a
-					href={signedIn ? homePath : '/login'}
+					href={signedIn ? homePath : '/login?mode=register'}
 					class="mk-btn mk-btn-lg bg-white text-(--mk-ink) shadow-md hover:bg-(--mk-peach) focus-visible:outline-white"
 				>
 					{signedIn ? hero.signedInCta : finalCta.cta}

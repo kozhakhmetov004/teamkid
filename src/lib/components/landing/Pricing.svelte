@@ -49,7 +49,7 @@
 					</ul>
 					{#if plan.status === 'live'}
 						<a
-							href={signedIn ? homePath : '/login'}
+							href={signedIn ? homePath : '/login?mode=register'}
 							class="mk-btn mt-7 {plan.highlight ? 'mk-btn-primary' : 'mk-btn-outline'}"
 						>
 							{signedIn ? 'Open TeamKid' : 'Start free'}

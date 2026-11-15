@@ -28,7 +28,9 @@
 						>{hero.signedInCta} <span aria-hidden="true">→</span></a
 					>
 				{:else}
-					<a href="/login" class="mk-btn mk-btn-primary mk-btn-lg">{hero.primaryCta}</a>
+					<a href="/login?mode=register" class="mk-btn mk-btn-primary mk-btn-lg"
+						>{hero.primaryCta}</a
+					>
 				{/if}
 				<a href="#how-it-works" class="mk-btn mk-btn-outline mk-btn-lg">{hero.secondaryCta}</a>
 			</div>

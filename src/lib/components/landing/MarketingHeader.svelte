@@ -61,7 +61,7 @@
 				>
 			{:else}
 				<a href="/login" class="mk-btn mk-btn-ghost hidden sm:inline-flex">Log in</a>
-				<a href="/login" class="mk-btn mk-btn-primary">{hero.primaryCta}</a>
+				<a href="/login?mode=register" class="mk-btn mk-btn-primary">{hero.primaryCta}</a>
 			{/if}
 			<button
 				id="menu-button"
