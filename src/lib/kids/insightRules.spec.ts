@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	checkinDays,
 	computeInsight,
 	computeMoodTrend,
 	gentleText,
@@ -12,7 +13,11 @@ import {
 } from './insightRules.js';
 import { isoDate, utcWeekStart } from './time.js';
 
-const c = (mood: string, energy: number | null = 3): CheckinRow => ({ mood, energy });
+const c = (mood: string, energy: number | null = 3): CheckinRow => ({
+	mood,
+	energy,
+	created_at: '2026-11-10T12:00:00Z'
+});
 const moods = (...m: string[]) => m.map((x) => c(x));
 const wish = (interest: string, shared: boolean, at: string): WishRow => ({
 	interest,
@@ -54,11 +59,6 @@ describe('computeMoodTrend thresholds', () => {
 		);
 	});
 
-	it('sad/worried/angry >= 60% with 3+ check-ins → a_hard_week', () => {
-		expect(computeMoodTrend(moods('sad', 'angry', 'happy'))).toBe('a_hard_week');
-		expect(computeMoodTrend(moods('angry', 'angry'))).not.toBe('a_hard_week'); // only 2
-	});
-
 	it('otherwise mixed', () => {
 		expect(computeMoodTrend(moods('happy', 'angry', 'calm', 'angry'))).toBe('mixed');
 	});
@@ -90,14 +90,95 @@ describe('topThemes', () => {
 	});
 });
 
+/** One shared check-in per day, from Mon Nov 9 (UTC). */
+const week = (...m: [string, number?][]): CheckinRow[] =>
+	m.map(([mood, energy = 3], i) => ({
+		mood,
+		energy,
+		shared: true,
+		created_at: `2026-11-${String(9 + i).padStart(2, '0')}T15:00:00Z`
+	}));
+const UTC = { tz: 'UTC' };
+
+describe('week counting (days, shared only, hard weeks)', () => {
+	it('taps a few minutes apart merge; a day counts once, by its last feeling', () => {
+		const day = (t: string, mood: string): CheckinRow => ({
+			mood,
+			energy: 3,
+			shared: true,
+			created_at: `2026-11-10T${t}:00Z`
+		});
+		const days = checkinDays(
+			[day('10:00', 'sad'), day('10:02', 'happy'), day('18:00', 'calm')],
+			'UTC'
+		);
+		expect(days).toHaveLength(1);
+		expect(days[0]).toMatchObject({ date: '2026-11-10', big: false, last: { mood: 'calm' } });
+	});
+
+	it('three emotions in one evening do not make a harder week', () => {
+		const rows = [
+			...week(['happy'], ['calm']),
+			...['sad', 'worried', 'angry'].map((mood, i) => ({
+				mood,
+				energy: 3,
+				shared: true,
+				created_at: `2026-11-12T1${i * 2}:00:00Z`
+			}))
+		];
+		expect(computeInsight(rows, [], UTC).gentleFlag).toBe(false);
+	});
+
+	it('big feelings on 3+ days and most days → a harder week; worried mornings count', () => {
+		const mornings = [10, 11, 12].flatMap((d) => [
+			{ mood: 'worried', energy: 3, shared: true, created_at: `2026-11-${d}T08:00:00Z` },
+			{ mood: 'happy', energy: 3, shared: true, created_at: `2026-11-${d}T19:00:00Z` }
+		]);
+		const out = computeInsight([...mornings, ...week(['calm'])], [], UTC);
+		expect(out).toMatchObject({ moodTrend: 'a_hard_week', gentleFlag: true });
+		expect(
+			computeInsight(week(['sad'], ['sad'], ['happy'], ['calm'], ['calm']), [], UTC).moodTrend
+		).not.toBe('a_hard_week');
+	});
+
+	it('the pediatrician tip only after two harder weeks in a row', () => {
+		const hard = week(['sad'], ['angry'], ['worried']);
+		expect(computeInsight(hard, [], UTC).moodTrend).toBe('a_hard_week');
+		expect(computeInsight(hard, [], { tz: 'UTC', previousWeekHard: true }).moodTrend).toBe(
+			'hard_weeks'
+		);
+		expect(gentleText('a_hard_week')).not.toMatch(/pediatrician/);
+		expect(gentleText('hard_weeks')).toMatch(/pediatrician or counselor/);
+	});
+
+	it('private ("just for me") check-ins never reach the parents\' insight', () => {
+		const rows = week(['sad'], ['angry'], ['worried']).map((r) => ({ ...r, shared: false }));
+		expect(computeInsight(rows, [], UTC)).toMatchObject({
+			moodTrend: 'not_enough',
+			gentleFlag: false
+		});
+	});
+
+	it('days follow the child time zone', () => {
+		// 03:00 UTC on Nov 10 is still Nov 9 in Los Angeles.
+		const rows = [
+			{ mood: 'happy', energy: 3, shared: true, created_at: '2026-11-09T20:00:00Z' },
+			{ mood: 'calm', energy: 3, shared: true, created_at: '2026-11-10T03:00:00Z' }
+		];
+		expect(checkinDays(rows, 'UTC')).toHaveLength(2);
+		expect(checkinDays(rows, 'America/Los_Angeles')).toHaveLength(1);
+	});
+});
+
 describe('computeInsight', () => {
 	it('builds the demo sentence', () => {
 		const out = computeInsight(
-			[c('happy', 4), c('calm', 3), c('tired', 1)],
+			week(['happy', 4], ['calm', 3], ['tired', 1]),
 			[
 				wish('Build a fort', false, '2026-11-15T10:00:00Z'),
 				wish('Go to the zoo', true, '2026-11-15T10:01:00Z')
-			]
+			],
+			UTC
 		);
 		expect(out).toEqual({
 			moodTrend: 'a_bit_tired',
@@ -114,30 +195,29 @@ describe('computeInsight', () => {
 
 	it('not_enough still reports shared interests, never a trend', () => {
 		expect(
-			computeInsight([c('happy')], [wish('Go to the zoo', true, '2026-11-15T10:00:00Z')])
+			computeInsight(week(['happy']), [wish('Go to the zoo', true, '2026-11-15T10:00:00Z')], UTC)
 		).toMatchObject({ moodTrend: 'not_enough', summary: 'Into animals', gentleFlag: false });
-		expect(computeInsight([], []).summary).toBe('Not enough check-ins yet this week');
+		expect(computeInsight([], [], UTC).summary).toBe('Not enough check-ins yet this week');
 	});
 
-	it('gentle flag only for a_bit_worried / a_hard_week, with template text', () => {
-		expect(computeInsight(moods('worried', 'sad', 'happy', 'happy', 'calm'), []).gentleFlag).toBe(
-			true
-		);
-		expect(computeInsight(moods('sad', 'angry', 'worried'), []).gentleFlag).toBe(true);
-		expect(gentleText('a_hard_week')).toMatch(/pediatrician or counselor/);
-		expect(gentleText('a_bit_worried')).toMatch(/calm, open chat/);
-		for (const t of ['mostly_happy', 'mixed', 'a_bit_tired', 'not_enough'])
+	it('gentle flag only for harder weeks, with template text', () => {
+		expect(
+			computeInsight(week(['worried'], ['sad'], ['happy'], ['happy'], ['calm']), [], UTC).gentleFlag
+		).toBe(false);
+		expect(computeInsight(week(['sad'], ['angry'], ['worried']), [], UTC).gentleFlag).toBe(true);
+		for (const t of ['a_bit_worried', 'mostly_happy', 'mixed', 'a_bit_tired', 'not_enough'])
 			expect(gentleText(t)).toBeNull();
 	});
 
 	it('never puts raw text, counts, times or homes into the output', () => {
 		const secret = 'my secret hideout at 12 Elm St';
 		const out = computeInsight(
-			[c('sad', 1), c('worried', 1), c('angry', 1), c('sad', 2)],
+			week(['sad', 1], ['worried', 1], ['angry', 1], ['sad', 2]),
 			[
 				wish(secret, true, '2026-11-15T10:00:00Z'),
 				wish('A puppy named Biscuit', false, '2026-11-15T10:00:00Z')
-			]
+			],
+			UTC
 		);
 		const text = JSON.stringify(out) + (gentleText(out.moodTrend) ?? '');
 		expect(text).not.toContain('Elm');

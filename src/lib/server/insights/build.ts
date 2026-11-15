@@ -7,11 +7,13 @@
  * - `reader` is the child's own session (event.locals.supabase): all reads go
  *   through RLS as that child. Only the weekly_insights upsert uses the service
  *   role (users have no insert/update policy on it by design).
- * - Weeks are UTC, Monday start; one row per (child_id, week_start).
+ * - Weeks are UTC, Monday start; one row per (child_id, week_start). Days inside
+ *   the week are counted in the child's time zone (`tz`, from the tz cookie).
+ * - Only check-ins the child shared count (see insightRules.ts).
  * - Never logs or stores raw choices: the row holds template text + theme keys.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { computeInsight, type Insight } from '#lib/kids/insightRules.js';
+import { computeInsight, isHardTrend, type Insight } from '#lib/kids/insightRules.js';
 import { isoDate, utcWeekEnd, utcWeekStart } from '#lib/kids/time.js';
 import type { Database } from '#lib/types/database.js';
 import { supabaseAdmin } from '#lib/server/supabaseAdmin.js';
@@ -19,19 +21,22 @@ import { supabaseAdmin } from '#lib/server/supabaseAdmin.js';
 export async function rebuildWeeklyInsight(
 	childId: string,
 	now: Date = new Date(),
-	reader?: SupabaseClient<Database>
+	reader?: SupabaseClient<Database>,
+	tz = 'UTC'
 ): Promise<Insight> {
 	if (!reader) throw new Error('rebuildWeeklyInsight needs the child session (reader)');
 
 	const start = utcWeekStart(now).toISOString();
 	const end = utcWeekEnd(now).toISOString();
+	const previousWeek = isoDate(new Date(utcWeekStart(now).getTime() - 7 * 86_400_000));
 
-	const [child, checkins, wishes] = await Promise.all([
+	const [child, checkins, wishes, previous] = await Promise.all([
 		reader.from('children').select('family_id').eq('id', childId).single(),
 		reader
 			.from('mood_checkins')
-			.select('mood, energy')
+			.select('mood, energy, created_at, shared')
 			.eq('child_id', childId)
+			.eq('shared', true)
 			.gte('created_at', start)
 			.lt('created_at', end),
 		reader
@@ -40,14 +45,24 @@ export async function rebuildWeeklyInsight(
 			.eq('child_id', childId)
 			.eq('shared_with_parents', true)
 			.gte('shared_at', start)
-			.lt('shared_at', end)
+			.lt('shared_at', end),
+		// "Two harder weeks in a row" decides whether the pediatrician tip shows.
+		reader
+			.from('weekly_insights')
+			.select('mood_trend')
+			.eq('child_id', childId)
+			.eq('week_start', previousWeek)
+			.maybeSingle()
 	]);
-	for (const r of [child, checkins, wishes]) {
+	for (const r of [child, checkins, wishes, previous]) {
 		if (r.error) throw new Error(`insight read failed (${r.error.code})`);
 	}
 	if (!child.data) throw new Error('insight read failed (no child)');
 
-	const insight = computeInsight(checkins.data ?? [], wishes.data ?? []);
+	const insight = computeInsight(checkins.data ?? [], wishes.data ?? [], {
+		tz,
+		previousWeekHard: isHardTrend(previous.data?.mood_trend)
+	});
 
 	const { error } = await supabaseAdmin()
 		.from('weekly_insights')

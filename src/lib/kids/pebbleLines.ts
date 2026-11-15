@@ -80,6 +80,15 @@ export function moodReply(mood: CheckinMood): string {
 	return MOOD_REPLIES[mood];
 }
 
+/**
+ * Several hard days in a row (private check-ins count too): Pebble gently offers
+ * to tell a grown-up. Only the child sees this; the choice stays theirs.
+ */
+export const HARD_DAYS_LINES = {
+	nudge: 'It looks like things have felt hard for a few days. Want to tell a grown-up you trust?',
+	told: 'I told Mom and Dad how you feel. That was brave. You can change it any time.'
+} as const;
+
 /** Pebble's prompts during the check-in. */
 export const CHECKIN_PROMPTS = {
 	mood: 'How do you feel today? Tap a face.',

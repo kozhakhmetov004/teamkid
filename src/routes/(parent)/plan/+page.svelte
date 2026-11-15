@@ -175,7 +175,11 @@
 			{:else}
 				<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 					{#each result.suggestions as s (s.place.id)}
-						<SuggestionCard suggestion={s} demo={result.source === 'demo'} />
+						<SuggestionCard
+							suggestion={s}
+							demo={result.source === 'demo'}
+							childName={data.childName ?? undefined}
+						/>
 					{/each}
 				</div>
 			{/if}

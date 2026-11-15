@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 	const [events, parents, children, swaps, schedule] = await Promise.all([
 		sb
 			.from('events')
-			.select('id, title, starts_at, ends_at, home, kind, place, notes, child_id')
+			.select('id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible')
 			.eq('family_id', member.family_id)
 			.gte('starts_at', from)
 			.lt('starts_at', to)
@@ -125,6 +125,7 @@ export const load: PageServerLoad = async (event) => {
 					place: e.place,
 					notes: e.notes,
 					childId: e.child_id,
+					kidVisible: e.kid_visible,
 					time: timeLabel(e.starts_at, tz),
 					date,
 					start: localTime(e.starts_at, tz),
@@ -198,6 +199,11 @@ const EventFields = z
 		kind: z.enum(['school', 'activity', 'medical', 'handover', 'other']),
 		place: optionalText(200),
 		notes: optionalText(2000),
+		// Checkbox "Show to <child>": unchecked (absent) = hidden, e.g. a surprise.
+		kidVisible: z
+			.literal('yes')
+			.optional()
+			.transform((v) => v === 'yes'),
 		childId: z
 			.string()
 			.optional()
@@ -243,6 +249,7 @@ export const actions: Actions = {
 				kind: v.kind,
 				place: v.place,
 				notes: v.notes,
+				kid_visible: v.kidVisible,
 				home: null,
 				source: 'manual',
 				created_by: member.member_id
@@ -280,7 +287,8 @@ export const actions: Actions = {
 				ends_at: zonedToUtc(v.date, v.end, tz).toISOString(),
 				kind: v.kind,
 				place: v.place,
-				notes: v.notes
+				notes: v.notes,
+				kid_visible: v.kidVisible
 			})
 			.eq('id', v.id)
 			.neq('kind', 'custody')

@@ -22,8 +22,9 @@
 		onanswer
 	}: {
 		open?: boolean;
+		/** Wish wording ("go to the zoo"), turned into Pebble's question. */
 		ask?: string;
-		/** Full question; overrides `ask` (used for multi-pick weekly cards). */
+		/** A full question instead of the wish wording (e.g. the mood check-in). */
 		question?: string;
 		icon: string;
 		petName: string;
