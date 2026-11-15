@@ -97,7 +97,7 @@
 		<Card.Title>My time with {childName}</Card.Title>
 		<Card.Description>Private · only you see this card</Card.Description>
 	</Card.Header>
-	<Card.Content class="space-y-3 text-sm" aria-live="polite">
+	<Card.Content class="space-y-4 text-sm" aria-live="polite">
 		{#if failed && !data}
 			<p class="text-muted-foreground">This card couldn't load. Try refreshing.</p>
 		{:else if !data}
@@ -107,34 +107,54 @@
 			</div>
 			<span class="sr-only">Loading</span>
 		{:else}
-			<p>
-				<span class="text-xl font-bold">{data.count}</span>
-				outing{data.count === 1 ? '' : 's'} in the last {data.days} days
-				{#if data.avgRating !== null}
-					<span class="ms-1">· {childName}'s rating <strong>{data.avgRating}★</strong></span>
-				{/if}
-			</p>
-			{#if data.favorites.length}
-				<p class="text-muted-foreground">
-					Favourites: {data.favorites.join(', ')}
+			<div class="space-y-1">
+				<p>
+					<span class="text-xl font-bold">{data.count}</span>
+					outing{data.count === 1 ? '' : 's'} in the last {data.days} days
 				</p>
-			{/if}
-			<p class="rounded-lg bg-secondary p-3 text-secondary-foreground">
+				{#if data.avgRating !== null}
+					<p>
+						{childName}'s rating
+						<strong class="text-pebble-foreground dark:text-pebble">{data.avgRating}★</strong>
+					</p>
+				{/if}
+				{#if data.favorites.length}
+					<p class="text-muted-foreground">Favourites: {data.favorites.join(', ')}</p>
+				{/if}
+			</div>
+			<p class="rounded-xl bg-secondary p-3 text-sm leading-relaxed text-secondary-foreground">
 				<span aria-hidden="true">💡</span>
 				{data.suggestion}
 			</p>
 			{#if data.recent.length}
-				<ul class="space-y-1">
-					{#each data.recent.slice(0, 3) as o (o.title + o.happened_on)}
-						<li class="flex justify-between gap-2">
-							<span class="truncate">{o.title}</span>
-							<span class="shrink-0 text-muted-foreground"
-								>{fmtDate(o.happened_on)}{#if o.child_rating}
-									· {'★'.repeat(o.child_rating)}{/if}</span
-							>
-						</li>
-					{/each}
-				</ul>
+				<div>
+					<p class="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+						Recent outings
+					</p>
+					<ul class="space-y-2">
+						{#each data.recent.slice(0, 3) as o (o.title + o.happened_on)}
+							<li class="flex items-center gap-3 rounded-xl bg-muted/60 px-3 py-2.5">
+								<span
+									class="grid size-8 shrink-0 place-items-center rounded-lg bg-card text-base"
+									aria-hidden="true">🌳</span
+								>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-sm font-medium capitalize">{o.title}</span>
+									<span class="block text-xs text-muted-foreground">{fmtDate(o.happened_on)}</span>
+								</span>
+								{#if o.child_rating}
+									<span
+										class="shrink-0 text-sm tracking-tight text-pebble-foreground dark:text-pebble"
+										aria-label="{o.child_rating} of 5 stars"
+										>{'★'.repeat(o.child_rating)}<span class="text-muted-foreground/40"
+											>{'★'.repeat(5 - o.child_rating)}</span
+										></span
+									>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
 		{/if}
 
@@ -167,7 +187,7 @@
 				{#if formError}<p class="text-destructive" role="alert">{formError}</p>{/if}
 				<div class="flex gap-2">
 					<Button type="submit" size="sm" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
-					<Button type="button" size="sm" variant="ghost" onclick={() => (adding = false)}
+					<Button type="button" size="sm" variant="outline" onclick={() => (adding = false)}
 						>Cancel</Button
 					>
 				</div>

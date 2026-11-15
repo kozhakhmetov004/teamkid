@@ -28,7 +28,10 @@
 	</div>
 
 	{#if swap.fromMe}
-		<Badge variant="outline">Waiting for {otherName}</Badge>
+		<Badge
+			class="border-transparent bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
+			>⏳ Waiting for {otherName}</Badge
+		>
 	{:else}
 		<div class="flex flex-wrap gap-2">
 			<form method="POST" action="/calendar/swap?/respond" use:enhance={handler}>

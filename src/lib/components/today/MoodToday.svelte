@@ -28,32 +28,36 @@
 	<section
 		aria-label="{childName}'s feeling today"
 		aria-live="polite"
-		class="flex w-full items-start gap-4 rounded-xl p-4 {TONE_CLASS[mood.tone]}"
+		class="flex h-full w-full items-center gap-4 rounded-xl p-4 {TONE_CLASS[mood.tone]}"
 	>
 		<span
 			aria-hidden="true"
-			class="grid size-14 shrink-0 place-items-center rounded-full text-3xl {ICON_RING[mood.tone]}"
+			class="grid size-16 shrink-0 place-items-center rounded-full text-4xl {ICON_RING[mood.tone]}"
 			>{mood.icon}</span
 		>
-		<div class="min-w-0 space-y-1">
-			<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+		<div class="min-w-0 space-y-1.5">
+			<p class="text-sm font-medium tracking-wide text-muted-foreground uppercase">
 				{childName} shared today
 			</p>
-			<p class="text-lg leading-snug font-semibold">
-				Feels {mood.feeling}{#if mood.energy}<span class="font-normal text-muted-foreground">
-						· <span aria-hidden="true">{mood.energy.icon}</span>
+			<p class="text-xl leading-snug font-bold">
+				Feels {mood.feeling}{#if mood.energy}<span
+						class="block text-base font-normal text-muted-foreground"
+					>
+						<span aria-hidden="true">{mood.energy.icon}</span>
 						{mood.energy.label.toLowerCase()} energy</span
 					>{/if}
 			</p>
 			{#if mood.hint}
-				<p class="text-sm">{mood.hint}</p>
+				<p class="text-base">{mood.hint}</p>
 			{/if}
-			<p class="text-xs text-muted-foreground">Shared at {mood.sharedAt}</p>
+			<p class="text-sm text-muted-foreground">Shared at {mood.sharedAt}</p>
 		</div>
 	</section>
 {:else}
-	<p class="flex w-full items-center gap-3 text-sm text-muted-foreground">
-		<span aria-hidden="true" class="text-2xl">🐢</span>
+	<p
+		class="flex h-full w-full items-center gap-4 rounded-xl bg-muted/50 p-4 text-base text-muted-foreground"
+	>
+		<span aria-hidden="true" class="text-4xl">🐢</span>
 		No feeling shared today. {childName} decides what to share.
 	</p>
 {/if}

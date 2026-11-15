@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { invalidate } from '$app/navigation';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -61,12 +62,11 @@
 <svelte:head><title>Billing · TeamKid</title></svelte:head>
 
 <div class="mx-auto max-w-3xl space-y-6">
-	<header class="space-y-1">
-		<h1 class="text-3xl font-bold">Billing</h1>
-		<p class="text-muted-foreground">
-			Calendar, swaps and messages stay free. Family Plus adds the AI tools.
-		</p>
-	</header>
+	<PageHeader
+		title="Billing"
+		icon="⭐"
+		description="Calendar, swaps and messages stay free. Family Plus adds the AI tools."
+	/>
 
 	<p
 		class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"

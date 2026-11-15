@@ -52,7 +52,14 @@
 				<Nav variant="bar" />
 			</div>
 		</header>
-		<main class="mx-auto max-w-6xl px-4 py-6 lg:px-8 lg:py-8">
+		<!--
+			One card style for every parent page: white, no outline, soft shadow on
+			the pastel background, a fixed-height header row with a soft divider,
+			and the content filling the card so footers sit at the bottom.
+		-->
+		<main
+			class="mx-auto max-w-6xl px-4 py-6 lg:px-8 lg:py-8 [&_[data-slot=card-content]]:flex-1 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:border-border/60 [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold [&_[data-slot=card]]:shadow-[0_1px_2px_oklch(0.45_0.05_180/0.06),0_6px_20px_oklch(0.45_0.05_180/0.07)] [&_[data-slot=card]]:ring-0"
+		>
 			{@render children()}
 		</main>
 	</div>

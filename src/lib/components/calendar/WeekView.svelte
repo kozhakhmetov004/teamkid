@@ -26,10 +26,10 @@
 	{#each days as day (day.date)}
 		<li
 			class="rounded-xl border p-3 {day.mine === true
-				? 'border-primary/40 bg-primary/10'
+				? 'border-transparent bg-[oklch(0.9_0.055_172)] dark:bg-primary/25'
 				: day.mine === false
-					? 'border-pebble bg-pebble/25'
-					: 'border-dashed bg-muted/60'} {day.isToday ? 'ring-2 ring-primary' : ''}"
+					? 'border-transparent bg-[oklch(0.92_0.07_82)] dark:bg-pebble/30'
+					: 'border-dashed border-border bg-card'} {day.isToday ? 'ring-2 ring-primary' : ''}"
 		>
 			<div class="flex items-center justify-between gap-2">
 				<p class="font-semibold">
@@ -48,7 +48,11 @@
 					{day.birthday}
 				</p>
 			{/if}
-			{#if day.pendingSwap}<p class="mt-1 text-xs">⇄ Swap pending</p>{/if}
+			{#if day.pendingSwap}<p
+					class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
+				>
+					⇄ Swap pending
+				</p>{/if}
 			{#if day.events.length}
 				<ul class="mt-2 space-y-1">
 					{#each day.events as ev (ev.id)}
@@ -66,7 +70,8 @@
 										: ' · 🤫 Hidden from child'}</span
 								>
 								{#if ev.pendingSwap}
-									<span class="mt-0.5 inline-block rounded bg-pebble/40 px-1 text-xs font-medium"
+									<span
+										class="mt-0.5 inline-block rounded-full bg-amber-100 px-2 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
 										>⇄ Pending swap</span
 									>
 								{/if}

@@ -89,7 +89,7 @@
 				</label>
 				<div class="flex flex-wrap gap-2">
 					<Button type="submit" size="sm" disabled={busy || !band}>Save</Button>
-					<Button type="button" size="sm" variant="ghost" onclick={() => (editing = false)}
+					<Button type="button" size="sm" variant="outline" onclick={() => (editing = false)}
 						>Cancel</Button
 					>
 				</div>

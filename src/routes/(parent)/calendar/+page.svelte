@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { invalidate } from '$app/navigation';
 	import CustodyLegend from '#lib/components/calendar/CustodyLegend.svelte';
 	import EventForm from '#lib/components/calendar/EventForm.svelte';
@@ -12,6 +13,7 @@
 	import type { CalDay, CalEvent } from '#lib/components/calendar/types.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { subscribeToFamily } from '#lib/realtime.js';
 	import type { PageProps } from './$types';
 
@@ -20,6 +22,8 @@
 	const otherName = $derived(data.otherName ?? 'your co-parent');
 	const href = (params: Record<string, string>) =>
 		`/calendar?${new URLSearchParams({ view: data.view, date: data.anchor, ...params })}`;
+
+	let scheduleOpen = $state(false);
 
 	// Event dialog
 	let eventOpen = $state(false);
@@ -64,13 +68,9 @@
 
 <svelte:head><title>Planner · TeamKid</title></svelte:head>
 
-<div class="space-y-5">
-	<div class="flex flex-wrap items-end justify-between gap-3">
-		<div>
-			<h1 class="text-2xl font-bold">Planner</h1>
-			<p class="text-muted-foreground">{data.title}</p>
-		</div>
-		<div class="flex flex-wrap gap-2">
+<div class="space-y-6">
+	<PageHeader title="Planner" icon="🗓️" description={data.title}>
+		{#snippet actions()}
 			<Button
 				variant="outline"
 				size="sm"
@@ -84,7 +84,7 @@
 				href={href({ date: data.next })}
 				aria-label="Next {data.view}">→</Button
 			>
-			<div class="flex rounded-lg border p-0.5" role="group" aria-label="View">
+			<div class="flex rounded-lg bg-card p-0.5 shadow-sm" role="group" aria-label="View">
 				<a
 					href={href({ view: 'week' })}
 					aria-current={data.view === 'week' ? 'page' : undefined}
@@ -98,13 +98,18 @@
 					>Month</a
 				>
 			</div>
-		</div>
-	</div>
+		{/snippet}
+	</PageHeader>
 
-	<div class="flex flex-wrap items-center justify-between gap-3">
+	<div
+		class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-sm"
+	>
 		<CustodyLegend {otherName} />
 		<div class="flex flex-wrap gap-2">
 			<Button size="sm" onclick={addEvent}>Add event</Button>
+			<Button size="sm" variant="outline" onclick={() => (scheduleOpen = true)}
+				>Set up schedule</Button
+			>
 			{#if data.canSwap}
 				<Button size="sm" variant="outline" onclick={() => swapFor(null)}>Request a swap</Button>
 			{/if}
@@ -132,20 +137,33 @@
 	{/if}
 
 	<PlanWeekendPanel panel={data.plan} nudge={data.planNudge} />
+</div>
 
-	<details class="rounded-xl border bg-card p-4">
-		<summary class="cursor-pointer font-medium">Set up the custody schedule</summary>
-		<p class="mt-2 mb-4 text-sm text-muted-foreground">
-			Creates custody nights for the next 12 weeks from the start date. Future nights are replaced;
-			past nights are kept. Single nights change only through swaps.
-		</p>
+<Dialog.Root bind:open={scheduleOpen}>
+	<Dialog.Content class="sm:max-w-lg">
+		<Dialog.Header>
+			<Dialog.Title>Set up the custody schedule</Dialog.Title>
+			<Dialog.Description>
+				Creates custody nights for the next 12 weeks from the start date. Future nights are
+				replaced; past nights are kept. Single nights change only through swaps.
+			</Dialog.Description>
+		</Dialog.Header>
 		<ScheduleForm
 			defaults={data.schedule.defaults}
 			homes={data.schedule.homes}
 			templates={data.schedule.templates}
+			onsaved={() => (scheduleOpen = false)}
 		/>
-	</details>
-</div>
+		<p class="rounded-lg bg-muted/60 p-3 text-sm">
+			Have a parenting plan as a PDF?
+			<a
+				href="/plan/import"
+				class="font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+				>Import it and we'll read the schedule for you</a
+			>.
+		</p>
+	</Dialog.Content>
+</Dialog.Root>
 
 <EventForm
 	bind:open={eventOpen}

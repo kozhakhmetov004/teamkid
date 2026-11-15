@@ -10,6 +10,10 @@ export interface CalEvent {
 	pendingSwap?: boolean;
 	/** false = hidden from the child's calendar (e.g. a surprise) */
 	kidVisible: boolean;
+	/** The signed-in parent added it (or nobody did): they may edit/delete it. */
+	canEdit?: boolean;
+	/** "You" or the other parent's name; null for imported events. */
+	addedBy?: string | null;
 	/** "4:00 PM" */
 	time: string;
 	/** local 'YYYY-MM-DD' / 'HH:MM' for the edit form */

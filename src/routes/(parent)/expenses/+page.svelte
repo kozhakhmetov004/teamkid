@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Notice from '#lib/components/layout/Notice.svelte';
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { invalidate } from '$app/navigation';
 	import SpendingChart from '#lib/components/analytics/SpendingChart.svelte';
 	import ExpenseForm from '#lib/components/expenses/ExpenseForm.svelte';
@@ -84,38 +86,41 @@
 <svelte:head><title>Expenses · TeamKid</title></svelte:head>
 
 <div class="space-y-6">
-	<div class="flex flex-wrap items-end justify-between gap-3">
-		<div>
-			<h1 class="text-2xl font-bold">Expenses</h1>
-			<p class="text-muted-foreground">
-				Shared costs for your child. Nothing is edited or deleted; every change is recorded.
-			</p>
-		</div>
-		<Button onclick={log}>Log an expense</Button>
-	</div>
+	<PageHeader
+		title="Expenses"
+		icon="💳"
+		description="Shared costs for your child. Nothing is edited or deleted; every change is recorded."
+	>
+		{#snippet actions()}
+			<Button size="lg" class="h-11 px-5 text-base" onclick={log}>+ Log an expense</Button>
+		{/snippet}
+	</PageHeader>
 
 	{#if !data.hasCoParent}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Invite your co-parent to share expenses</Card.Title>
-				<Card.Description
-					>You can log costs for your own record now; sharing and approval need both parents.</Card.Description
-				>
-			</Card.Header>
-			<Card.Footer><Button href="/family" variant="outline">Invite on Family</Button></Card.Footer>
-		</Card.Root>
+		<Notice
+			icon="🤝"
+			title="Invite your co-parent to share expenses"
+			text="You can log costs for your own record now; sharing and approval need both parents."
+			href="/family"
+			label="Invite"
+		/>
 	{/if}
 
 	{#if todo.length}
 		<nav
 			aria-label="Needs your answer"
-			class="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 p-3 text-sm"
+			class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm dark:bg-amber-950/50 dark:text-amber-100"
 		>
-			<span class="font-semibold">Needs your answer:</span>
+			<span class="flex items-center gap-2 font-semibold">
+				<span aria-hidden="true" class="text-lg">⚠️</span> Needs your answer
+			</span>
 			{#each todo as t (t.label)}
-				<a href={t.href} class="rounded-full border bg-background px-3 py-1 hover:bg-accent">
+				<a
+					href={t.href}
+					class="rounded-full bg-amber-200/80 px-3 py-1 font-medium text-amber-950 hover:bg-amber-300 focus-visible:ring-3 focus-visible:ring-amber-500/50 focus-visible:outline-none dark:bg-amber-800 dark:text-amber-50"
+				>
 					{t.n}
-					{t.label}{t.n === 1 ? '' : 's'}
+					{t.label}{t.n === 1 ? '' : 's'} →
 				</a>
 			{/each}
 		</nav>

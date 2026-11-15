@@ -76,7 +76,7 @@
 		>
 			<input type="hidden" name="expenseId" value={expense.id} />
 			<input type="hidden" name="action" value="cancel" />
-			<Button type="submit" size="sm" variant="ghost" disabled={pending}>Cancel</Button>
+			<Button type="submit" size="sm" variant="outline" disabled={pending}>Cancel</Button>
 		</form>
 	{/if}
 </div>

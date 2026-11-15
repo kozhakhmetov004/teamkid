@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PageHeader from '#lib/components/layout/PageHeader.svelte';
 	import { invalidate } from '$app/navigation';
 	import Composer from '#lib/components/messages/Composer.svelte';
 	import ThreadView from '#lib/components/messages/ThreadView.svelte';
@@ -37,18 +38,22 @@
 
 <svelte:head><title>{data.thread.topic} · Messages · TeamKid</title></svelte:head>
 
-<div class="mx-auto flex max-w-3xl flex-col gap-4">
-	<div class="flex items-center justify-between gap-2">
-		<div>
-			<a href="/messages" class="text-sm text-muted-foreground hover:underline">← All topics</a>
-			<h1 class="text-2xl font-bold">{data.thread.topic}</h1>
-			{#if data.otherName}<p class="text-sm text-muted-foreground">With {data.otherName}</p>{/if}
-		</div>
+<!-- Fills the viewport so the composer always sits at the bottom of the page. -->
+<div
+	class="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-3xl flex-col gap-4 lg:min-h-[calc(100dvh-4rem)]"
+>
+	<PageHeader
+		title={data.thread.topic}
+		icon="💬"
+		description={data.otherName ? `With ${data.otherName}` : undefined}
+		back={{ href: '/messages', label: 'All topics' }}
+	/>
+
+	<div class="flex-1">
+		<ThreadView messages={data.messages} />
 	</div>
 
-	<ThreadView messages={data.messages} />
-
-	<div class="sticky bottom-0 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur">
+	<div class="sticky bottom-4 mt-auto rounded-xl bg-card/95 px-4 py-3 shadow-sm backdrop-blur">
 		<Composer threadId={data.thread.id} />
 	</div>
 </div>

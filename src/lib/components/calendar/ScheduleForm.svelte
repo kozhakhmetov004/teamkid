@@ -9,11 +9,14 @@
 	let {
 		defaults,
 		homes,
-		templates
+		templates,
+		onsaved
 	}: {
 		defaults: { template: string; startDate: string; exchangeTime: string; firstHome: string };
 		homes: { home: string; name: string }[];
 		templates: { value: string; label: string }[];
+		/** Called after a successful save (e.g. to close the dialog). */
+		onsaved?: () => void;
 	} = $props();
 
 	let pending = $state(false);
@@ -42,6 +45,7 @@
 			if (result.type === 'success') {
 				toast.success(String(result.data?.message ?? 'Schedule saved'));
 				await update({ reset: false });
+				onsaved?.();
 			} else if (result.type === 'failure') {
 				error = String(result.data?.message ?? 'Please check the form.');
 			} else {

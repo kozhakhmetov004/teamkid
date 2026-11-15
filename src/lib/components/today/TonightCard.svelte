@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * Hero: where the child sleeps tonight, the briefing (top right) and the
+	 * Hero: where the child sleeps tonight, the briefing (under the headline) and the
 	 * full list of today's activities with done markers.
 	 * Done = the event has ended, unless the parent ticked/unticked it. Manual
 	 * ticks are a per-device convenience (localStorage), never shared data.
@@ -94,8 +94,8 @@
 	aria-label="Tonight and today"
 	class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-gradient-to-br from-primary to-[oklch(0.42_0.08_185)] text-primary-foreground shadow-sm"
 >
-	<!-- Top: tonight (left) + briefing (top right) -->
-	<div class="grid gap-4 p-5 sm:p-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-start">
+	<!-- Top: tonight, then the briefing full width under it -->
+	<div class="flex flex-1 flex-col justify-center gap-4 p-5 sm:p-6">
 		<div class="flex items-start gap-4">
 			<span
 				class="grid size-12 shrink-0 place-items-center rounded-2xl bg-pebble text-2xl text-pebble-foreground"
@@ -114,7 +114,7 @@
 				{/if}
 			</div>
 		</div>
-		<aside aria-label="Today's briefing" class="rounded-xl bg-black/15 p-4">
+		<aside aria-label="Today's briefing" class="w-full rounded-xl bg-black/15 px-4 py-3">
 			<p class="mb-1 text-xs font-medium tracking-wide uppercase opacity-90">
 				Today's briefing{#if source === 'ai'}<span> · AI</span>{/if}
 			</p>
@@ -123,7 +123,7 @@
 	</div>
 
 	<!-- Today's activities: full width checklist -->
-	<div class="flex-1 bg-card text-card-foreground">
+	<div class="bg-card text-card-foreground">
 		<div class="flex min-h-11 items-center gap-2 border-b px-5 py-2.5 sm:px-6">
 			<h2 class="text-base font-semibold">Today's activities</h2>
 			{#if items.length}

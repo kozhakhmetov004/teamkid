@@ -62,7 +62,11 @@
 						>{/if}
 				</p>
 				{#if split.proposal.mine}
-					<p class="text-muted-foreground">Waiting for {otherName}.</p>
+					<p
+						class="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"
+					>
+						⏳ Waiting for {otherName}
+					</p>
 					<AnswerButtons
 						formAction="?/splitRespond"
 						id={split.proposal.id}
@@ -123,7 +127,7 @@
 					<p class="pb-2 text-muted-foreground">{otherName}: {100 - (Number(myPct) || 0)}%</p>
 					<input type="hidden" name="basis" value="custom" />
 					<Button type="submit" size="sm" disabled={busy}>Propose</Button>
-					<Button type="button" size="sm" variant="ghost" onclick={() => (editing = false)}
+					<Button type="button" size="sm" variant="outline" onclick={() => (editing = false)}
 						>Cancel</Button
 					>
 				</form>

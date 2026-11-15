@@ -76,14 +76,12 @@
 {/snippet}
 
 <!--
-	Every card on this page (ours and the ones other workstreams drop in):
-	white, no outline, a soft shadow on the pastel page, and one "section
-	starter line" (fixed-height header row, soft divider, same title weight).
-	When a row makes a card taller than its content, the content spreads out
-	over the height (and a footer sits at the bottom) instead of leaving a gap.
+	Card look (white, no outline, header row) comes from ParentShell. Here only:
+	when a row makes a card taller than its content, the content spreads out
+	over the height instead of leaving a gap at the bottom.
 -->
 <div
-	class="space-y-6 sm:space-y-8 [&_[data-slot=card-content]]:flex [&_[data-slot=card-content]]:flex-1 [&_[data-slot=card-content]]:flex-col [&_[data-slot=card-content]]:justify-between [&_[data-slot=card-content]]:gap-4 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:border-border/60 [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold [&_[data-slot=card]]:shadow-[0_1px_2px_oklch(0.45_0.05_180/0.06),0_6px_20px_oklch(0.45_0.05_180/0.07)] [&_[data-slot=card]]:ring-0"
+	class="space-y-6 sm:space-y-8 [&_[data-slot=card-content]]:flex [&_[data-slot=card-content]]:flex-col [&_[data-slot=card-content]]:justify-between [&_[data-slot=card-content]]:gap-4"
 >
 	<!-- Header: greeting + the main shortcut -->
 	<div class="flex flex-wrap items-end justify-between gap-4">
@@ -144,13 +142,20 @@
 				briefing={data.briefing}
 			/>
 		</div>
+		<!--
+			Right column: the feeling card absorbs any extra row height; Next
+			handover keeps its natural height. (The Tonight card grows its teal
+			top, never the white list, so neither side shows a blank gap.)
+		-->
 		<div class="flex min-w-0 flex-col gap-4 lg:col-span-4 lg:gap-6">
 			{#if data.child && childActive}
-				<DashCard title="{childName}'s feeling" icon="💛">
-					<MoodToday {childName} mood={data.moodToday} />
-				</DashCard>
+				<div class="flex-1 [&>*]:h-full">
+					<DashCard title="{childName}'s feeling" icon="💛">
+						<MoodToday {childName} mood={data.moodToday} />
+					</DashCard>
+				</div>
 			{/if}
-			<div class={data.nextHandover ? 'flex-1 [&>*]:h-full' : ''}>
+			<div>
 				<NextHandover
 					handover={data.nextHandover}
 					{childName}

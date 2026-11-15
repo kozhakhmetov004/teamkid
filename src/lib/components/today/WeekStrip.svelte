@@ -17,10 +17,10 @@
 
 	const tone = (mine: boolean | null) =>
 		mine === true
-			? 'border-primary/40 bg-primary/10'
+			? 'border-transparent bg-[oklch(0.9_0.055_172)] dark:bg-primary/25'
 			: mine === false
-				? 'border-pebble bg-pebble/30'
-				: 'border-dashed border-border bg-muted';
+				? 'border-transparent bg-[oklch(0.92_0.07_82)] dark:bg-pebble/30'
+				: 'border-dashed border-border bg-card';
 </script>
 
 <Card.Root aria-labelledby="week-strip-title" class="min-w-0">
