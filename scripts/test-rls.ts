@@ -250,12 +250,36 @@ async function main() {
 		'Lily reads her own mood_checkins',
 		lilyMood.error ?? `rows=${lilyMood.n}`
 	);
-	const lilyEvents = await count(lily, 'events', 'family_id', carterId);
+	// events_kid_visible: no direct reads; kid_calendar() hides surprises and notes.
+	const lilyDirect = await count(lily, 'events', 'family_id', carterId);
+	expect(lilyDirect.n <= 0, 'Lily cannot read events directly (notes stay private)');
+	const surprise = (
+		await admin
+			.from('events')
+			.insert({
+				family_id: carterId,
+				title: 'rls-test surprise party',
+				starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+				ends_at: new Date(Date.now() + 90_000_000).toISOString(),
+				kind: 'activity',
+				kid_visible: false
+			})
+			.select('id')
+			.single()
+	).data;
+	const range = {
+		p_from: new Date(Date.now() - 86_400_000).toISOString(),
+		p_to: new Date(Date.now() + 9 * 86_400_000).toISOString()
+	};
+	const lilyCal = (await lily.rpc('kid_calendar', range)).data ?? [];
 	expect(
-		lilyEvents.n > 0,
-		'Lily reads her family events',
-		lilyEvents.error ?? `rows=${lilyEvents.n}`
+		lilyCal.some((e) => e.kind === 'custody') && !lilyCal.some((e) => e.id === surprise?.id),
+		'Lily sees her nights but not the hidden surprise',
+		`rows=${lilyCal.length}`
 	);
+	const momCal = (await mom.rpc('kid_calendar', range)).data ?? [];
+	expect(momCal.length === 0, 'kid_calendar returns nothing for a parent session');
+	if (surprise) await admin.from('events').delete().eq('id', surprise.id);
 	// kid_read_own_insight: Lily reads her own weekly insight (for /my-sharing), nobody else's.
 	const lilyInsights = (await lily.from('weekly_insights').select('child_id')).data ?? [];
 	expect(
