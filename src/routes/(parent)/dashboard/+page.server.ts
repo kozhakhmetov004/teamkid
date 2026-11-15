@@ -10,7 +10,12 @@ import { requireParent } from '#lib/server/guards.js';
 import { balanceText, computeBalance } from '#lib/expenses/balance.js';
 import { buildChartMonths } from '#lib/expenses/chart.js';
 import { moodToday } from '#lib/kids/moodToday.js';
-import { loadBalanceRows, loadSpendingRows, shiftMonth } from '../expenses/expenses.server.js';
+import {
+	loadBalanceRows,
+	loadCredits,
+	loadSpendingRows,
+	shiftMonth
+} from '../expenses/expenses.server.js';
 import {
 	addDays,
 	buildBriefing,
@@ -58,6 +63,7 @@ export const load: PageServerLoad = async (event) => {
 		recent,
 		spending,
 		balanceRows,
+		credits,
 		sharedMoods
 	] = await Promise.all([
 		sb
@@ -114,6 +120,7 @@ export const load: PageServerLoad = async (event) => {
 		// Shared spending (last 3 months) + balance input; identical for both parents.
 		loadSpendingRows(sb, familyId, shiftMonth(currentMonth, -2)),
 		loadBalanceRows(sb, familyId),
+		loadCredits(sb, familyId),
 		// Only what the child chose to tell both parents (never mood_checkins).
 		sb.from('shared_moods').select('child_id, mood, energy, shared_at').eq('family_id', familyId)
 	]);
@@ -218,7 +225,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// ---- slots: spending + balance (shared); insight and My time load themselves --
-	const balance = computeBalance(balanceRows, member.member_id);
+	const balance = computeBalance(balanceRows, member.member_id, credits);
 
 	return {
 		tz,

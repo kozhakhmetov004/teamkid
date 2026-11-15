@@ -9,7 +9,7 @@
 	import type { SplitPreset } from '#lib/expenses/split.js';
 	import ReceiptUpload from './ReceiptUpload.svelte';
 	import SplitPicker from './SplitPicker.svelte';
-	import type { ExpenseView } from './types.js';
+	import type { ExpenseView, RequestView } from './types.js';
 
 	/** Log an expense, or re-submit a disputed one with new amount/split. */
 	let {
@@ -18,7 +18,9 @@
 		otherName,
 		today,
 		children = [],
-		resubmitOf = null
+		resubmitOf = null,
+		fromRequest = null,
+		familyPct = null
 	}: {
 		open?: boolean;
 		familyId: string;
@@ -26,6 +28,10 @@
 		today: string;
 		children?: { id: string; first_name: string }[];
 		resubmitOf?: ExpenseView | null;
+		/** log the real cost of an approved "ask before spending" request */
+		fromRequest?: RequestView | null;
+		/** my share of the agreed family split, if there is one */
+		familyPct?: number | null;
 	} = $props();
 
 	let pending = $state(false);
@@ -57,7 +63,7 @@
 										: 'custom';
 				customPct = String(p);
 			} else {
-				preset = '50';
+				preset = familyPct !== null ? 'family' : '50';
 				customPct = '';
 			}
 		}
@@ -70,11 +76,19 @@
 <Dialog.Root bind:open>
 	<Dialog.Content class="sm:max-w-lg">
 		<Dialog.Header>
-			<Dialog.Title>{resubmitOf ? 'Re-submit expense' : 'Log an expense'}</Dialog.Title>
+			<Dialog.Title
+				>{resubmitOf
+					? 'Re-submit expense'
+					: fromRequest
+						? `Log: ${fromRequest.title}`
+						: 'Log an expense'}</Dialog.Title
+			>
 			<Dialog.Description>
 				{resubmitOf
 					? 'This creates a new expense linked to the disputed one, which is cancelled.'
-					: `${otherName} will see it and can approve it. Nothing is edited or deleted later.`}
+					: fromRequest
+						? `${otherName} already said yes. Up to ${fromRequest.estimate} + 10% is approved automatically.`
+						: `${otherName} will see it and can approve it. Nothing is edited or deleted later.`}
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -102,6 +116,7 @@
 				}}
 			>
 				{#if resubmitOf}<input type="hidden" name="resubmitOf" value={resubmitOf.id} />{/if}
+				{#if fromRequest}<input type="hidden" name="requestId" value={fromRequest.id} />{/if}
 				<div class="space-y-1 sm:col-span-2">
 					<Label for="ex-title">What was it?</Label>
 					<Input
@@ -110,7 +125,7 @@
 						required
 						maxlength={80}
 						placeholder="e.g. Zoo tickets"
-						value={resubmitOf?.title ?? ''}
+						value={resubmitOf?.title ?? fromRequest?.title ?? ''}
 					/>
 					{#if fieldErrors.title}<p class="text-xs text-destructive">{fieldErrors.title}</p>{/if}
 				</div>
@@ -122,7 +137,11 @@
 						inputmode="decimal"
 						required
 						placeholder="38.00"
-						value={resubmitOf ? (resubmitOf.amountCents / 100).toFixed(2) : ''}
+						value={resubmitOf
+							? (resubmitOf.amountCents / 100).toFixed(2)
+							: fromRequest
+								? (fromRequest.estimateCents / 100).toFixed(2)
+								: ''}
 					/>
 					{#if fieldErrors.amount}<p class="text-xs text-destructive">{fieldErrors.amount}</p>{/if}
 				</div>
@@ -146,7 +165,7 @@
 						id="ex-category"
 						name="category"
 						class={selectClass}
-						value={resubmitOf?.category ?? 'activities'}
+						value={resubmitOf?.category ?? fromRequest?.category ?? 'activities'}
 					>
 						{#each CATEGORIES as c (c.value)}<option value={c.value}>{c.icon} {c.label}</option
 							>{/each}
@@ -158,14 +177,19 @@
 						id="ex-child"
 						name="childId"
 						class={selectClass}
-						value={resubmitOf?.childId ?? children[0]?.id ?? ''}
+						value={resubmitOf?.childId ?? fromRequest?.childId ?? children[0]?.id ?? ''}
 					>
 						<option value="">Whole family</option>
 						{#each children as c (c.id)}<option value={c.id}>{c.first_name}</option>{/each}
 					</select>
 				</div>
 				<div class="space-y-3 sm:col-span-2">
-					<SplitPicker {otherName} bind:preset bind:customPct />
+					{#if fromRequest}
+						<input type="hidden" name="split" value="50" />
+						<p class="text-sm">Split: <strong>{fromRequest.splitLabel}</strong> (as agreed)</p>
+					{:else}
+						<SplitPicker {otherName} {familyPct} bind:preset bind:customPct />
+					{/if}
 					{#if fieldErrors.split}<p class="text-xs text-destructive">{fieldErrors.split}</p>{/if}
 				</div>
 				<div class="space-y-1 sm:col-span-2">

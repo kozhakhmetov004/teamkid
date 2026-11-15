@@ -190,7 +190,9 @@ async function isEmpty(
 		| 'outings'
 		| 'mood_checkins'
 		| 'wish_cards'
-		| 'custody_schedules',
+		| 'custody_schedules'
+		| 'expense_requests'
+		| 'recurring_expenses',
 	column: string,
 	value: string
 ) {
@@ -389,6 +391,39 @@ async function seedCarter() {
 				{ defaultToNull: false }
 			),
 			'expenses'
+		);
+	}
+
+	// Expenses v2 demo: Dad asks before spending; Mom proposes a monthly cost.
+	// Both wait for the other parent, so each sees "Needs your answer".
+	if (await isEmpty('expense_requests', 'family_id', family.id)) {
+		check(
+			await db.from('expense_requests').insert({
+				family_id: family.id,
+				child_id: lily,
+				requested_by: dad,
+				title: 'Soccer season',
+				category: 'activities',
+				estimate_cents: 18000,
+				note: 'Lily wants to join her friends this spring.'
+			}),
+			'expense_requests'
+		);
+	}
+	if (await isEmpty('recurring_expenses', 'family_id', family.id)) {
+		const now = new Date();
+		check(
+			await db.from('recurring_expenses').insert({
+				family_id: family.id,
+				child_id: lily,
+				created_by: mom,
+				title: 'After-school club',
+				category: 'childcare',
+				amount_cents: 12000,
+				day_of_month: 1,
+				start_month: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-01`
+			}),
+			'recurring_expenses'
 		);
 	}
 
