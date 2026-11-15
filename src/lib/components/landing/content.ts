@@ -30,6 +30,7 @@ export const site = {
 
 export const nav = [
 	{ href: '#how-it-works', label: 'How it works' },
+	{ href: '#demo', label: 'Demo' },
 	{ href: '#pebble', label: 'Pebble' },
 	{ href: '#safety', label: 'Safety' },
 	{ href: '#pricing', label: 'Pricing' },
@@ -158,6 +159,25 @@ export const pebble = {
 	why: [
 		'A turtle carries its home everywhere it goes, just like a child who lives in two homes.',
 		'"Tuck in and breathe" is a calming step many US preschools teach. Pebble does it with your child.'
+	]
+};
+
+export const demo = {
+	title: 'See it in action',
+	intro: 'Two short videos recorded in the working prototype: one for parents, one for kids.',
+	videos: [
+		{
+			id: 'iN1QUq0kWPk',
+			label: 'For parents',
+			title: 'A week with TeamKid',
+			text: 'The calendar and swaps, calm messages, shared costs and analytics, and planning a weekend together.'
+		},
+		{
+			id: 'FiJY2nYRf9k',
+			label: 'For kids',
+			title: 'A day with Pebble',
+			text: 'Checking in with Pebble, wish cards, "Where am I tonight?", the pond game and the "I need a grown-up" button.'
+		}
 	]
 };
 
@@ -333,6 +353,7 @@ export const finalCta = {
 export const footer = {
 	product: [
 		{ href: '/#how-it-works', label: 'How it works' },
+		{ href: '/#demo', label: 'Demo' },
 		{ href: '/#pebble', label: 'Pebble' },
 		{ href: '/#safety', label: 'Safety' },
 		{ href: '/#pricing', label: 'Pricing' },
