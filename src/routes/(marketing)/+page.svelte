@@ -1,4 +1,5 @@
 <script lang="ts">
+	import DemoVideos from '#lib/components/landing/DemoVideos.svelte';
 	import FAQ from '#lib/components/landing/FAQ.svelte';
 	import FeatureGrid from '#lib/components/landing/FeatureGrid.svelte';
 	import FinalCTA from '#lib/components/landing/FinalCTA.svelte';
@@ -43,6 +44,7 @@
 <Hero signedIn={data.signedIn} homePath={data.homePath} />
 <ProblemStats />
 <HowItWorks />
+<DemoVideos />
 <MeetPebble />
 <FeatureGrid />
 <SafetySection />
