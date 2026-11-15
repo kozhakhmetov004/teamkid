@@ -14,7 +14,7 @@
 		type ShellColorKey,
 		type ShellPatternKey
 	} from '#lib/kids/pet.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import { KID_FONT } from '#lib/kids/ui.js';
 
 	let {
 		name,
@@ -47,14 +47,12 @@
 		if (o) reset();
 	}}
 >
-	<Dialog.Trigger
-		class="inline-flex min-h-16 items-center gap-3 rounded-2xl bg-kid-surface px-6 text-xl font-bold shadow-sm transition hover:bg-secondary {KID_FOCUS}"
-	>
-		<span aria-hidden="true">🎨</span> Customize {name}
+	<Dialog.Trigger class="k-btn k-btn--quiet">
+		<span class="k-btn__icon" aria-hidden="true">🎨</span> Customize {name}
 	</Dialog.Trigger>
 
 	<Dialog.Content
-		class="max-h-[90dvh] overflow-y-auto rounded-[2rem] bg-kid-background p-8 text-lg sm:max-w-3xl"
+		class="k-mint max-h-[90dvh] overflow-y-auto rounded-[2.25rem] border-[3px] border-white bg-[linear-gradient(180deg,var(--k-sky-soft),var(--kid-surface)_45%)] p-7 text-lg shadow-[0_8px_0_oklch(0.86_0.035_205),var(--k-shadow)] sm:max-w-3xl sm:p-9"
 		style="font-family: {KID_FONT}"
 	>
 		<form
@@ -146,26 +144,14 @@
 			</div>
 
 			{#if error}
-				<p
-					role="alert"
-					class="rounded-2xl bg-pebble/40 p-4 text-center text-xl text-pebble-foreground"
-				>
+				<p role="alert" class="k-note k-peach justify-center text-center">
 					{error}
 				</p>
 			{/if}
 
 			<div class="grid gap-3 sm:grid-cols-2">
-				<Dialog.Close
-					type="button"
-					class="min-h-16 rounded-2xl bg-kid-surface text-2xl font-bold shadow-sm {KID_FOCUS}"
-				>
-					Not now
-				</Dialog.Close>
-				<button
-					type="submit"
-					disabled={pending}
-					class="min-h-16 rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-sm disabled:opacity-60 {KID_FOCUS}"
-				>
+				<Dialog.Close type="button" class="k-btn k-btn--lg k-btn--quiet">Not now</Dialog.Close>
+				<button type="submit" disabled={pending} class="k-btn k-btn--lg k-mint">
 					{pending ? 'Saving…' : 'Save'}
 				</button>
 			</div>

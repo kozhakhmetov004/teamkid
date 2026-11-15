@@ -8,7 +8,7 @@
 	import Pebble from './Pebble.svelte';
 	import { wishAsk } from '#lib/kids/pebbleLines.js';
 	import type { ShellColor, ShellPatternKey } from '#lib/kids/pet.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import { KID_FONT } from '#lib/kids/ui.js';
 
 	let {
 		open = $bindable(false),
@@ -56,7 +56,7 @@
 >
 	<Dialog.Content
 		showCloseButton={false}
-		class="rounded-[2rem] bg-kid-background p-8 text-lg sm:max-w-2xl"
+		class="k-mint overflow-hidden rounded-[2.25rem] border-[3px] border-white bg-[linear-gradient(180deg,var(--k-sky-soft),var(--kid-surface)_55%)] p-7 text-lg shadow-[0_8px_0_oklch(0.86_0.035_205),var(--k-shadow)] sm:max-w-2xl sm:p-9"
 		style="font-family: {KID_FONT}"
 		onOpenAutoFocus={(e) => {
 			e.preventDefault();
@@ -64,37 +64,37 @@
 		}}
 	>
 		<div class="grid items-center gap-6 sm:grid-cols-[10rem_1fr]">
-			<div class="mx-auto w-40">
+			<div class="k-float mx-auto w-40">
 				<Pebble state="happy" name={petName} {color} {pattern} />
 			</div>
 			<div class="grid gap-3">
-				<Dialog.Title class="text-3xl leading-snug font-bold">
+				<Dialog.Title class="text-3xl leading-snug font-black tracking-tight">
 					<span aria-hidden="true">{icon}</span>
 					{question ?? wishAsk(ask)}
 				</Dialog.Title>
-				<Dialog.Description class="text-xl text-muted-foreground">
+				<Dialog.Description class="text-xl font-semibold text-muted-foreground">
 					You choose. Both answers are okay!
 				</Dialog.Description>
 			</div>
 		</div>
 
-		<div class="mt-4 grid grid-cols-2 gap-4">
+		<div class="mt-6 grid gap-4 sm:grid-cols-2">
 			<button
 				bind:this={keepButton}
 				type="button"
 				disabled={pending}
 				onclick={() => answer(false)}
-				class="flex min-h-20 items-center justify-center gap-2 rounded-[1.5rem] bg-kid-surface px-4 text-2xl font-bold shadow-sm disabled:opacity-60 {KID_FOCUS}"
+				class="k-btn k-btn--lg k-btn--quiet"
 			>
-				<span aria-hidden="true">🤫</span> Keep it just for me
+				<span class="k-btn__icon" aria-hidden="true">🤫</span> Keep it just for me
 			</button>
 			<button
 				type="button"
 				disabled={pending}
 				onclick={() => answer(true)}
-				class="flex min-h-20 items-center justify-center gap-2 rounded-[1.5rem] bg-primary px-4 text-2xl font-bold text-primary-foreground shadow-sm disabled:opacity-60 {KID_FOCUS}"
+				class="k-btn k-btn--lg k-peach"
 			>
-				<span aria-hidden="true">💌</span> Yes, tell them
+				<span class="k-btn__icon" aria-hidden="true">💌</span> Yes, tell them
 			</button>
 		</div>
 	</Dialog.Content>

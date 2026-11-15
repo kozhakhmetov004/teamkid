@@ -6,9 +6,9 @@
 	 */
 	import { enhance } from '$app/forms';
 	import Pebble from '#lib/components/kids/Pebble.svelte';
-	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
 	import { HELP_OPTIONS, helpOption } from '#lib/safety/help.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
+	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
 	import type { PageProps } from './$types';
 
 	let { form }: PageProps = $props();
@@ -24,30 +24,23 @@
 
 <svelte:head><title>I need a grown-up · TeamKid</title></svelte:head>
 
-<div class="flex flex-col gap-6" style="font-family: {KID_FONT}">
-	<a
-		href="/pebble"
-		class="inline-flex min-h-14 items-center gap-2 self-start rounded-2xl px-4 text-xl font-semibold text-primary {KID_FOCUS}"
-	>
-		<span aria-hidden="true">←</span> Back to Pebble
-	</a>
+<div class="k-rose flex flex-col gap-6">
+	<KidBack label="Back to Pebble" />
 
-	<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-10">
-		<section
-			aria-label="Pebble"
-			class="flex flex-col gap-6 rounded-[2.5rem] bg-gradient-to-b from-kid-surface to-secondary p-6 shadow-sm lg:p-8"
+	<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-10">
+		<KidStage
+			speech={option?.reply ??
+				'I’m here with you. Tap what’s happening, and I’ll help you get a grown-up.'}
+			label="Pebble"
+			petWidth="22rem"
+			sticky={false}
 		>
-			<PebbleSay
-				text={option?.reply ??
-					'I’m here with you. Tap what’s happening, and I’ll help you get a grown-up.'}
-			/>
-			<div class="mx-auto w-full max-w-[22rem] px-4">
-				<Pebble state="idle" />
-			</div>
-		</section>
+			<Pebble state="idle" />
+		</KidStage>
 
 		<section aria-labelledby="help-title" class="flex flex-col gap-5">
-			<h1 id="help-title" class="text-4xl font-bold lg:text-5xl">I need a grown-up</h1>
+			<span class="k-eyebrow self-start"><span aria-hidden="true">🧡</span> You are not alone</span>
+			<h1 id="help-title" class="k-display">I need a grown-up</h1>
 
 			{#if !option}
 				<form
@@ -69,9 +62,12 @@
 							type="submit"
 							name="need"
 							value={o.key}
-							class="flex min-h-20 items-center gap-4 rounded-3xl bg-kid-surface px-6 text-left text-2xl font-semibold shadow-sm {KID_FOCUS}"
+							class="k-choice min-h-24 !flex-row !justify-start gap-4 px-5 text-left text-2xl"
 						>
-							<span class="text-4xl" aria-hidden="true">{o.emoji}</span>
+							<span
+								class="grid size-14 shrink-0 place-items-center rounded-2xl bg-[var(--a-soft)] text-4xl"
+								aria-hidden="true">{o.emoji}</span
+							>
 							{o.label}
 						</button>
 					{/each}
@@ -79,26 +75,24 @@
 			{:else}
 				<div class="flex flex-col gap-4 text-2xl" aria-live="assertive">
 					{#if option.level === 'crisis'}
-						<p class="rounded-3xl bg-kid-surface p-5 shadow-sm">
+						<p class="k-card border-[var(--a-edge)] p-5 font-bold">
 							<span aria-hidden="true">📞</span> Call or text <strong>988</strong> any time.
 							<br /><span aria-hidden="true">🚑</span> In danger right now? Call
 							<strong>911</strong>.
 						</p>
 					{/if}
 					{#if failed}
-						<p class="rounded-3xl bg-destructive/10 p-5 text-destructive" role="alert">
+						<p class="k-note bg-destructive/10 text-destructive" role="alert">
 							{form?.message}
 						</p>
 					{:else if sent || (form && 'ok' in form)}
-						<p class="rounded-3xl bg-kid-surface p-5 shadow-sm">
-							<span aria-hidden="true">💌</span> I let your grown-ups know you asked for help.
+						<p class="k-note k-mint">
+							<span class="k-note__icon" aria-hidden="true">💌</span> I let your grown-ups know you asked
+							for help.
 						</p>
 					{/if}
-					<a
-						href="/tuck-in"
-						class="inline-flex min-h-16 items-center gap-3 self-start rounded-2xl bg-primary px-6 text-xl font-bold text-primary-foreground {KID_FOCUS}"
-					>
-						<span aria-hidden="true">🐢</span> Breathe with Pebble
+					<a href="/tuck-in" class="k-btn k-btn--lg k-lilac self-start">
+						<span class="k-btn__icon" aria-hidden="true">🐢</span> Breathe with Pebble
 					</a>
 				</div>
 			{/if}

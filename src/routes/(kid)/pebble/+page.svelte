@@ -2,7 +2,6 @@
 	import CustomizePebble from '#lib/components/kids/CustomizePebble.svelte';
 	import DailyProgress from '#lib/components/kids/DailyProgress.svelte';
 	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
-	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
 	import ShellRewards from '#lib/components/kids/ShellRewards.svelte';
 	import {
 		customizeThanks,
@@ -13,7 +12,8 @@
 	} from '#lib/kids/pebbleLines.js';
 	import { SHELL_PATTERNS, shellColorByKey } from '#lib/kids/pet.js';
 	import { rememberTimeZone } from '#lib/kids/tz.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
+	import KidTile from '#lib/components/kids/ui/KidTile.svelte';
 	import { onMount } from 'svelte';
 	import type { PageProps } from './$types';
 
@@ -64,95 +64,87 @@
 
 <svelte:head><title>{data.pet.name} · TeamKid</title></svelte:head>
 
-<div
-	class="grid items-start gap-8 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-10"
-	style="font-family: {KID_FONT}"
->
+<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-10">
 	<!-- Pebble's scene -->
-	<section
-		aria-label="{data.pet.name} the turtle"
-		class="flex flex-col gap-6 rounded-[2.5rem] bg-gradient-to-b from-kid-surface to-secondary p-6 shadow-sm lg:sticky lg:top-6 lg:p-8"
-	>
-		<PebbleSay text={speech} />
-		<div class="mx-auto w-full max-w-[26rem] px-2">
-			<Pebble state={mood} name={data.pet.name} {color} pattern={data.pet.pattern} />
-		</div>
-		<div class="flex flex-wrap items-center justify-center gap-3">
-			<CustomizePebble
-				name={data.pet.name}
-				colorKey={data.pet.colorKey}
-				pattern={data.pet.pattern}
-				onsaved={(name) => react(customizeThanks(name), 'happy')}
-			/>
-			<a
-				href="/tonight"
-				class="flex min-h-16 items-center gap-2 rounded-2xl bg-kid-surface px-5 text-xl shadow-sm {KID_FOCUS}"
-			>
-				<span aria-hidden="true">🌙</span>
-				{#if data.tonight}Tonight: <strong>{data.tonight}</strong>{:else}Where am I tonight?{/if}
-			</a>
-		</div>
-	</section>
+	<KidStage {speech} label="{data.pet.name} the turtle" petWidth="26rem">
+		<Pebble state={mood} name={data.pet.name} {color} pattern={data.pet.pattern} />
+		{#snippet below()}
+			<div class="flex flex-wrap items-center justify-center gap-3">
+				<CustomizePebble
+					name={data.pet.name}
+					colorKey={data.pet.colorKey}
+					pattern={data.pet.pattern}
+					onsaved={(name) => react(customizeThanks(name), 'happy')}
+				/>
+				<a href="/tonight" class="k-btn k-lilac">
+					<span class="k-btn__icon" aria-hidden="true">🌙</span>
+					{#if data.tonight}<span>Tonight: <strong class="font-black">{data.tonight}</strong></span
+						>{:else}Where am I tonight?{/if}
+				</a>
+			</div>
+		{/snippet}
+	</KidStage>
 
 	<!-- Today's activities -->
-	<section aria-labelledby="today-title" class="flex flex-col gap-6">
-		<header>
-			<p class="text-xl text-muted-foreground">Happy {data.today}!</p>
-			<h1 id="today-title" class="text-4xl font-bold lg:text-5xl">
-				Hi {data.firstName}! What should we do?
+	<section aria-labelledby="today-title" class="flex flex-col gap-7">
+		<header class="k-rise flex flex-col items-start gap-3">
+			<span class="k-eyebrow k-sun"><span aria-hidden="true">☀️</span> Happy {data.today}!</span>
+			<h1 id="today-title" class="k-display">
+				Hi {data.firstName}!
+				<span class="block text-[0.62em] font-extrabold text-muted-foreground"
+					>What should we do?</span
+				>
 			</h1>
 		</header>
 
-		<DailyProgress checkedInToday={data.checkedInToday} wishedToday={data.wishedToday} />
+		<div class="k-rise flex flex-col gap-4" style:animation-delay="60ms">
+			<h2 class="flex items-center gap-2 text-xl font-black tracking-tight text-muted-foreground">
+				<span aria-hidden="true">📍</span> Today
+				<span class="font-extrabold"
+					>· {(data.checkedInToday ? 1 : 0) + (data.wishedToday ? 1 : 0)} of 2 done</span
+				>
+			</h2>
+			<DailyProgress checkedInToday={data.checkedInToday} wishedToday={data.wishedToday} />
+		</div>
 
-		<ShellRewards
-			owned={data.pet.patterns}
-			canClaim={data.canClaim}
-			claimedToday={data.claimedToday}
-			allUnlocked={data.allUnlocked}
-			onclaimed={onClaimed}
-		/>
+		<div class="k-rise" style:animation-delay="120ms">
+			<ShellRewards
+				owned={data.pet.patterns}
+				canClaim={data.canClaim}
+				claimedToday={data.claimedToday}
+				allUnlocked={data.allUnlocked}
+				onclaimed={onClaimed}
+			/>
+		</div>
 
-		<a
-			href="/pond"
-			class="flex min-h-24 items-center gap-4 rounded-3xl bg-gradient-to-r from-sky-100 to-emerald-100 px-6 text-2xl font-bold shadow-sm dark:from-sky-950 dark:to-emerald-950 {KID_FOCUS}"
-		>
-			<span class="text-5xl" aria-hidden="true">🪷</span>
-			<span
-				>Play Pond Pairs
-				<span class="block text-lg font-normal text-muted-foreground"
-					>{data.pondFriends === 0
-						? 'Match cards and meet your first pond friend!'
-						: `You've met ${data.pondFriends} of 12 pond friends. Who's next?`}</span
-				></span
-			>
-		</a>
+		<div class="k-rise flex flex-col gap-4" style:animation-delay="180ms">
+			<h2 class="flex items-center gap-2 text-xl font-black tracking-tight text-muted-foreground">
+				<span aria-hidden="true">🎈</span> Play and relax
+			</h2>
+			<KidTile
+				href="/pond"
+				accent="sky"
+				icon="🪷"
+				title="Play Pond Pairs"
+				hint={data.pondFriends === 0
+					? 'Match cards and meet your first pond friend!'
+					: `You've met ${data.pondFriends} of 12 pond friends. Who's next?`}
+				badge="{data.pondFriends}/12"
+				feature
+			/>
+			<KidTile
+				href="/tuck-in"
+				accent="lilac"
+				icon="🐢"
+				title="Tuck in with {data.pet.name}"
+				hint="Big feelings? Take three turtle breaths."
+			/>
+		</div>
 
-		<a
-			href="/tuck-in"
-			class="flex min-h-20 items-center gap-4 rounded-3xl bg-kid-surface px-6 text-2xl font-semibold shadow-sm {KID_FOCUS}"
-		>
-			<span class="text-4xl" aria-hidden="true">🐢</span>
-			<span
-				>Tuck in with {data.pet.name}
-				<span class="block text-lg font-normal text-muted-foreground"
-					>Big feelings? Take three turtle breaths.</span
-				></span
-			>
-		</a>
-
-		<a
-			href="/help"
-			class="inline-flex min-h-16 items-center gap-3 self-start rounded-2xl bg-kid-surface px-5 text-xl font-semibold shadow-sm {KID_FOCUS}"
-		>
-			<span aria-hidden="true">🆘</span> I need a grown-up
-		</a>
-
-		<a
-			href="/my-sharing"
-			class="inline-flex min-h-16 items-center gap-3 self-start rounded-2xl px-5 text-xl font-semibold text-primary underline-offset-4 hover:underline {KID_FOCUS}"
-		>
-			<span aria-hidden="true">👀</span> What do Mom and Dad see?
-		</a>
+		<div class="k-rise flex flex-wrap gap-3" style:animation-delay="240ms">
+			<a href="/my-sharing" class="k-btn k-btn--quiet">
+				<span class="k-btn__icon" aria-hidden="true">👀</span> What do Mom and Dad see?
+			</a>
+		</div>
 	</section>
 </div>
