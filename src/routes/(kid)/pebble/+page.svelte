@@ -114,6 +114,21 @@
 		/>
 
 		<a
+			href="/pond"
+			class="flex min-h-24 items-center gap-4 rounded-3xl bg-gradient-to-r from-sky-100 to-emerald-100 px-6 text-2xl font-bold shadow-sm dark:from-sky-950 dark:to-emerald-950 {KID_FOCUS}"
+		>
+			<span class="text-5xl" aria-hidden="true">🪷</span>
+			<span
+				>Play Pond Pairs
+				<span class="block text-lg font-normal text-muted-foreground"
+					>{data.pondFriends === 0
+						? 'Match cards and meet your first pond friend!'
+						: `You've met ${data.pondFriends} of 12 pond friends. Who's next?`}</span
+				></span
+			>
+		</a>
+
+		<a
 			href="/tuck-in"
 			class="flex min-h-20 items-center gap-4 rounded-3xl bg-kid-surface px-6 text-2xl font-semibold shadow-sm {KID_FOCUS}"
 		>

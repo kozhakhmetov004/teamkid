@@ -781,6 +781,7 @@ export type Database = {
 					created_at: string;
 					mood_shown: string;
 					name: string;
+					pond: NonNullable<Json>;
 					shell_patterns: NonNullable<Json>;
 					updated_at: string;
 				};
@@ -791,6 +792,7 @@ export type Database = {
 					created_at?: string;
 					mood_shown?: string;
 					name?: string;
+					pond?: NonNullable<Json>;
 					shell_patterns?: NonNullable<Json>;
 					updated_at?: string;
 				};
@@ -800,6 +802,7 @@ export type Database = {
 					created_at?: string;
 					mood_shown?: string;
 					name?: string;
+					pond?: NonNullable<Json>;
 					shell_patterns?: NonNullable<Json>;
 					updated_at?: string;
 				};
