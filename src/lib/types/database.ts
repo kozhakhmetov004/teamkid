@@ -328,6 +328,7 @@ export type Database = {
 					id: string;
 					kind: string;
 					notes: string | null;
+					pending_swap_id: string | null;
 					place: string | null;
 					source: string;
 					starts_at: string;
@@ -344,6 +345,7 @@ export type Database = {
 					id?: string;
 					kind?: string;
 					notes?: string | null;
+					pending_swap_id?: string | null;
 					place?: string | null;
 					source?: string;
 					starts_at: string;
@@ -359,6 +361,7 @@ export type Database = {
 					id?: string;
 					kind?: string;
 					notes?: string | null;
+					pending_swap_id?: string | null;
 					place?: string | null;
 					source?: string;
 					starts_at?: string;
@@ -384,6 +387,13 @@ export type Database = {
 						columns: ['family_id'];
 						isOneToOne: false;
 						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'events_pending_swap_id_fkey';
+						columns: ['pending_swap_id'];
+						isOneToOne: false;
+						referencedRelation: 'swap_requests';
 						referencedColumns: ['id'];
 					}
 				];
@@ -875,6 +885,55 @@ export type Database = {
 					}
 				];
 			};
+			planner_ideas: {
+				Row: {
+					created_at: string;
+					ends_at: string;
+					family_id: string;
+					id: string;
+					member_id: string;
+					place: string | null;
+					starts_at: string;
+					title: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					created_at?: string;
+					ends_at: string;
+					family_id: string;
+					id?: string;
+					member_id: string;
+					place?: string | null;
+					starts_at: string;
+					title: string;
+				};
+				Update: {
+					created_at?: string;
+					ends_at?: string;
+					family_id?: string;
+					id?: string;
+					member_id?: string;
+					place?: string | null;
+					starts_at?: string;
+					title?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'planner_ideas_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'planner_ideas_member_id_fkey';
+						columns: ['member_id'];
+						isOneToOne: false;
+						referencedRelation: 'members';
+						referencedColumns: ['id'];
+					}
+				];
+			};
 			safety_alerts: {
 				Row: {
 					category: string | null;
@@ -1164,6 +1223,7 @@ export type Database = {
 					card_kind: string | null;
 					child_id: string;
 					created_at: string;
+					day: string | null;
 					emoji: string | null;
 					family_id: string;
 					id: string;
@@ -1171,6 +1231,7 @@ export type Database = {
 					is_custom: boolean;
 					option_key: string | null;
 					prompt: string | null;
+					question_id: string | null;
 					shared_at: string | null;
 					shared_with_parents: boolean;
 					tags: string[];
@@ -1181,6 +1242,7 @@ export type Database = {
 					card_kind?: string | null;
 					child_id: string;
 					created_at?: string;
+					day?: string | null;
 					emoji?: string | null;
 					family_id: string;
 					id?: string;
@@ -1188,6 +1250,7 @@ export type Database = {
 					is_custom?: boolean;
 					option_key?: string | null;
 					prompt?: string | null;
+					question_id?: string | null;
 					shared_at?: string | null;
 					shared_with_parents?: boolean;
 					tags?: string[];
@@ -1197,6 +1260,7 @@ export type Database = {
 					card_kind?: string | null;
 					child_id?: string;
 					created_at?: string;
+					day?: string | null;
 					emoji?: string | null;
 					family_id?: string;
 					id?: string;
@@ -1204,6 +1268,7 @@ export type Database = {
 					is_custom?: boolean;
 					option_key?: string | null;
 					prompt?: string | null;
+					question_id?: string | null;
 					shared_at?: string | null;
 					shared_with_parents?: boolean;
 					tags?: string[];
@@ -1223,48 +1288,104 @@ export type Database = {
 						isOneToOne: false;
 						referencedRelation: 'families';
 						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'wish_cards_question_id_fkey';
+						columns: ['question_id'];
+						isOneToOne: false;
+						referencedRelation: 'wish_questions';
+						referencedColumns: ['id'];
 					}
 				];
 			};
-			wish_decks: {
+			wish_questions: {
 				Row: {
-					cards: NonNullable<Json>;
 					child_id: string;
 					created_at: string;
+					day: string;
 					family_id: string;
 					id: string;
+					kind: string;
+					max_picks: number;
+					options: NonNullable<Json>;
+					prompt: string;
+					slot: number;
 					source: string;
-					week_start: string;
 				};
 				ComputedFields: never;
 				Insert: {
-					cards: NonNullable<Json>;
 					child_id: string;
 					created_at?: string;
+					day: string;
 					family_id: string;
 					id?: string;
+					kind: string;
+					max_picks?: number;
+					options: NonNullable<Json>;
+					prompt: string;
+					slot: number;
 					source: string;
-					week_start: string;
 				};
 				Update: {
-					cards?: NonNullable<Json>;
 					child_id?: string;
 					created_at?: string;
+					day?: string;
 					family_id?: string;
 					id?: string;
+					kind?: string;
+					max_picks?: number;
+					options?: NonNullable<Json>;
+					prompt?: string;
+					slot?: number;
 					source?: string;
-					week_start?: string;
 				};
 				Relationships: [
 					{
-						foreignKeyName: 'wish_decks_child_id_fkey';
+						foreignKeyName: 'wish_questions_child_id_fkey';
 						columns: ['child_id'];
 						isOneToOne: false;
 						referencedRelation: 'children';
 						referencedColumns: ['id'];
 					},
 					{
-						foreignKeyName: 'wish_decks_family_id_fkey';
+						foreignKeyName: 'wish_questions_family_id_fkey';
+						columns: ['family_id'];
+						isOneToOne: false;
+						referencedRelation: 'families';
+						referencedColumns: ['id'];
+					}
+				];
+			};
+			wish_refresh: {
+				Row: {
+					child_id: string;
+					family_id: string;
+					handled_at: string | null;
+					requested_at: string;
+				};
+				ComputedFields: never;
+				Insert: {
+					child_id: string;
+					family_id: string;
+					handled_at?: string | null;
+					requested_at?: string;
+				};
+				Update: {
+					child_id?: string;
+					family_id?: string;
+					handled_at?: string | null;
+					requested_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'wish_refresh_child_id_fkey';
+						columns: ['child_id'];
+						isOneToOne: true;
+						referencedRelation: 'children';
+						referencedColumns: ['id'];
+					},
+					{
+						foreignKeyName: 'wish_refresh_family_id_fkey';
 						columns: ['family_id'];
 						isOneToOne: false;
 						referencedRelation: 'families';
@@ -1411,6 +1532,7 @@ export type Database = {
 				};
 				Returns: string;
 			};
+			request_wish_refresh_for_family: { Args: { fid: string }; Returns: undefined };
 			respond_to_expense: {
 				Args: { p_action: string; p_expense_id: string; p_note?: string };
 				Returns: {

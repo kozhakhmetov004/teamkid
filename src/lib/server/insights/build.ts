@@ -2,10 +2,10 @@
  * Weekly insight builder (owner: Member 2). SERVER ONLY. Rule-based, no LLM.
  *
  * Contract:
- * - Call ONLY from a kid form action, AFTER requireChild(event) has confirmed the
- *   signed-in child IS `childId`. Never pass a childId that came from the client.
- * - `reader` is the child's own session (event.locals.supabase): all reads go
- *   through RLS as that child. Only the weekly_insights upsert uses the service
+ * - Call from a kid form action AFTER requireChild(event) (reader = the child's
+ *   session, reads go through RLS), or from a parent action AFTER checking the
+ *   child is in that parent's family (reader = service role; e.g. profile edits).
+ *   Never pass a childId that came from the client unchecked. Only the weekly_insights upsert uses the service
  *   role (users have no insert/update policy on it by design).
  * - Weeks are UTC, Monday start; one row per (child_id, week_start).
  * - Never logs or stores raw choices: the row holds template text + theme keys,
@@ -59,14 +59,20 @@ export async function rebuildWeeklyInsight(
 		kind: w.card_kind
 	}));
 	const trendLabel = TREND_DISPLAY[insight.moodTrend].label;
-	const key = inputsKey([trendLabel, items.map((i) => [i.label, i.tags]).sort()]);
-	const { data: prev } = await supabaseAdmin()
-		.from('weekly_insights')
-		.select('ai_line, ai_line_key')
-		.eq('child_id', childId)
-		.eq('week_start', week)
-		.maybeSingle();
-	const aiLine = prev?.ai_line_key === key ? prev.ai_line : await weekLine(trendLabel, items);
+	const [{ data: prev }, { data: profile }] = await Promise.all([
+		supabaseAdmin()
+			.from('weekly_insights')
+			.select('ai_line, ai_line_key')
+			.eq('child_id', childId)
+			.eq('week_start', week)
+			.maybeSingle(),
+		// Parent-noted interests (parents-only table; read with the service role).
+		supabaseAdmin().from('child_profiles').select('interests').eq('child_id', childId).maybeSingle()
+	]);
+	const noted = profile?.interests ?? [];
+	const key = inputsKey([trendLabel, items.map((i) => [i.label, i.tags]).sort(), noted]);
+	const aiLine =
+		prev?.ai_line_key === key ? prev.ai_line : await weekLine(trendLabel, items, noted);
 
 	const { error } = await supabaseAdmin().from('weekly_insights').upsert(
 		{

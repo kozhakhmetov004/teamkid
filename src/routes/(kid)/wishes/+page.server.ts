@@ -1,15 +1,17 @@
 import { z } from 'zod';
 import { safeTimeZone } from '#lib/custody/today.js';
-import { CARD_KINDS, IDEA_MAX, type WeeklyDeck } from '#lib/kids/weeklyDeck.js';
-import { isoDate, utcWeekStart } from '#lib/kids/time.js';
+import {
+	CARD_KINDS,
+	IDEA_MAX,
+	MAX_PICKS,
+	type CardKind,
+	type DeckOption
+} from '#lib/kids/weeklyDeck.js';
+import { isoDate, utcDayStart, utcWeekStart } from '#lib/kids/time.js';
 import { logAudit } from '#lib/server/audit.js';
 import { requireChild } from '#lib/server/guards.js';
-import {
-	checkIdea,
-	getWeeklyDeck,
-	loadWeekendFacts,
-	weekendLine
-} from '#lib/server/insights/wishDeck.js';
+import { getTodayCards } from '#lib/server/insights/dailyCards.js';
+import { checkIdea, loadWeekendFacts, weekendLine } from '#lib/server/insights/wishDeck.js';
 import { rebuildQuietly, setCardShared } from '#lib/server/insights/sharing.js';
 import { raiseSafetyAlert } from '#lib/server/safety.js';
 import { formFailure } from '#lib/server/validation.js';
@@ -17,7 +19,8 @@ import { loadPet } from '../pet.server.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export interface MyAnswer {
-	kind: string;
+	/** wish_questions.id */
+	card: string;
 	key: string;
 	label: string;
 	emoji: string;
@@ -30,48 +33,52 @@ export const load: PageServerLoad = async (event) => {
 	const sb = event.locals.supabase;
 	const tz = safeTimeZone(event.cookies.get('tz'));
 	const now = new Date();
-	const week = isoDate(utcWeekStart(now));
 
 	const facts = await loadWeekendFacts(member.family_id, childId, tz, now);
 	const [pet, answers] = await Promise.all([
 		loadPet(sb, childId),
 		sb
 			.from('wish_cards')
-			.select('card_kind, option_key, interest, emoji, is_custom, shared_with_parents')
+			.select('question_id, option_key, interest, emoji, is_custom, shared_with_parents')
 			.eq('child_id', childId)
-			.eq('week_start', week)
+			.eq('day', isoDate(utcDayStart(now)))
 			.order('created_at')
 	]);
 	return {
 		firstName: member.display_name,
 		pet,
 		weekendLine: weekendLine(facts),
-		answers: (answers.data ?? []).map((r): MyAnswer => ({
-			kind: r.card_kind ?? '',
-			key: r.option_key ?? '',
-			label: r.interest,
-			emoji: r.emoji ?? '⭐',
-			custom: r.is_custom,
-			shared: r.shared_with_parents
-		})),
-		// Streamed: the first open of the week may wait a few seconds for the AI.
-		deck: getWeeklyDeck(sb, { childId, familyId: member.family_id }, facts, now, tz)
+		answers: (answers.data ?? []).flatMap((r): MyAnswer[] =>
+			r.question_id
+				? [
+						{
+							card: r.question_id,
+							key: r.option_key ?? '',
+							label: r.interest,
+							emoji: r.emoji ?? '⭐',
+							custom: r.is_custom,
+							shared: r.shared_with_parents
+						}
+					]
+				: []
+		),
+		// Streamed: the first open of the day (or a refresh) may wait for the AI.
+		deck: getTodayCards(sb, { childId, familyId: member.family_id }, facts, now).then((cards) => ({
+			cards
+		}))
 	};
 };
 
 const AnswerSchema = z.object({
-	card: z.enum(CARD_KINDS),
+	card: z.uuid(),
 	options: z.array(z.string().min(1).max(60)).max(10),
 	keepOwn: z.array(z.string().min(1).max(60)).max(5),
 	other: z.string().max(IDEA_MAX * 2)
 });
-const ShareSchema = z.object({ card: z.enum(CARD_KINDS) });
-
-const isDeck = (v: unknown): v is WeeklyDeck =>
-	!!v && typeof v === 'object' && Array.isArray((v as WeeklyDeck).cards);
+const ShareSchema = z.object({ card: z.uuid() });
 
 export const actions: Actions = {
-	/** Save (or change) this week's answers to one card. Private until the child shares. */
+	/** Save (or change) today's answers to one card. Private until the child shares. */
 	answer: async (event) => {
 		const { childId, member } = await requireChild(event);
 		const fd = await event.request.formData();
@@ -85,27 +92,31 @@ export const actions: Actions = {
 		const v = parsed.data;
 
 		const sb = event.locals.supabase;
-		const week = isoDate(utcWeekStart(new Date()));
-		const [deckRow, existing] = await Promise.all([
+		const now = new Date();
+		const day = isoDate(utcDayStart(now));
+		const [question, existing] = await Promise.all([
 			sb
-				.from('wish_decks')
-				.select('cards')
+				.from('wish_questions')
+				.select('id, kind, prompt, max_picks, options, day')
+				.eq('id', v.card)
 				.eq('child_id', childId)
-				.eq('week_start', week)
 				.maybeSingle(),
 			sb
 				.from('wish_cards')
 				.select('id, option_key, interest, emoji, tags, is_custom, shared_with_parents')
 				.eq('child_id', childId)
-				.eq('week_start', week)
-				.eq('card_kind', v.card)
+				.eq('question_id', v.card)
 		]);
-		const card = isDeck(deckRow.data?.cards)
-			? deckRow.data.cards.cards.find((c) => c.kind === v.card)
-			: undefined;
-		if (!card) return formFailure('answer', 'That card is not in this week’s deck.', 400);
+		const q = question.data;
+		// Answers can change only until the day ends.
+		if (!q || q.day !== day) return formFailure('answer', 'That card is from another day.', 400);
+		const kind = (
+			(CARD_KINDS as readonly string[]).includes(q.kind) ? q.kind : 'everyday'
+		) as CardKind;
+		const options = (Array.isArray(q.options) ? q.options : []) as unknown as DeckOption[];
+		const max = q.max_picks || MAX_PICKS[kind];
 
-		const rows = card.options
+		const rows = options
 			.filter((o) => v.options.includes(o.key))
 			.map((o) => ({
 				key: o.key,
@@ -128,7 +139,7 @@ export const actions: Actions = {
 
 		const other = v.other.trim();
 		if (other) {
-			const idea = await checkIdea(other, v.card);
+			const idea = await checkIdea(other, kind);
 			if (idea.status === 'big_feeling') {
 				if (idea.level === 'crisis') {
 					try {
@@ -145,33 +156,34 @@ export const actions: Actions = {
 				}
 				return { form: 'answer', status: 'big_feeling' as const, reply: idea.reply };
 			}
-			if (idea.status === 'retry')
+			if (idea.status === 'retry') {
 				return { form: 'answer', status: 'retry' as const, reply: idea.reply };
+			}
 			rows.push({ ...idea.option, custom: true });
 		}
 
 		if (!rows.length) return formFailure('answer', 'Pick one, or type your own idea!', 400);
-		if (rows.length > card.max) {
-			return formFailure('answer', `You can pick up to ${card.max}. Take one away?`, 400);
-		}
+		if (rows.length > max)
+			return formFailure('answer', `You can pick up to ${max}. Take one away?`, 400);
 
-		// Replace this card's answers for the week (the child may change them until Sunday).
+		// Replace this card's answers (allowed until the day ends).
 		const del = await sb
 			.from('wish_cards')
 			.delete()
 			.eq('child_id', childId)
-			.eq('week_start', week)
-			.eq('card_kind', v.card);
+			.eq('question_id', v.card);
 		if (del.error)
 			return formFailure('answer', 'Oops, Pebble could not save that. Try again?', 500);
 		const ins = await sb.from('wish_cards').insert(
 			rows.map((r) => ({
 				child_id: childId,
 				family_id: member.family_id, // re-derived from child_id by the DB trigger
-				week_start: week,
-				card_kind: v.card,
+				question_id: v.card,
+				day,
+				week_start: isoDate(utcWeekStart(now)),
+				card_kind: kind,
 				option_key: r.key,
-				prompt: card.prompt,
+				prompt: q.prompt,
 				interest: r.label,
 				emoji: r.emoji,
 				tags: r.tags,
@@ -213,8 +225,7 @@ export const actions: Actions = {
 		const result = await setCardShared(
 			event.locals.supabase,
 			{ childId, member },
-			parsed.data.card,
-			isoDate(utcWeekStart(new Date()))
+			parsed.data.card
 		);
 		if (result === 'not_found') return formFailure('share', 'Nothing to share yet.', 404);
 		if (result === 'error') return formFailure('share', 'Oops, try again?', 500);

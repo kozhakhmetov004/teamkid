@@ -26,7 +26,10 @@
 	);
 	const weekend = $derived(data.sharedWishes.filter((w) => w.kind === 'activity' && w.thisWeek));
 	const gifts = $derived(data.sharedWishes.filter((w) => w.kind === 'gift' && w.thisWeek));
-	const nothingShared = $derived(!into.length && !weekend.length && !gifts.length);
+	const aboutMe = $derived(data.sharedWishes.filter((w) => w.kind === 'everyday' && w.thisWeek));
+	const nothingShared = $derived(
+		!into.length && !weekend.length && !gifts.length && !aboutMe.length
+	);
 </script>
 
 {#snippet chip(w: SharedWish)}
@@ -105,6 +108,15 @@
 			<h3 class="text-sm font-semibold">Present ideas</h3>
 			<ul class="flex flex-wrap gap-2">
 				{#each gifts as w (w.id)}{@render chip(w)}{/each}
+			</ul>
+		</section>
+	{/if}
+
+	{#if aboutMe.length}
+		<section aria-label="Also shared this week" class="space-y-2">
+			<h3 class="text-sm font-semibold">Also shared this week</h3>
+			<ul class="flex flex-wrap gap-2">
+				{#each aboutMe as w (w.id)}{@render chip(w)}{/each}
 			</ul>
 		</section>
 	{/if}

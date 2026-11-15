@@ -51,12 +51,17 @@ async function oneLine(system: string, prompt: string, label: string): Promise<s
 }
 
 /** "Leaning toward outdoor things this week." */
-export async function weekLine(trendLabel: string, items: SharedItem[]): Promise<string | null> {
+export async function weekLine(
+	trendLabel: string,
+	items: SharedItem[],
+	parentNoted: string[] = []
+): Promise<string | null> {
 	const fallback = leaningLine(items);
-	if (!items.length) return null;
+	if (!items.length && !parentNoted.length) return null;
 	const prompt = [
 		`Mood this week (summary only): ${trendLabel}.`,
-		`What {child} chose to share: ${items.map((i) => `"${i.label}" [${i.tags.join(', ')}]`).join('; ')}.`,
+		`What {child} chose to share: ${items.map((i) => `"${i.label}" [${i.tags.join(', ')}]`).join('; ') || 'nothing yet'}.`,
+		`Interests the parents noted (weigh less than the child's own picks): ${parentNoted.join(', ') || 'none'}.`,
 		'Write one line like "Leaning toward outdoor things this week." Do not mention the child.'
 	].join('\n');
 	const line = await oneLine(

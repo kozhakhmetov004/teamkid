@@ -6,6 +6,8 @@ export interface CalEvent {
 	place: string | null;
 	notes: string | null;
 	childId: string | null;
+	/** Planner activity waiting for a swap request to be accepted. */
+	pendingSwap?: boolean;
 	/** "4:00 PM" */
 	time: string;
 	/** local 'YYYY-MM-DD' / 'HH:MM' for the edit form */
