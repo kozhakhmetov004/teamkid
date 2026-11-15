@@ -1,7 +1,8 @@
 <script lang="ts">
 	import CustomizePebble from '#lib/components/kids/CustomizePebble.svelte';
 	import DailyProgress from '#lib/components/kids/DailyProgress.svelte';
-	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import type { PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import ShellRewards from '#lib/components/kids/ShellRewards.svelte';
 	import {
 		customizeThanks,
@@ -10,7 +11,7 @@
 		rewardLine,
 		WISH_LINES
 	} from '#lib/kids/pebbleLines.js';
-	import { SHELL_PATTERNS, shellColorByKey } from '#lib/kids/pet.js';
+	import { SHELL_PATTERNS } from '#lib/kids/pet.js';
 	import { rememberTimeZone } from '#lib/kids/tz.js';
 	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
 	import KidTile from '#lib/components/kids/ui/KidTile.svelte';
@@ -53,7 +54,6 @@
 			})
 	);
 	const mood = $derived(reaction?.mood ?? baseMood);
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 
 	function onClaimed() {
 		const newest = data.pet.patterns.at(-1)?.key;
@@ -67,13 +67,12 @@
 <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-10">
 	<!-- Pebble's scene -->
 	<KidStage {speech} label="{data.pet.name} the turtle" petWidth="26rem">
-		<Pebble state={mood} name={data.pet.name} {color} pattern={data.pet.pattern} />
+		<KidPebble state={mood} name={data.pet.name} color={data.pet.colorKey} hint="Spin me around!" />
 		{#snippet below()}
 			<div class="flex flex-wrap items-center justify-center gap-3">
 				<CustomizePebble
 					name={data.pet.name}
 					colorKey={data.pet.colorKey}
-					pattern={data.pet.pattern}
 					onsaved={(name) => react(customizeThanks(name), 'happy')}
 				/>
 				<a href="/tonight" class="k-btn k-lilac">

@@ -5,8 +5,8 @@
 	 */
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
-	import { shellColorByKey } from '#lib/kids/pet.js';
+	import type { PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import {
 		DAILY_GAMES,
 		friendByKey,
@@ -45,7 +45,6 @@
 	let error = $state<string | null>(null);
 	let showFact = $state<FriendKey | null>(null);
 
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 	const info = $derived(levelInfo(level)!);
 	const owned = $derived(new Set(data.friends.map((f) => f.key)));
 
@@ -165,7 +164,7 @@
 			label="{data.pet.name} and the pond friends"
 			petWidth="16rem"
 		>
-			<Pebble state={mood} name={data.pet.name} {color} />
+			<KidPebble state={mood} name={data.pet.name} color={data.pet.colorKey} />
 			{#snippet below()}
 				<div class="rounded-[1.75rem] bg-[oklch(1_0_0/0.7)] p-4 backdrop-blur-sm">
 					<h2 class="mb-3 flex items-center justify-between text-xl font-black">

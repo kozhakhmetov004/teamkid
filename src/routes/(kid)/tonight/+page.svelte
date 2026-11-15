@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Pebble from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import PackingHelper from '#lib/components/kids/PackingHelper.svelte';
 	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
 	import { rememberTimeZone } from '#lib/kids/tz.js';
@@ -35,7 +35,7 @@
 
 	<section class="k-stage k-rise md:!grid md:grid-cols-[15rem_1fr] md:items-center lg:gap-10">
 		<div class="k-stage__pet w-52 md:w-full">
-			<div><Pebble state="idle" /></div>
+			<div><KidPebble name={data.pet.name} color={data.pet.colorKey} /></div>
 		</div>
 		<div class="relative z-10 flex flex-col gap-5">
 			<span class="k-eyebrow self-start"><span aria-hidden="true">🌙</span> Sleep plan</span>

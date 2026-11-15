@@ -2,7 +2,8 @@
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import ChoiceGrid from '#lib/components/kids/ChoiceGrid.svelte';
-	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import type { PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import ShareAsk from '#lib/components/kids/ShareAsk.svelte';
 	import {
 		BIG_FEELINGS,
@@ -12,7 +13,6 @@
 		type EnergyValue
 	} from '#lib/kids/moods.js';
 	import { CHECKIN_PROMPTS, HARD_DAYS_LINES, moodReply } from '#lib/kids/pebbleLines.js';
-	import { shellColorByKey } from '#lib/kids/pet.js';
 	import Celebrate from '#lib/components/kids/ui/Celebrate.svelte';
 	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
 	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
@@ -52,7 +52,6 @@
 	const pebbleState = $derived<PebbleState>(
 		step === 'done' ? (mood && BIG_FEELINGS.includes(mood) ? 'idle' : 'happy') : 'idle'
 	);
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 	const picked = $derived(CHECKIN_MOODS.find((m) => m.value === mood) ?? null);
 	const pickedEnergy = $derived(ENERGY_LEVELS.find((l) => l.value === energy) ?? null);
 	// Exactly what the parents will see: the feeling and the energy, nothing else.
@@ -101,7 +100,7 @@
 
 <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-10">
 	<KidStage {speech} label="{data.pet.name} the turtle">
-		<Pebble state={pebbleState} name={data.pet.name} {color} pattern={data.pet.pattern} />
+		<KidPebble state={pebbleState} name={data.pet.name} color={data.pet.colorKey} />
 	</KidStage>
 
 	<section class="k-mint relative flex flex-col gap-6">
@@ -245,8 +244,7 @@
 		question="Want me to tell Mom and Dad {tellText}?"
 		icon={picked.icon}
 		petName={data.pet.name}
-		{color}
-		pattern={data.pet.pattern}
+		color={data.pet.colorKey}
 		{pending}
 		onanswer={answerShare}
 	/>

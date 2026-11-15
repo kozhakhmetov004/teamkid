@@ -3,6 +3,7 @@ import { safeTimeZone } from '#lib/custody/today.js';
 import { pickupToday, plansByDay, sleepsUntil, switchDays } from '#lib/kids/kidCalendar.js';
 import { buildNights, localIsoDate, nextSwitch } from '#lib/kids/nights.js';
 import { packingList } from '#lib/kids/packing.js';
+import { loadPet } from '../pet.server.js';
 import type { PageServerLoad } from './$types';
 
 const DAY_MS = 86_400_000;
@@ -14,17 +15,18 @@ const DAY_MS = 86_400_000;
  * events the parents hid (e.g. a surprise).
  */
 export const load: PageServerLoad = async (event) => {
-	await requireChild(event);
+	const { childId } = await requireChild(event);
 	const sb = event.locals.supabase;
 	const tz = safeTimeZone(event.cookies.get('tz'));
 	const now = new Date();
 
-	const [calendar, exchange] = await Promise.all([
+	const [calendar, exchange, pet] = await Promise.all([
 		sb.rpc('kid_calendar', {
 			p_from: new Date(now.getTime() - 2 * DAY_MS).toISOString(),
 			p_to: new Date(now.getTime() + 9 * DAY_MS).toISOString()
 		}),
-		sb.rpc('kid_exchange_place')
+		sb.rpc('kid_exchange_place'),
+		loadPet(sb, childId)
 	]);
 	if (calendar.error) console.error('kid calendar failed', calendar.error.code);
 
@@ -64,6 +66,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	return {
+		pet: { name: pet.name, colorKey: pet.colorKey },
 		nights: nights.map((n) => ({
 			...n,
 			plans: plans.get(n.date) ?? [],

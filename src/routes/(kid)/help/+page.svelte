@@ -5,7 +5,7 @@
 	 * and both parents get an alert with the category only.
 	 */
 	import { enhance } from '$app/forms';
-	import Pebble from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import { HELP_OPTIONS, helpOption } from '#lib/safety/help.js';
 	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
 	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
@@ -35,7 +35,7 @@
 			petWidth="22rem"
 			sticky={false}
 		>
-			<Pebble state="idle" />
+			<KidPebble />
 		</KidStage>
 
 		<section aria-labelledby="help-title" class="flex flex-col gap-5">

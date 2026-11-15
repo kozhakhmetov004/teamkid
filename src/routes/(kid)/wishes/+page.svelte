@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import type { PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import DailyCards from '#lib/components/kids/DailyCards.svelte';
 	import { DECK_LINES } from '#lib/kids/pebbleLines.js';
-	import { shellColorByKey } from '#lib/kids/pet.js';
 	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
 	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
 	import type { PageProps } from './$types';
@@ -11,7 +11,6 @@
 
 	let speech = $state<string>(DECK_LINES.loading);
 	let mood = $state<PebbleState>('idle');
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 
 	function say(text: string, next: PebbleState = 'idle') {
 		speech = text;
@@ -23,7 +22,7 @@
 
 <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)] lg:gap-10">
 	<KidStage {speech} label="{data.pet.name} the turtle" petWidth="22rem">
-		<Pebble state={mood} name={data.pet.name} {color} pattern={data.pet.pattern} />
+		<KidPebble state={mood} name={data.pet.name} color={data.pet.colorKey} />
 	</KidStage>
 
 	<section class="k-sun relative flex flex-col gap-6">
@@ -48,8 +47,7 @@
 				answers={data.answers}
 				weekendLine={data.weekendLine}
 				petName={data.pet.name}
-				{color}
-				pattern={data.pet.pattern}
+				color={data.pet.colorKey}
 				onsay={say}
 			/>
 		{:catch}

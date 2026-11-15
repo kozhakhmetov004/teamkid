@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import InsightView from '#lib/components/insights/InsightView.svelte';
-	import Pebble from '#lib/components/kids/Pebble.svelte';
-	import { shellColorByKey } from '#lib/kids/pet.js';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
 	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
 	import type { PageProps } from './$types';
@@ -11,7 +10,6 @@
 	let pendingId = $state<string | null>(null);
 	let said = $state<string | null>(null);
 
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 	const speech = $derived(
 		said ?? 'This is what Mom and Dad see. You can stop sharing a wish any time.'
 	);
@@ -21,7 +19,7 @@
 
 <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)] lg:gap-10">
 	<KidStage {speech} label="{data.pet.name} the turtle" petWidth="20rem">
-		<Pebble state="idle" name={data.pet.name} {color} pattern={data.pet.pattern} />
+		<KidPebble name={data.pet.name} color={data.pet.colorKey} />
 	</KidStage>
 
 	<section class="k-sky flex flex-col gap-6">

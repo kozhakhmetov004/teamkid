@@ -4,7 +4,7 @@
 	 * 3 slow breaths → come out. Runs entirely in the browser; nothing is saved
 	 * or sent (no tracking of how a child feels here).
 	 */
-	import Pebble from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import {
 		BREATHS,
 		breathAt,
@@ -20,6 +20,9 @@
 	import StepDots from '#lib/components/kids/ui/StepDots.svelte';
 	import { goto } from '$app/navigation';
 	import { onDestroy } from 'svelte';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
 
 	let stepIndex = $state(0);
 	let feeling = $state<TuckFeeling | null>(null);
@@ -98,7 +101,7 @@
 					></div>
 				{/if}
 				<div class="relative w-full px-6">
-					<Pebble state={pebbleState} />
+					<KidPebble state={pebbleState} name={data.pet.name} color={data.pet.colorKey} />
 				</div>
 			</div>
 		</KidStage>

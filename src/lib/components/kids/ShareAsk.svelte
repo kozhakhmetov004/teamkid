@@ -5,9 +5,9 @@
 	 * button gets focus first. No pressure either way.
 	 */
 	import * as Dialog from '#lib/components/ui/dialog/index.js';
-	import Pebble from './Pebble.svelte';
+	import KidPebble from './ui/KidPebble.svelte';
 	import { wishAsk } from '#lib/kids/pebbleLines.js';
-	import type { ShellColor, ShellPatternKey } from '#lib/kids/pet.js';
+	import type { ShellColorKey } from '#lib/kids/pet.js';
 	import { KID_FONT } from '#lib/kids/ui.js';
 
 	let {
@@ -16,8 +16,7 @@
 		question,
 		icon,
 		petName,
-		color,
-		pattern,
+		color = null,
 		pending = false,
 		onanswer
 	}: {
@@ -28,8 +27,8 @@
 		question?: string;
 		icon: string;
 		petName: string;
-		color: ShellColor;
-		pattern: ShellPatternKey | null;
+		/** The child's shell colour. */
+		color?: ShellColorKey | null;
 		pending?: boolean;
 		onanswer: (share: boolean) => void;
 	} = $props();
@@ -64,8 +63,8 @@
 		}}
 	>
 		<div class="grid items-center gap-6 sm:grid-cols-[10rem_1fr]">
-			<div class="k-float mx-auto w-40">
-				<Pebble state="happy" name={petName} {color} {pattern} />
+			<div class="mx-auto w-40">
+				<KidPebble state="happy" name={petName} {color} follow={false} />
 			</div>
 			<div class="grid gap-3">
 				<Dialog.Title class="text-3xl leading-snug font-black tracking-tight">

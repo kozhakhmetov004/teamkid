@@ -7,10 +7,10 @@
 	import { onMount, tick } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { cardShareAsk, DECK_LINES, WISH_LINES } from '#lib/kids/pebbleLines.js';
-	import type { ShellColor, ShellPatternKey } from '#lib/kids/pet.js';
 	import Celebrate from './ui/Celebrate.svelte';
 	import StepDots from './ui/StepDots.svelte';
 	import { IDEA_MAX, type DeckCard } from '#lib/kids/weeklyDeck.js';
+	import type { ShellColorKey } from '#lib/kids/pet.js';
 	import type { PebbleState } from './Pebble.svelte';
 	import ShareAsk from './ShareAsk.svelte';
 
@@ -30,15 +30,13 @@
 		weekendLine,
 		petName,
 		color,
-		pattern,
 		onsay
 	}: {
 		deck: { cards: DeckCard[] };
 		answers: Answer[];
 		weekendLine: string | null;
 		petName: string;
-		color: ShellColor;
-		pattern: ShellPatternKey | null;
+		color: ShellColorKey;
 		onsay: (text: string, mood?: PebbleState) => void;
 	} = $props();
 
@@ -364,7 +362,6 @@
 	icon={mine[0]?.emoji ?? '⭐'}
 	{petName}
 	{color}
-	{pattern}
 	{pending}
 	{onanswer}
 />

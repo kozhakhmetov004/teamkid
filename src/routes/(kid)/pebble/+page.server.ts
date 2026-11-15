@@ -1,10 +1,14 @@
 import { z } from 'zod';
+import { HELP_OPTIONS } from '#lib/safety/help.js';
 import { requireChild } from '#lib/server/guards.js';
+import { classifySafety, raiseSafetyAlert } from '#lib/server/safety.js';
 import { formFailure, parseForm } from '#lib/server/validation.js';
 import {
 	canClaimPattern,
+	checkPetName,
 	currentPattern,
 	nextLockedPattern,
+	PET_NAME_RETRY,
 	PET_NAMES,
 	petLookFrom,
 	SHELL_COLOR_KEYS,
@@ -125,16 +129,53 @@ export const load: PageServerLoad = async (event) => {
 };
 
 const CustomizeSchema = z.object({
-	name: z.enum(PET_NAMES),
+	// a preset, or the child's own name (checked in the action)
+	name: z.string().max(60),
 	color: z.enum(SHELL_COLOR_KEYS)
 });
 
 export const actions: Actions = {
-	/** Change Pebble's name/shell colour (preset values only). */
+	/**
+	 * Change Pebble's name and shell colour. A typed name gets the same treatment as
+	 * a typed wish idea: safety check first (big feelings → Pebble's calm reply, help
+	 * link and, for a crisis, an alert to both parents; the name is not saved), then
+	 * checkPetName(). The raw text is never logged.
+	 */
 	customize: async (event) => {
-		const { childId } = await requireChild(event);
+		const { childId, member } = await requireChild(event);
 		const parsed = await parseForm(event.request, CustomizeSchema, 'customize');
 		if (!parsed.ok) return parsed.failure;
+
+		let name = parsed.data.name;
+		if (!(PET_NAMES as readonly string[]).includes(name)) {
+			const safety = classifySafety(name);
+			if (safety.level !== 'ok' && safety.category) {
+				if (safety.level === 'crisis') {
+					try {
+						await raiseSafetyAlert({
+							childId,
+							familyId: member.family_id,
+							childMemberId: member.member_id,
+							level: safety.level,
+							category: safety.category
+						});
+					} catch {
+						console.error('safety alert from pet name failed');
+					}
+				}
+				const help = HELP_OPTIONS.find((o) => o.key === safety.category);
+				return {
+					form: 'customize',
+					status: 'big_feeling' as const,
+					reply:
+						help?.reply ??
+						'Thank you for telling me. That sounds really big. Please tell a grown-up you trust.'
+				};
+			}
+			const check = checkPetName(name);
+			if (!check.ok) return formFailure('customize', PET_NAME_RETRY[check.reason], 400);
+			name = check.name;
+		}
 
 		const sb = event.locals.supabase;
 		const { data: row } = await sb
@@ -151,14 +192,14 @@ export const actions: Actions = {
 		const { error } = await sb.from('pet_state').upsert(
 			{
 				child_id: childId,
-				name: parsed.data.name,
+				name,
 				colors,
 				updated_at: new Date().toISOString()
 			},
 			{ onConflict: 'child_id' }
 		);
 		if (error) return formFailure('customize', 'Could not save. Try again?', 500);
-		return { form: 'customize', ok: true, name: parsed.data.name };
+		return { form: 'customize', ok: true, name };
 	},
 
 	/** Unlock the next shell pattern. Eligibility is recomputed here, never trusted from the client. */
