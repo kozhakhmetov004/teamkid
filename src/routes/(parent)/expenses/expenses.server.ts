@@ -83,6 +83,28 @@ export async function loadBalanceRows(sb: Sb, familyId: string) {
 	return data ?? [];
 }
 
+/** Unmatched parts of partial "settle up" payments (lower the balance). */
+export async function loadCredits(sb: Sb, familyId: string) {
+	const { data } = await sb
+		.from('settlements')
+		.select('paid_by, credit_cents')
+		.eq('family_id', familyId)
+		.gt('credit_cents', 0);
+	return data ?? [];
+}
+
+/** Log any due months of active monthly costs (idempotent; RLS + function checks). */
+export async function generateRecurring(sb: Sb, familyId: string) {
+	await sb.rpc('generate_recurring_expenses', { p_family_id: familyId });
+}
+
+/** The family's agreed default split as MY payer percentage, or null. */
+export function myDefaultPct(shares: unknown, memberId: string): number | null {
+	if (!shares || typeof shares !== 'object' || Array.isArray(shares)) return null;
+	const v = (shares as Record<string, unknown>)[memberId];
+	return typeof v === 'number' && v >= 0 && v <= 100 ? v : null;
+}
+
 export async function loadSpendingRows(sb: Sb, familyId: string, fromMonth: string) {
 	const { data } = await sb
 		.from('v_spending_by_category')

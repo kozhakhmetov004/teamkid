@@ -11,6 +11,8 @@ export interface Split {
 }
 
 export const SPLIT_PRESETS = [
+	// The split both parents agreed on (family_finance); the server fills in my %.
+	{ value: 'family', label: 'Family split', payer: null },
 	{ value: '50', label: '50 / 50', payer: 50 },
 	{ value: '60', label: '60 / 40 (I pay 60%)', payer: 60 },
 	{ value: '70', label: '70 / 30 (I pay 70%)', payer: 70 },

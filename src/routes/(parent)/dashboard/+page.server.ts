@@ -9,7 +9,12 @@
 import { requireParent } from '#lib/server/guards.js';
 import { balanceText, computeBalance } from '#lib/expenses/balance.js';
 import { buildChartMonths } from '#lib/expenses/chart.js';
-import { loadBalanceRows, loadSpendingRows, shiftMonth } from '../expenses/expenses.server.js';
+import {
+	loadBalanceRows,
+	loadCredits,
+	loadSpendingRows,
+	shiftMonth
+} from '../expenses/expenses.server.js';
 import {
 	addDays,
 	buildBriefing,
@@ -56,7 +61,8 @@ export const load: PageServerLoad = async (event) => {
 		unread,
 		recent,
 		spending,
-		balanceRows
+		balanceRows,
+		credits
 	] = await Promise.all([
 		sb
 			.from('members')
@@ -111,7 +117,8 @@ export const load: PageServerLoad = async (event) => {
 			.limit(20),
 		// Shared spending (last 3 months) + balance input; identical for both parents.
 		loadSpendingRows(sb, familyId, shiftMonth(currentMonth, -2)),
-		loadBalanceRows(sb, familyId)
+		loadBalanceRows(sb, familyId),
+		loadCredits(sb, familyId)
 	]);
 
 	// ---- people -------------------------------------------------------------
@@ -214,7 +221,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// ---- slots: spending + balance (shared); insight and My time load themselves --
-	const balance = computeBalance(balanceRows, member.member_id);
+	const balance = computeBalance(balanceRows, member.member_id, credits);
 
 	return {
 		tz,
