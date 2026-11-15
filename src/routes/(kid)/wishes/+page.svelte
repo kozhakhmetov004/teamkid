@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
 	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
-	import WeeklyCards from '#lib/components/kids/WeeklyCards.svelte';
+	import DailyCards from '#lib/components/kids/DailyCards.svelte';
 	import { DECK_LINES } from '#lib/kids/pebbleLines.js';
 	import { shellColorByKey } from '#lib/kids/pet.js';
 	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
@@ -60,7 +60,7 @@
 				{DECK_LINES.loading}
 			</div>
 		{:then deck}
-			<WeeklyCards
+			<DailyCards
 				{deck}
 				answers={data.answers}
 				weekendLine={data.weekendLine}

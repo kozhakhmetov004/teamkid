@@ -39,7 +39,8 @@ import type { CalDay, SwapView } from '#lib/components/calendar/types.js';
 import { birthdayOn } from '#lib/kids/profile.js';
 import { loadPlanPanel } from '#lib/server/planPanel.js';
 import { SlotFields, slotProblem } from '#lib/server/plannerSlot.js';
-import { postScheduleNote } from './swap/swaps.server.js';
+import { decideAdd, pickGiveBack, swapNote } from '#lib/server/planSwap.js';
+import { checkNightOwnership, checkSwapDates, postScheduleNote } from './swap/swaps.server.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const SWAP_WINDOW_DAYS = 60;
@@ -65,7 +66,9 @@ export const load: PageServerLoad = async (event) => {
 	const [events, parents, children, swaps, schedule, profiles] = await Promise.all([
 		sb
 			.from('events')
-			.select('id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible')
+			.select(
+				'id, title, starts_at, ends_at, home, kind, place, notes, child_id, kid_visible, pending_swap_id'
+			)
 			.eq('family_id', member.family_id)
 			.gte('starts_at', from)
 			.lt('starts_at', to)
@@ -139,6 +142,7 @@ export const load: PageServerLoad = async (event) => {
 					place: e.place,
 					notes: e.notes,
 					childId: e.child_id,
+					pendingSwap: !!e.pending_swap_id,
 					kidVisible: e.kid_visible,
 					time: timeLabel(e.starts_at, tz),
 					date,
@@ -248,6 +252,10 @@ async function childOk(sb: App.Locals['supabase'], childId: string | null): Prom
 const AddPlanned = z.object({
 	title: z.string().trim().min(1).max(200),
 	place: z.string().trim().max(200).optional(),
+	/** "1" after the parent chose "Ask … to swap" on the other parent's day. */
+	swap: z.literal('1').optional(),
+	/** Re-adding an idea that came back from a declined swap. */
+	ideaId: z.uuid().optional(),
 	// Unchecked "Show to <child>" = a surprise, hidden from the child's calendar.
 	kidVisible: z
 		.literal('yes')
@@ -258,9 +266,12 @@ const AddPlanned = z.object({
 
 export const actions: Actions = {
 	/**
-	 * "Plan this weekend" → Add to calendar. The event goes on the home of the
-	 * parent who has the child at that time, and the other parent gets a note
-	 * in the "Schedule" thread.
+	 * "Plan this weekend" → Add to calendar.
+	 * - On my day: a normal event + a note for the co-parent ("Schedule" thread).
+	 * - On the other parent's day: first ask ("This is Dad's day. Ask to swap?");
+	 *   with swap=1 create a swap request (my nearest night offered back) and the
+	 *   event as "Pending swap" (DB trigger: accepted → normal event; declined →
+	 *   back to the planner as an idea; countered → follows the counter).
 	 */
 	add: async (event) => {
 		const { member } = await requireParent(event);
@@ -268,12 +279,13 @@ export const actions: Actions = {
 		if (!parsed.ok) return parsed.failure;
 		const v = parsed.data;
 		const tz = safeTimeZone(event.cookies.get('tz'));
-		const problem = slotProblem(v, localDate(new Date(), tz));
+		const today = localDate(new Date(), tz);
+		const problem = slotProblem(v, today);
 		if (problem) return formFailure('add', problem, 400, { to: problem });
 
 		const sb = event.locals.supabase;
 		const startsAt = zonedToUtc(v.date, v.from, tz);
-		const [child, custody, parents] = await Promise.all([
+		const [child, slotBlock, upcoming, parents] = await Promise.all([
 			sb
 				.from('children')
 				.select('id, first_name')
@@ -283,7 +295,7 @@ export const actions: Actions = {
 				.maybeSingle(),
 			sb
 				.from('events')
-				.select('home')
+				.select('home, starts_at')
 				.eq('family_id', member.family_id)
 				.eq('kind', 'custody')
 				.lte('starts_at', startsAt.toISOString())
@@ -291,14 +303,97 @@ export const actions: Actions = {
 				.limit(1)
 				.maybeSingle(),
 			sb
+				.from('events')
+				.select('home, starts_at, ends_at')
+				.eq('family_id', member.family_id)
+				.eq('kind', 'custody')
+				.gte('starts_at', zonedToUtc(today, '00:00', tz).toISOString())
+				.lt('starts_at', zonedToUtc(addDays(v.date, 15), '00:00', tz).toISOString()),
+			sb
 				.from('members')
 				.select('id, display_name, home')
 				.eq('family_id', member.family_id)
 				.eq('role', 'parent')
 		]);
-		const custodyHome =
-			custody.data?.home === 'A' || custody.data?.home === 'B' ? custody.data.home : null;
-		const home = custodyHome ?? (member.home === 'A' || member.home === 'B' ? member.home : null);
+		const myHome = member.home === 'A' || member.home === 'B' ? member.home : null;
+		const blockHome = slotBlock.data?.home ?? null;
+		const nights = nightsByDate(
+			(upcoming.data ?? [])
+				.filter((e) => e.home === 'A' || e.home === 'B')
+				.map((e) => ({ ...e, home: e.home as Home })),
+			tz
+		);
+		const decision = decideAdd({
+			myHome,
+			slotNight:
+				slotBlock.data && blockHome
+					? { date: localDate(slotBlock.data.starts_at, tz), home: blockHome }
+					: null,
+			nights,
+			today,
+			wantsSwap: v.swap === '1'
+		});
+		const other = (parents.data ?? []).find((p) => p.id !== member.member_id);
+		const otherName = other?.display_name ?? 'your co-parent';
+		const childName = child.data?.first_name ?? 'our child';
+
+		if (decision.kind === 'ask') {
+			const give = pickGiveBack(nights, myHome ?? '', decision.nightDate, today);
+			return {
+				form: 'add',
+				ok: false,
+				needsSwap: true,
+				otherName,
+				message: `This is ${otherName}'s day. Ask to swap?`,
+				giveBack: give ? shortDate(give) : null
+			};
+		}
+		if (decision.kind === 'no_night_to_give') {
+			return formFailure(
+				'add',
+				`This is ${otherName}'s day, and you have no night to offer back in the next two weeks. Pick another day.`,
+				400
+			);
+		}
+
+		let pendingSwapId: string | null = null;
+		if (decision.kind === 'swap') {
+			const dateError = checkSwapDates(decision.giveBack, decision.nightDate, today);
+			if (dateError) return formFailure('add', dateError, 400);
+			const ownership = await checkNightOwnership(
+				sb,
+				member.family_id,
+				tz,
+				member.home,
+				decision.giveBack,
+				decision.nightDate
+			);
+			if (ownership) return formFailure('add', ownership, 400);
+			const note = swapNote(childName, v.title, weekdayLong(v.date));
+			const { data: swap, error: swapError } = await sb
+				.from('swap_requests')
+				.insert({
+					family_id: member.family_id,
+					child_id: child.data?.id ?? null,
+					requested_by: member.member_id,
+					original_date: decision.giveBack,
+					proposed_date: decision.nightDate,
+					note,
+					status: 'pending'
+				})
+				.select('id')
+				.single();
+			if (swapError || !swap) return formFailure('add', 'Could not send the swap request.', 500);
+			pendingSwapId = swap.id;
+			await logAudit({
+				familyId: member.family_id,
+				actorMemberId: member.member_id,
+				action: 'swap.requested',
+				entity: 'swap_requests',
+				entityId: swap.id,
+				meta: { source: 'planner' }
+			});
+		}
 
 		const { data: created, error } = await sb
 			.from('events')
@@ -308,12 +403,14 @@ export const actions: Actions = {
 				title: v.title,
 				starts_at: startsAt.toISOString(),
 				ends_at: zonedToUtc(v.date, v.to, tz).toISOString(),
-				home,
+				// On my day: my home. Pending swap: it becomes my day once accepted.
+				home: myHome ?? (blockHome === 'A' || blockHome === 'B' ? blockHome : null),
 				kind: 'activity',
 				kid_visible: v.kidVisible,
 				source: 'planner',
 				place: v.place || null,
-				created_by: member.member_id
+				created_by: member.member_id,
+				pending_swap_id: pendingSwapId
 			})
 			.select('id')
 			.single();
@@ -325,24 +422,36 @@ export const actions: Actions = {
 			action: 'event.created',
 			entity: 'events',
 			entityId: created.id,
-			meta: { source: 'planner' }
+			meta: { source: 'planner', pending_swap: !!pendingSwapId }
 		});
+		if (v.ideaId) await sb.from('planner_ideas').delete().eq('id', v.ideaId);
 
 		// Let the co-parent know (immutable "Schedule" thread; best effort).
-		const hasOther = (parents.data ?? []).some((p) => p.id !== member.member_id);
-		if (hasOther) {
-			const withWhom = (parents.data ?? []).find((p) => p.home && p.home === home);
-			const childName = child.data?.first_name ?? 'our child';
+		if (other) {
 			const at = `${weekdayLong(v.date)} ${timeLabel(startsAt.toISOString(), tz)}`;
-			await postScheduleNote(
-				sb,
-				member.family_id,
-				member.member_id,
-				`Added “${v.title}” to the calendar for ${at}` +
-					(withWhom ? ` (${childName} is with ${withWhom.display_name} then).` : '.')
-			);
+			const body =
+				decision.kind === 'swap'
+					? `📅 ${swapNote(childName, v.title, at)} Swap request: I'd take the night of ${shortDate(decision.nightDate)} and give you ${shortDate(decision.giveBack)}. You can accept, decline or counter on the Calendar.`
+					: `Added “${v.title}” to the calendar for ${at}.`;
+			await postScheduleNote(sb, member.family_id, member.member_id, body);
 		}
-		return { form: 'add', ok: true, message: `Added to ${weekdayLong(v.date)}` };
+		return {
+			form: 'add',
+			ok: true,
+			message:
+				decision.kind === 'swap'
+					? `Swap request sent to ${otherName}. It shows as "Pending swap" until they answer.`
+					: `Added to ${weekdayLong(v.date)}`
+		};
+	},
+
+	/** Dismiss an idea that came back from a declined swap. */
+	dismissIdea: async (event) => {
+		await requireParent(event);
+		const parsed = await parseForm(event.request, z.object({ ideaId: z.uuid() }), 'idea');
+		if (!parsed.ok) return parsed.failure;
+		await event.locals.supabase.from('planner_ideas').delete().eq('id', parsed.data.ideaId);
+		return { form: 'idea', ok: true };
 	},
 
 	createEvent: async (event) => {

@@ -33,6 +33,14 @@ export async function loadPlanPanel(event: RequestEvent, member: Membership, tz:
 			])
 		: [null, { data: [] }, { data: null }];
 
+	// Activities that came back from a declined swap request (this parent's own).
+	const { data: ideas } = await sb
+		.from('planner_ideas')
+		.select('id, title, place, starts_at, ends_at')
+		.eq('member_id', member.member_id)
+		.order('created_at', { ascending: false })
+		.limit(5);
+
 	const rows = shared.data ?? [];
 	const picks: SharedItem[] = rows
 		.filter((r) => r.card_kind === 'activity' && r.week_start === week)
@@ -53,6 +61,14 @@ export async function loadPlanPanel(event: RequestEvent, member: Membership, tz:
 			hasWishes: ctx.wishes.length > 0,
 			weekends: ctx.weekends.map((w) => ({ saturday: w.saturday, withYou: w.windows.length > 0 })),
 			childTags,
+			returnedIdeas: (ideas ?? []).map((i) => ({
+				id: i.id,
+				title: i.title,
+				place: i.place,
+				date: localDate(i.starts_at, tz),
+				from: localTime(i.starts_at, tz),
+				to: localTime(i.ends_at, tz)
+			})),
 			weekend: facts
 				? {
 						saturday: facts.saturday,

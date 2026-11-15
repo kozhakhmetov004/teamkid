@@ -20,6 +20,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { matchesFor } from '#lib/kids/weekLines.js';
+	import ReturnedIdea from './ReturnedIdea.svelte';
 
 	interface Panel {
 		childName: string;
@@ -27,6 +28,14 @@
 		hasWishes: boolean;
 		weekends: { saturday: string; withYou: boolean }[];
 		childTags: string[];
+		returnedIdeas: {
+			id: string;
+			title: string;
+			place: string | null;
+			date: string;
+			from: string;
+			to: string;
+		}[];
 		weekend: {
 			saturday: string;
 			days: { date: string; with: string | null }[];
@@ -156,6 +165,17 @@
 				{/if}
 			</div>
 		</div>
+	{/if}
+
+	{#if panel.returnedIdeas.length}
+		<section aria-label="Back in your ideas" class="space-y-2">
+			<h3 class="text-sm font-semibold">Back in your ideas</h3>
+			<ul class="grid gap-3 md:grid-cols-2">
+				{#each panel.returnedIdeas as idea (idea.id)}
+					<ReturnedIdea {idea} />
+				{/each}
+			</ul>
+		</section>
 	{/if}
 
 	{#await nudge then n}

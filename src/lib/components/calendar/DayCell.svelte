@@ -58,7 +58,9 @@
 			>
 		{/if}
 		{#each day.events.slice(0, 2) as ev (ev.id)}
-			<span class="hidden truncate text-[11px] text-muted-foreground sm:block">{ev.title}</span>
+			<span class="hidden truncate text-[11px] text-muted-foreground sm:block"
+				>{ev.pendingSwap ? '⇄ ' : ''}{ev.title}</span
+			>
 		{/each}
 		{#if day.events.length > 2}<span class="hidden text-[11px] text-muted-foreground sm:block"
 				>+{day.events.length - 2} more</span
@@ -110,6 +112,11 @@
 								? ''
 								: ' · 🤫 Hidden from child'}</span
 						>
+						{#if ev.pendingSwap}
+							<span class="mt-0.5 inline-block rounded bg-pebble/40 px-1 font-medium"
+								>⇄ Pending swap</span
+							>
+						{/if}
 					</button>
 				</li>
 			{/each}

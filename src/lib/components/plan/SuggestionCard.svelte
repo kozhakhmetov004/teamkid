@@ -81,6 +81,26 @@
 	let adding = $state(false);
 	let added = $state(false);
 	let saveError = $state<string | null>(null);
+	/** Set when the day belongs to the other parent: offer a swap request instead. */
+	let swapAsk = $state<{ otherName: string; giveBack: string | null } | null>(null);
+	let wantsSwap = $state(false);
+	let swapSent = $state(false);
+	let dateInput: HTMLInputElement | null = $state(null);
+
+	// A new day/time means a new question.
+	$effect(() => {
+		void date;
+		void from;
+		swapAsk = null;
+		wantsSwap = false;
+	});
+
+	function pickAnotherDay() {
+		swapAsk = null;
+		wantsSwap = false;
+		dateInput?.focus();
+		dateInput?.showPicker?.();
+	}
 </script>
 
 <Card.Root class="flex h-full flex-col">
@@ -116,8 +136,15 @@
 			saveError = null;
 			return async ({ result }) => {
 				adding = false;
-				if (result.type === 'success') {
+				if (result.type === 'success' && result.data?.needsSwap) {
+					swapAsk = {
+						otherName: String(result.data.otherName ?? 'your co-parent'),
+						giveBack: typeof result.data.giveBack === 'string' ? result.data.giveBack : null
+					};
+				} else if (result.type === 'success') {
 					added = true;
+					swapSent = wantsSwap;
+					swapAsk = null;
 					toast.success(String(result.data?.message ?? 'Added to your calendar'));
 				} else if (result.type === 'failure') {
 					saveError = String(result.data?.message ?? 'Could not add it to the calendar.');
@@ -135,7 +162,14 @@
 				<div class="grid grid-cols-[1.4fr_1fr_1fr] gap-2">
 					<div class="space-y-1">
 						<Label for="{uid}-date" class="text-xs">Day</Label>
-						<Input id="{uid}-date" name="date" type="date" bind:value={date} required />
+						<Input
+							id="{uid}-date"
+							name="date"
+							type="date"
+							bind:value={date}
+							bind:ref={dateInput}
+							required
+						/>
 					</div>
 					<div class="space-y-1">
 						<Label for="{uid}-from" class="text-xs">Start</Label>
@@ -191,13 +225,46 @@
 				{/if}
 			</label>
 			{#if saveError}<p role="alert" class="text-xs text-destructive">{saveError}</p>{/if}
-			<Button
-				type="submit"
-				variant={added ? 'outline' : 'default'}
-				disabled={adding || added || !!problem}
-			>
-				{added ? '✓ Added to calendar' : adding ? 'Adding…' : 'Add to calendar'}
-			</Button>
+			{#if swapAsk && !added}
+				<div class="w-full space-y-2 rounded-md border border-pebble bg-pebble/20 p-3" role="alert">
+					<p class="font-medium">This is {swapAsk.otherName}'s day. Ask to swap?</p>
+					{#if swapAsk.giveBack}
+						<p class="text-xs text-muted-foreground">
+							You'd offer your night of {swapAsk.giveBack} in return. {swapAsk.otherName} can accept,
+							decline or counter.
+						</p>
+					{/if}
+					<div class="flex flex-wrap gap-2">
+						<Button
+							type="submit"
+							name="swap"
+							value="1"
+							size="sm"
+							disabled={adding}
+							onclick={() => (wantsSwap = true)}
+						>
+							{adding ? 'Sending…' : `Ask ${swapAsk.otherName} to swap`}
+						</Button>
+						<Button type="button" size="sm" variant="outline" onclick={pickAnotherDay}>
+							Pick another day
+						</Button>
+					</div>
+				</div>
+			{:else}
+				<Button
+					type="submit"
+					variant={added ? 'outline' : 'default'}
+					disabled={adding || added || !!problem}
+				>
+					{added
+						? swapSent
+							? '⇄ Swap requested'
+							: '✓ Added to calendar'
+						: adding
+							? 'Adding…'
+							: 'Add to calendar'}
+				</Button>
+			{/if}
 		</Card.Footer>
 	</form>
 </Card.Root>

@@ -114,16 +114,17 @@ export function cardShareAsk(kind: string, labels: readonly string[]): string {
 	const list = labels.join(', ');
 	if (kind === 'interest') return `Want me to tell Mom and Dad you’re into ${list}?`;
 	if (kind === 'gift') return `Want me to tell Mom and Dad you’d like ${list}?`;
+	if (kind === 'everyday') return `Want me to tell Mom and Dad you picked ${list}?`;
 	return `Want me to tell Mom and Dad you’d like to do ${list}?`;
 }
 
 /** Pebble during the weekly cards. */
 export const DECK_LINES = {
-	loading: 'Shuffling my cards for this week…',
-	start: 'Here are this week’s cards! Tap the ones you like.',
+	loading: 'Shuffling today’s cards…',
+	start: 'Here are today’s cards! Tap the ones you like.',
 	saved: 'Got it! Thanks for telling me.',
 	next: 'Here’s another card!',
-	end: 'You answered all of this week’s cards! You can change them until Sunday.'
+	end: 'That’s all my cards for today! You can change your answers until bedtime. New cards tomorrow!'
 } as const;
 
 /** Words Pebble must never use with a child (checked by tests). */

@@ -13,10 +13,15 @@
 import { BANNED_WORDS } from './pebbleLines.js';
 import { THEMES, WISH_DECK, isTheme, type Theme } from './wishDeck.js';
 
-export const CARD_KINDS = ['activity', 'interest', 'gift'] as const;
+export const CARD_KINDS = ['everyday', 'interest', 'activity', 'gift'] as const;
 export type CardKind = (typeof CARD_KINDS)[number];
 
-export const MAX_PICKS: Record<CardKind, number> = { activity: 3, interest: 6, gift: 3 };
+export const MAX_PICKS: Record<CardKind, number> = {
+	everyday: 3,
+	activity: 3,
+	interest: 6,
+	gift: 3
+};
 export const IDEA_MAX = 100;
 export const LABEL_MAX = 28;
 
@@ -28,6 +33,8 @@ export interface DeckOption {
 }
 
 export interface DeckCard {
+	/** wish_questions.id (daily cards). */
+	id?: string;
 	kind: CardKind;
 	prompt: string;
 	max: number;
@@ -39,6 +46,7 @@ export interface WeeklyDeck {
 }
 
 export const DEFAULT_PROMPTS: Record<CardKind, string> = {
+	everyday: 'What made you smile today?',
 	activity: 'What should we do this weekend?',
 	interest: 'What are you into right now?',
 	gift: 'What kind of present would you like?'
@@ -150,7 +158,7 @@ export function fallbackCard(kind: CardKind, planned: readonly string[] = []): D
 	let options: DeckOption[];
 	if (kind === 'activity') {
 		options = FIXED_ACTIVITIES.filter((o) => !overlapsPlanned(o.label, planned)).slice(0, 6);
-	} else if (kind === 'interest') {
+	} else if (kind === 'interest' || kind === 'everyday') {
 		options = (Object.keys(THEMES) as Theme[]).slice(0, 9).map((t) => ({
 			key: `into-${t}`,
 			label: THEMES[t][0].toUpperCase() + THEMES[t].slice(1),
@@ -185,6 +193,26 @@ export function cleanCard(
 	raw: RawCard | undefined,
 	planned: readonly string[]
 ): { card: DeckCard; fromAi: boolean } {
+	const options = cleanOptions(kind, raw, planned);
+	if (options.length < 3) return { card: fallbackCard(kind, planned), fromAi: false };
+	const prompt = raw?.prompt?.trim();
+	return {
+		card: {
+			kind,
+			prompt: prompt && prompt.length <= 60 && isKidSafe(prompt) ? prompt : DEFAULT_PROMPTS[kind],
+			max: MAX_PICKS[kind],
+			options
+		},
+		fromAi: true
+	};
+}
+
+/** Safe, short, unplanned (activities), distinct options; at most 8. */
+export function cleanOptions(
+	kind: CardKind,
+	raw: RawCard | undefined,
+	planned: readonly string[]
+): DeckOption[] {
 	const seen = new Set<string>();
 	const options: DeckOption[] = [];
 	for (const o of raw?.options ?? []) {
@@ -198,17 +226,7 @@ export function cleanCard(
 		options.push({ key, label, emoji, tags: o.tags.filter(isTheme).slice(0, 3) });
 		if (options.length === 8) break;
 	}
-	if (options.length < 3) return { card: fallbackCard(kind, planned), fromAi: false };
-	const prompt = raw?.prompt?.trim();
-	return {
-		card: {
-			kind,
-			prompt: prompt && prompt.length <= 60 && isKidSafe(prompt) ? prompt : DEFAULT_PROMPTS[kind],
-			max: MAX_PICKS[kind],
-			options
-		},
-		fromAi: true
-	};
+	return options;
 }
 
 // ---------------------------------------------------------------------------

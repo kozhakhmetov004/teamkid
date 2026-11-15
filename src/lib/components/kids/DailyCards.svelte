@@ -1,20 +1,21 @@
 <script lang="ts">
 	/**
-	 * This week's wish cards: one card at a time, multi-select picture chips,
+	 * Today's wish cards: one card at a time, multi-select picture chips,
 	 * "Other ✏️" for a typed idea (checked on the server), then Pebble asks if
-	 * Mom and Dad can see it (private by default). Answers can change all week.
+	 * Mom and Dad can see it (private by default). Answers can change until the day ends.
 	 */
 	import { onMount, tick } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { cardShareAsk, DECK_LINES, WISH_LINES } from '#lib/kids/pebbleLines.js';
 	import type { ShellColor, ShellPatternKey } from '#lib/kids/pet.js';
 	import { KID_FOCUS } from '#lib/kids/ui.js';
-	import { IDEA_MAX, type WeeklyDeck } from '#lib/kids/weeklyDeck.js';
+	import { IDEA_MAX, type DeckCard } from '#lib/kids/weeklyDeck.js';
 	import type { PebbleState } from './Pebble.svelte';
 	import ShareAsk from './ShareAsk.svelte';
 
 	interface Answer {
-		kind: string;
+		/** wish_questions.id */
+		card: string;
 		key: string;
 		label: string;
 		emoji: string;
@@ -31,7 +32,7 @@
 		pattern,
 		onsay
 	}: {
-		deck: WeeklyDeck;
+		deck: { cards: DeckCard[] };
 		answers: Answer[];
 		weekendLine: string | null;
 		petName: string;
@@ -56,14 +57,14 @@
 	let heading: HTMLHeadingElement | undefined = $state();
 
 	const card = $derived(deck.cards[index] ?? null);
-	const mine = $derived(card ? saved.filter((a) => a.kind === card.kind) : []);
+	const mine = $derived(card ? saved.filter((a) => a.card === card.id) : []);
 	const ownIdeas = $derived(mine.filter((a) => a.custom));
 	const count = $derived(picked.length + keepOwn.length + (other.trim() ? 1 : 0));
-	const answeredKinds = $derived(new Set(saved.map((a) => a.kind)));
+	const answeredKinds = $derived(new Set(saved.map((a) => a.card)));
 
 	function loadCard() {
 		const current = deck.cards[index];
-		const rows = current ? saved.filter((a) => a.kind === current.kind) : [];
+		const rows = current ? saved.filter((a) => a.card === current.id) : [];
 		picked = rows.filter((a) => !a.custom).map((a) => a.key);
 		keepOwn = rows.filter((a) => a.custom).map((a) => a.key);
 		other = '';
@@ -108,7 +109,7 @@
 			return;
 		}
 		const body = new FormData();
-		body.set('card', card.kind);
+		body.set('card', card.id ?? '');
 		for (const k of picked) body.append('options', k);
 		for (const k of keepOwn) body.append('keepOwn', k);
 		body.set('other', other.trim());
@@ -135,10 +136,10 @@
 				onsay(d.reply ?? '', 'idle');
 				return;
 			}
-			const kind = card.kind;
+			const id = card.id ?? '';
 			saved = [
-				...saved.filter((a) => a.kind !== kind),
-				...(d.saved ?? []).map((s) => ({ ...s, kind, shared: false }))
+				...saved.filter((a) => a.card !== id),
+				...(d.saved ?? []).map((s) => ({ ...s, card: id, shared: false }))
 			];
 			loadCard();
 			onsay(DECK_LINES.saved, 'happy');
@@ -161,15 +162,15 @@
 
 	async function onanswer(share: boolean) {
 		if (!card) return;
-		const kind = card.kind;
+		const id = card.id ?? '';
 		if (share) {
 			pending = true;
 			const body = new FormData();
-			body.set('card', kind);
+			body.set('card', id);
 			const result = await post('share', body);
 			pending = false;
 			if (result.type === 'success') {
-				saved = saved.map((a) => (a.kind === kind ? { ...a, shared: true } : a));
+				saved = saved.map((a) => (a.card === id ? { ...a, shared: true } : a));
 			} else {
 				error = 'Oops, that did not reach Mom and Dad. It stays just for you for now.';
 			}
@@ -195,9 +196,9 @@
 <!-- progress dots, with a text label too -->
 <div class="flex flex-wrap items-center gap-3">
 	<ol class="flex gap-2" aria-hidden="true">
-		{#each deck.cards as c, i (c.kind)}
+		{#each deck.cards as c, i (c.id ?? c.kind)}
 			<li
-				class="size-3.5 rounded-full {answeredKinds.has(c.kind)
+				class="size-3.5 rounded-full {answeredKinds.has(c.id ?? '')
 					? 'bg-primary'
 					: i === index
 						? 'bg-primary/60 ring-2 ring-primary'
@@ -326,7 +327,9 @@
 		<h1 bind:this={heading} tabindex="-1" class="text-4xl font-bold outline-none">
 			That was every card! 🎉
 		</h1>
-		<p class="text-xl text-muted-foreground">You can change your answers until Sunday.</p>
+		<p class="text-xl text-muted-foreground">
+			You can change your answers until the day ends. New cards tomorrow!
+		</p>
 		<div class="grid gap-4 sm:grid-cols-2">
 			<button
 				type="button"

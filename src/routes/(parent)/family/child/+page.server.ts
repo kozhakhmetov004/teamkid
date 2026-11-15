@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { birthdayProblem, parseList } from '#lib/kids/profile.js';
 import { logAudit } from '#lib/server/audit.js';
 import { requireParent } from '#lib/server/guards.js';
+import { rebuildWeeklyInsight } from '#lib/server/insights/build.js';
 import { supabaseAdmin } from '#lib/server/supabaseAdmin.js';
 import { formFailure, parseForm, zName } from '#lib/server/validation.js';
 import type { Actions, PageServerLoad } from './$types';
@@ -117,6 +118,14 @@ export const actions: Actions = {
 			entity: 'child_profiles',
 			entityId: child.id
 		});
+
+		// Refresh the "<child>'s week" AI line (it uses parent-noted interests).
+		// Today's unanswered wish cards refresh via the DB trigger on child_profiles.
+		try {
+			await rebuildWeeklyInsight(child.id, new Date(), supabaseAdmin());
+		} catch (err) {
+			console.error('insight rebuild failed', err instanceof Error ? err.message : 'unknown');
+		}
 		return { form: 'profile', ok: true };
 	}
 };

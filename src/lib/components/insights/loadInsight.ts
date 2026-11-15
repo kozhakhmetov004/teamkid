@@ -29,7 +29,7 @@ export interface SharedWish {
 	/** The preset label, or the cleaned label of the child's own typed idea (never raw text). */
 	interest: string;
 	emoji: string | null;
-	kind: 'activity' | 'interest' | 'gift' | null;
+	kind: 'everyday' | 'activity' | 'interest' | 'gift' | null;
 	custom: boolean;
 	tags: string[];
 	/** True for this week's cards (older preset wishes are false). */
@@ -60,7 +60,7 @@ export async function loadInsight(
 	}
 	const [insights, wishes, profile] = await Promise.all([
 		insightQuery.maybeSingle(),
-		wishQuery.order('shared_at', { ascending: false, nullsFirst: false }).limit(12),
+		wishQuery.order('shared_at', { ascending: false, nullsFirst: false }).limit(30),
 		opts.parent
 			? client.from('child_profiles').select('interests').eq('child_id', childId).maybeSingle()
 			: Promise.resolve({ data: null })
@@ -74,7 +74,10 @@ export async function loadInsight(
 			interest: w.interest,
 			emoji: w.emoji,
 			kind:
-				w.card_kind === 'activity' || w.card_kind === 'interest' || w.card_kind === 'gift'
+				w.card_kind === 'everyday' ||
+				w.card_kind === 'activity' ||
+				w.card_kind === 'interest' ||
+				w.card_kind === 'gift'
 					? w.card_kind
 					: null,
 			custom: w.is_custom,

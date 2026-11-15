@@ -65,6 +65,11 @@
 										? ''
 										: ' · 🤫 Hidden from child'}</span
 								>
+								{#if ev.pendingSwap}
+									<span class="mt-0.5 inline-block rounded bg-pebble/40 px-1 text-xs font-medium"
+										>⇄ Pending swap</span
+									>
+								{/if}
 							</button>
 						</li>
 					{/each}

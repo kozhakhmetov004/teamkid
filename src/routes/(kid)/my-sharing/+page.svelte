@@ -79,7 +79,9 @@
 											? 'Into right now'
 											: wish.kind === 'gift'
 												? 'Present idea'
-												: 'Wish'}{wish.custom ? ' · My own idea ✏️ (they see these words)' : ''}
+												: wish.kind === 'everyday'
+													? 'About me'
+													: 'Wish'}{wish.custom ? ' · My own idea ✏️ (they see these words)' : ''}
 								</span>
 							</span>
 							<form

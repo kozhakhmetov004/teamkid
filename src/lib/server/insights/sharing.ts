@@ -51,19 +51,17 @@ export async function rebuildQuietly(sb: SupabaseClient<Database>, childId: stri
 	}
 }
 
-/** Share every answer of one card (this week) with both parents. */
+/** Share every answer of one card (a wish_questions row) with both parents. */
 export async function setCardShared(
 	sb: SupabaseClient<Database>,
 	child: { childId: string; member: Membership; tz?: string },
-	kind: string,
-	weekStart: string
+	questionId: string
 ): Promise<ShareResult> {
 	const { data, error } = await sb
 		.from('wish_cards')
 		.update({ shared_with_parents: true, shared_at: new Date().toISOString() })
 		.eq('child_id', child.childId)
-		.eq('week_start', weekStart)
-		.eq('card_kind', kind)
+		.eq('question_id', questionId)
 		.select('id');
 	if (error) {
 		console.error('card share update failed', error.code);
