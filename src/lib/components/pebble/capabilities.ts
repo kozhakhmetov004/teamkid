@@ -1,11 +1,12 @@
 /**
- * When may we load the 3D turtle? Only in the browser, with a fine pointer
- * (mouse/trackpad), without reduced motion, and with WebGL available.
+ * When may we load the 3D turtle? Only in the browser, without reduced motion,
+ * with WebGL available, and with a fine pointer (mouse/trackpad) unless `touch`
+ * is set (the kids' pages: children mostly use tablets).
  * Everyone else keeps the SVG and never downloads three.js.
  */
-export function canUse3D(): boolean {
+export function canUse3D({ touch = false }: { touch?: boolean } = {}): boolean {
 	if (typeof window === 'undefined' || typeof document === 'undefined') return false;
-	if (!window.matchMedia?.('(pointer: fine)').matches) return false;
+	if (!touch && !window.matchMedia?.('(pointer: fine)').matches) return false;
 	if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
 	try {
 		const canvas = document.createElement('canvas');

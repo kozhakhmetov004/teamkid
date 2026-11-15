@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
 	canClaimPattern,
+	checkPetName,
 	currentPattern,
 	nextLockedPattern,
 	parsePatterns,
+	PET_NAME_MAX,
 	PET_NAMES,
 	petLookFrom,
 	SHELL_COLORS,
@@ -95,5 +97,35 @@ describe('shell rewards', () => {
 	it('unlocks patterns in deck order', () => {
 		expect(nextLockedPattern([])).toBe('dots');
 		expect(nextLockedPattern([{ key: 'dots', on: null }])).toBe('stars');
+	});
+});
+
+describe('checkPetName (a pet name the child types)', () => {
+	it('accepts a friendly name and capitalises each word', () => {
+		expect(checkPetName('  mister   shell ')).toEqual({ ok: true, name: 'Mister Shell' });
+		expect(checkPetName('Zoë')).toEqual({ ok: true, name: 'Zoë' });
+		expect(checkPetName("captain o'shell")).toEqual({ ok: true, name: "Captain O'shell" });
+		expect(checkPetName('sir-turtle')).toEqual({ ok: true, name: 'Sir-Turtle' });
+	});
+
+	it('blocks numbers, links and emails (no phone numbers or addresses)', () => {
+		for (const bad of ['Shelly 2', '555 1234', 'me@mail.com', 'www.site', 'Turtle!'])
+			expect(checkPetName(bad)).toEqual({ ok: false, reason: 'letters' });
+	});
+
+	it('keeps it short', () => {
+		expect(checkPetName('a'.repeat(PET_NAME_MAX + 1))).toEqual({ ok: false, reason: 'too_long' });
+		expect(checkPetName('Al Bo Cy Di')).toEqual({ ok: false, reason: 'words' });
+		expect(checkPetName('   ')).toEqual({ ok: false, reason: 'empty' });
+	});
+
+	it('blocks rude or unsafe words', () => {
+		expect(checkPetName('Stupid')).toEqual({ ok: false, reason: 'rude' });
+		expect(checkPetName('Knife')).toEqual({ ok: false, reason: 'rude' });
+	});
+
+	it('fits the database limit (1 to 30 characters)', () => {
+		const r = checkPetName('Abcdefghijklmnop');
+		expect(r.ok && r.name.length).toBeLessThanOrEqual(30);
 	});
 });

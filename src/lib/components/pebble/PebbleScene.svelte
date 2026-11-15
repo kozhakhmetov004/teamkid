@@ -7,6 +7,7 @@
 	import { Canvas } from '@threlte/core';
 	import { NoToneMapping, WebGLRenderer } from 'three';
 	import type { Mood } from './motion.js';
+	import type { ShellPalette } from './shell.js';
 	import TurtleModel from './TurtleModel.svelte';
 
 	let {
@@ -16,7 +17,8 @@
 		active,
 		onready,
 		oninteract,
-		onerror
+		onerror,
+		shell
 	}: {
 		mood: Mood;
 		follow: boolean;
@@ -25,6 +27,7 @@
 		onready: () => void;
 		oninteract: () => void;
 		onerror: () => void;
+		shell?: ShellPalette;
 	} = $props();
 
 	function createRenderer(canvas: HTMLCanvasElement) {
@@ -51,5 +54,5 @@
 	shadows={false}
 	{createRenderer}
 >
-	<TurtleModel {mood} {follow} {draggable} {active} {onready} {oninteract} />
+	<TurtleModel {mood} {follow} {draggable} {active} {onready} {oninteract} {shell} />
 </Canvas>

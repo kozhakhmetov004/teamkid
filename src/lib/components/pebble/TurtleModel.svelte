@@ -20,6 +20,7 @@
 		type Spin
 	} from './motion.js';
 	import { ARM_REST, buildTurtle } from './shapes.js';
+	import { DEFAULT_SHELL, type ShellPalette } from './shell.js';
 
 	let {
 		mood,
@@ -27,7 +28,8 @@
 		draggable,
 		active,
 		onready,
-		oninteract
+		oninteract,
+		shell = DEFAULT_SHELL
 	}: {
 		mood: Mood;
 		follow: boolean;
@@ -36,11 +38,20 @@
 		onready: () => void;
 		/** Called once the first time the visitor drags the turtle. */
 		oninteract: () => void;
+		/** Shell colours; changing them recolours the turtle in place. */
+		shell?: ShellPalette;
 	} = $props();
 
 	const { invalidate, dom } = useThrelte();
-	const turtle = buildTurtle();
+	// built with the first colours; the effect below keeps them in sync
+	// svelte-ignore state_referenced_locally
+	const turtle = buildTurtle(shell);
 	onDestroy(() => turtle.dispose());
+
+	$effect(() => {
+		turtle.setShell(shell);
+		invalidate();
+	});
 
 	// ---- cursor follow ---------------------------------------------------------------------
 	let target: Look = { x: 0, y: 0 };
@@ -79,7 +90,8 @@
 	$effect(() => {
 		if (!draggable) return;
 		dom.style.cursor = 'grab';
-		dom.style.touchAction = 'none';
+		// sideways swipes spin Pebble; up/down still scrolls the page on touch screens
+		dom.style.touchAction = 'pan-y';
 
 		const down = (e: PointerEvent) => {
 			if (e.button !== 0 && e.pointerType === 'mouse') return;

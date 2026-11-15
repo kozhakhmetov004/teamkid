@@ -46,15 +46,13 @@ import {
 	type Material
 } from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { DEFAULT_SHELL, type ShellPalette } from './shell.js';
 
 export const COLORS = {
 	skin: '#9fc873',
 	skinDark: '#8fbc63', // arms and legs, a touch darker than the body
 	spot: '#79a64e',
-	shellSeam: '#335f28', // grooves between plates
-	shellPlate: '#558f40',
-	shellPlateLight: '#6aa851', // plate centres catch more light
-	shellRim: '#8dbb63',
+	// shell colours: see ShellPalette / DEFAULT_SHELL in shell.ts (they can be changed live)
 	belly: '#f8e9c4',
 	bellyLine: '#d6bd86',
 	bandana: '#ff6b0f',
@@ -291,10 +289,12 @@ export interface Turtle {
 	shadow: Mesh;
 	/** Proud mood: a highlight sweeping round the shell plates (0..1), or -1 for none. */
 	setShine: (shine: number) => void;
+	/** Recolour the shell in place (kids' chosen shell colour). */
+	setShell: (palette: ShellPalette) => void;
 	dispose: () => void;
 }
 
-export function buildTurtle(): Turtle {
+export function buildTurtle(shellColors: ShellPalette = DEFAULT_SHELL): Turtle {
 	const ramp = toonRamp();
 	const geometries: BufferGeometry[] = [];
 	const materials: Material[] = [];
@@ -381,6 +381,12 @@ export function buildTurtle(): Turtle {
 
 	// ---- shell: sculpted dome with raised plates; seams, plates and lip drawn per pixel ---
 	const shine = { value: -1 };
+	const shellUniforms = {
+		seam: new Color(shellColors.seam),
+		plate: new Color(shellColors.plate),
+		plateLight: new Color(shellColors.plateLight),
+		rim: new Color(shellColors.rim)
+	};
 	const shellMat = patternToon(
 		'shell',
 		`#define SCUTE_COUNT ${SCUTES.length}
@@ -393,10 +399,10 @@ uniform float shine;`,
 		SHELL_GLSL,
 		{
 			scutes: { value: SCUTES },
-			seamC: { value: new Color(COLORS.shellSeam) },
-			plateC: { value: new Color(COLORS.shellPlate) },
-			plateLightC: { value: new Color(COLORS.shellPlateLight) },
-			lipC: { value: new Color(COLORS.shellRim) },
+			seamC: { value: shellUniforms.seam },
+			plateC: { value: shellUniforms.plate },
+			plateLightC: { value: shellUniforms.plateLight },
+			lipC: { value: shellUniforms.rim },
 			shine
 		}
 	);
@@ -405,6 +411,13 @@ uniform float shine;`,
 	body.add(shell);
 	const setShine = (value: number) => {
 		shine.value = value;
+	};
+	// the shader's uniforms hold these Color objects, so changing them recolours instantly
+	const setShell = (palette: ShellPalette) => {
+		shellUniforms.seam.set(palette.seam);
+		shellUniforms.plate.set(palette.plate);
+		shellUniforms.plateLight.set(palette.plateLight);
+		shellUniforms.rim.set(palette.rim);
 	};
 
 	// ---- torso and plastron ---------------------------------------------------------------
@@ -653,6 +666,7 @@ uniform float shine;`,
 		armR,
 		shadow,
 		setShine,
+		setShell,
 		dispose() {
 			geometries.forEach((g) => g.dispose());
 			materials.forEach((m) => m.dispose());

@@ -2,8 +2,8 @@
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import ChoiceGrid from '#lib/components/kids/ChoiceGrid.svelte';
-	import Pebble, { type PebbleState } from '#lib/components/kids/Pebble.svelte';
-	import PebbleSay from '#lib/components/kids/PebbleSay.svelte';
+	import type { PebbleState } from '#lib/components/kids/Pebble.svelte';
+	import KidPebble from '#lib/components/kids/ui/KidPebble.svelte';
 	import ShareAsk from '#lib/components/kids/ShareAsk.svelte';
 	import {
 		BIG_FEELINGS,
@@ -13,8 +13,10 @@
 		type EnergyValue
 	} from '#lib/kids/moods.js';
 	import { CHECKIN_PROMPTS, HARD_DAYS_LINES, moodReply } from '#lib/kids/pebbleLines.js';
-	import { shellColorByKey } from '#lib/kids/pet.js';
-	import { KID_FOCUS, KID_FONT } from '#lib/kids/ui.js';
+	import Celebrate from '#lib/components/kids/ui/Celebrate.svelte';
+	import KidBack from '#lib/components/kids/ui/KidBack.svelte';
+	import KidStage from '#lib/components/kids/ui/KidStage.svelte';
+	import StepDots from '#lib/components/kids/ui/StepDots.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -50,7 +52,6 @@
 	const pebbleState = $derived<PebbleState>(
 		step === 'done' ? (mood && BIG_FEELINGS.includes(mood) ? 'idle' : 'happy') : 'idle'
 	);
-	const color = $derived(shellColorByKey(data.pet.colorKey));
 	const picked = $derived(CHECKIN_MOODS.find((m) => m.value === mood) ?? null);
 	const pickedEnergy = $derived(ENERGY_LEVELS.find((l) => l.value === energy) ?? null);
 	// Exactly what the parents will see: the feeling and the energy, nothing else.
@@ -97,32 +98,16 @@
 
 <svelte:head><title>How do you feel? · TeamKid</title></svelte:head>
 
-<div
-	class="grid items-start gap-8 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-10"
-	style="font-family: {KID_FONT}"
->
-	<section
-		aria-label="{data.pet.name} the turtle"
-		class="flex flex-col gap-6 rounded-[2.5rem] bg-gradient-to-b from-kid-surface to-secondary p-6 shadow-sm lg:sticky lg:top-6 lg:p-8"
-	>
-		<PebbleSay text={speech} />
-		<div class="mx-auto w-full max-w-[24rem] px-2">
-			<Pebble state={pebbleState} name={data.pet.name} {color} pattern={data.pet.pattern} />
-		</div>
-	</section>
+<div class="grid items-start gap-8 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-10">
+	<KidStage {speech} label="{data.pet.name} the turtle">
+		<KidPebble state={pebbleState} name={data.pet.name} color={data.pet.colorKey} />
+	</KidStage>
 
-	<section class="flex flex-col gap-6">
-		<a
-			href="/pebble"
-			class="inline-flex min-h-12 items-center gap-2 self-start rounded-2xl px-3 text-xl font-semibold text-muted-foreground hover:text-foreground {KID_FOCUS}"
-		>
-			<span aria-hidden="true">←</span> Back to {data.pet.name}
-		</a>
+	<section class="k-mint relative flex flex-col gap-6">
+		<KidBack label="Back to {data.pet.name}" />
 
 		<!-- step dots: text label too, never colour alone -->
-		<p class="text-xl text-muted-foreground">
-			{#if step === 'mood'}Step 1 of 2{:else if step === 'energy'}Step 2 of 2{:else}All done!{/if}
-		</p>
+		<StepDots total={2} current={step === 'mood' ? 0 : step === 'energy' ? 1 : 2} />
 
 		<form
 			bind:this={formEl}
@@ -152,7 +137,7 @@
 			<input type="hidden" name="share" value={share} />
 
 			{#if step === 'mood'}
-				<h1 bind:this={heading} tabindex="-1" class="text-4xl font-bold outline-none lg:text-5xl">
+				<h1 bind:this={heading} tabindex="-1" class="k-display k-rise outline-none">
 					How do you feel?
 				</h1>
 				<ChoiceGrid
@@ -162,12 +147,13 @@
 					onpick={pickMood}
 				/>
 			{:else if step === 'energy'}
-				<h1 bind:this={heading} tabindex="-1" class="text-4xl font-bold outline-none lg:text-5xl">
+				<h1 bind:this={heading} tabindex="-1" class="k-display k-rise outline-none">
 					How much energy?
 				</h1>
 				<ChoiceGrid
 					choices={ENERGY_LEVELS}
 					label="How much energy?"
+					accent="sun"
 					picked={energy}
 					disabled={pending || askOpen}
 					onpick={pickEnergy}
@@ -176,15 +162,16 @@
 					type="button"
 					onclick={startOver}
 					disabled={pending}
-					class="inline-flex min-h-16 items-center gap-2 self-start rounded-2xl bg-kid-surface px-6 text-xl font-semibold shadow-sm disabled:opacity-60 {KID_FOCUS}"
+					class="k-btn k-btn--quiet self-start"
 				>
-					<span aria-hidden="true">↩</span> Change my feeling
+					<span class="k-btn__icon" aria-hidden="true">↩</span> Change my feeling
 				</button>
 			{:else}
-				<h1 bind:this={heading} tabindex="-1" class="text-4xl font-bold outline-none lg:text-5xl">
+				<Celebrate />
+				<h1 bind:this={heading} tabindex="-1" class="k-display k-rise outline-none">
 					Thanks for telling me!
 				</h1>
-				<p class="text-2xl">
+				<p class="k-note {shared ? 'k-peach' : 'k-sky'} k-rise text-xl">
 					{#if shared && picked}
 						<span aria-hidden="true">💌</span> I told Mom and Dad {tellText}. You can change it any
 						time with a new check-in.
@@ -194,29 +181,20 @@
 					{/if}
 				</p>
 				<div class="grid gap-4 sm:grid-cols-2">
-					<a
-						href="/pebble?done=checkin"
-						class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-primary px-6 text-2xl font-bold text-primary-foreground shadow-sm {KID_FOCUS}"
-					>
-						<span aria-hidden="true">🐢</span> Back to {data.pet.name}
+					<a href="/pebble?done=checkin" class="k-btn k-btn--lg k-mint">
+						<span class="k-btn__icon" aria-hidden="true">🐢</span> Back to {data.pet.name}
 					</a>
-					<a
-						href="/wishes"
-						class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-kid-surface px-6 text-2xl font-bold shadow-sm {KID_FOCUS}"
-					>
-						<span aria-hidden="true">⭐</span> Wish cards
+					<a href="/wishes" class="k-btn k-btn--lg k-sun">
+						<span class="k-btn__icon" aria-hidden="true">⭐</span> Wish cards
 					</a>
 				</div>
 			{/if}
 
 			{#if pending}
-				<p role="status" class="text-xl text-muted-foreground">Saving…</p>
+				<p role="status" class="text-xl font-bold text-muted-foreground">Saving…</p>
 			{/if}
 			{#if error}
-				<p
-					role="alert"
-					class="rounded-2xl bg-pebble/40 p-4 text-center text-xl text-pebble-foreground"
-				>
+				<p role="alert" class="k-note k-peach justify-center text-center">
 					{error}
 				</p>
 			{/if}
@@ -226,7 +204,7 @@
 			<form
 				method="POST"
 				action="?/share"
-				class="flex flex-col gap-4 rounded-[2rem] bg-kid-surface p-6 shadow-sm"
+				class="k-card k-card--accent k-peach k-rise flex flex-col gap-4 p-6"
 				use:enhance={() => {
 					sharing = true;
 					error = '';
@@ -241,25 +219,18 @@
 					};
 				}}
 			>
-				<p class="text-2xl font-semibold">
+				<p class="k-title">
 					<span aria-hidden="true">🧡</span> Want a grown-up to know? You choose.
 				</p>
 				<div class="grid gap-4 sm:grid-cols-2">
-					<button
-						type="submit"
-						disabled={sharing}
-						class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-primary px-6 text-2xl font-bold text-primary-foreground shadow-sm disabled:opacity-60 {KID_FOCUS}"
-					>
-						<span aria-hidden="true">💌</span> Tell Mom and Dad
+					<button type="submit" disabled={sharing} class="k-btn k-btn--lg k-peach">
+						<span class="k-btn__icon" aria-hidden="true">💌</span> Tell Mom and Dad
 					</button>
-					<a
-						href="/help"
-						class="flex min-h-20 items-center justify-center gap-3 rounded-[2rem] bg-secondary px-6 text-2xl font-bold shadow-sm {KID_FOCUS}"
-					>
-						<span aria-hidden="true">🤝</span> Other grown-ups who help
+					<a href="/help" class="k-btn k-btn--lg k-btn--quiet">
+						<span class="k-btn__icon" aria-hidden="true">🤝</span> Other grown-ups who help
 					</a>
 				</div>
-				<p class="text-lg text-muted-foreground">
+				<p class="text-lg font-semibold text-muted-foreground">
 					If you tell them, they see only how you feel today. Not now is okay too.
 				</p>
 			</form>
@@ -273,8 +244,7 @@
 		question="Want me to tell Mom and Dad {tellText}?"
 		icon={picked.icon}
 		petName={data.pet.name}
-		{color}
-		pattern={data.pet.pattern}
+		color={data.pet.colorKey}
 		{pending}
 		onanswer={answerShare}
 	/>

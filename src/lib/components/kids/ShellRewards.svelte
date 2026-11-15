@@ -5,7 +5,6 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { SHELL_PATTERNS, type OwnedPattern } from '#lib/kids/pet.js';
-	import { KID_FOCUS } from '#lib/kids/ui.js';
 
 	let {
 		owned,
@@ -25,18 +24,31 @@
 	const ownedKeys = $derived(new Set(owned.map((p) => p.key)));
 </script>
 
-<section aria-labelledby="shells-title" class="rounded-[2rem] bg-kid-surface p-6 shadow-sm">
-	<h2 id="shells-title" class="text-2xl font-bold">My shell patterns</h2>
+<section aria-labelledby="shells-title" class="k-card k-card--accent k-peach relative p-6">
+	<div class="flex items-start gap-4">
+		<span
+			class="grid size-16 shrink-0 place-items-center rounded-[1.4rem] bg-[var(--a-solid)] text-4xl shadow-[inset_0_-5px_0_var(--a-edge)] {canClaim
+				? 'gift-wiggle'
+				: ''}"
+			aria-hidden="true">🎁</span
+		>
+		<div class="min-w-0">
+			<h2 id="shells-title" class="k-title">My shell patterns</h2>
+			<p class="mt-1 text-lg font-bold text-muted-foreground">
+				{ownedKeys.size} of {SHELL_PATTERNS.length} collected
+			</p>
+		</div>
+	</div>
 
-	<ul class="mt-4 flex flex-wrap gap-3">
+	<ul class="mt-5 flex flex-wrap gap-2.5">
 		{#each SHELL_PATTERNS as p (p.key)}
 			{@const has = ownedKeys.has(p.key)}
 			<li
-				class="flex min-h-14 items-center gap-2 rounded-2xl px-4 text-xl font-semibold {has
-					? 'bg-secondary text-secondary-foreground'
-					: 'border-2 border-dashed border-border text-muted-foreground'}"
+				class="flex min-h-12 items-center gap-2 rounded-full px-4 text-lg font-extrabold {has
+					? 'bg-[var(--kid-surface)] text-foreground shadow-[0_3px_0_var(--a-edge)]'
+					: 'border-2 border-dashed border-[var(--a-edge)]/50 text-muted-foreground'}"
 			>
-				<span aria-hidden="true">{has ? p.icon : '🎁'}</span>
+				<span aria-hidden="true">{has ? p.icon : '❔'}</span>
 				{has ? p.label : 'Surprise'}
 				<span class="sr-only">{has ? '(collected)' : '(not yet)'}</span>
 			</li>
@@ -57,20 +69,33 @@
 				};
 			}}
 		>
-			<button
-				type="submit"
-				disabled={pending}
-				class="flex min-h-16 w-full items-center justify-center gap-3 rounded-2xl bg-pebble px-6 text-2xl font-bold text-pebble-foreground shadow-sm transition hover:brightness-105 active:scale-[0.98] disabled:opacity-60 motion-reduce:transition-none {KID_FOCUS}"
-			>
-				<span aria-hidden="true">🎁</span>
+			<button type="submit" disabled={pending} class="k-btn k-btn--lg k-btn--block k-sun">
+				<span class="k-btn__icon" aria-hidden="true">🎁</span>
 				{pending ? 'Opening…' : 'Open your present!'}
 			</button>
 		</form>
 	{:else if allUnlocked}
-		<p class="mt-4 text-xl text-muted-foreground">You found every shell pattern! 🌈</p>
+		<p class="k-note k-mint mt-5">
+			<span class="k-note__icon" aria-hidden="true">🌈</span> You found every shell pattern!
+		</p>
 	{:else if claimedToday}
-		<p class="mt-4 text-xl text-muted-foreground">You opened today's present! 🎉</p>
+		<p class="k-note k-mint mt-5">
+			<span class="k-note__icon" aria-hidden="true">🎉</span> You opened today's present!
+		</p>
 	{:else}
-		<p class="mt-4 text-xl text-muted-foreground">Do both things today to open a new present.</p>
+		<p class="k-note mt-5 bg-[var(--kid-surface)]">
+			<span class="k-note__icon" aria-hidden="true">✨</span> Do both things today to open a new present.
+		</p>
 	{/if}
 </section>
+
+<style>
+	.gift-wiggle {
+		animation: k-wiggle 1.6s ease-in-out infinite;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.gift-wiggle {
+			animation: none;
+		}
+	}
+</style>

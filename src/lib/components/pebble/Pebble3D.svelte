@@ -15,6 +15,7 @@
 	import PebbleArt from '#lib/components/landing/PebbleArt.svelte';
 	import { canUse3D, whenIdle } from './capabilities.js';
 	import type { Mood } from './motion.js';
+	import type { ShellPalette } from './shell.js';
 
 	let {
 		mood = 'idle',
@@ -23,6 +24,8 @@
 		size = '100%',
 		label = 'Pebble the turtle, smiling',
 		hint = 'Drag to spin',
+		touch = false,
+		shell,
 		class: className = ''
 	}: {
 		mood?: Mood;
@@ -33,6 +36,10 @@
 		label?: string;
 		/** Small caption shown under the 3D turtle until the visitor drags it. '' hides it. */
 		hint?: string;
+		/** Also load the 3D turtle on touch devices (kids' pages). */
+		touch?: boolean;
+		/** Shell colours (default: the green shell). Used by the 3D turtle and the drawn fallback. */
+		shell?: ShellPalette;
 		class?: string;
 	} = $props();
 
@@ -44,6 +51,7 @@
 		onready: () => void;
 		oninteract: () => void;
 		onerror: () => void;
+		shell?: ShellPalette;
 	};
 
 	let box: HTMLDivElement;
@@ -57,7 +65,7 @@
 	const showHint = $derived(ready && draggable && !interacted && hint !== '');
 
 	onMount(() => {
-		if (!canUse3D()) return;
+		if (!canUse3D({ touch })) return;
 		let cancelled = false;
 		const cancelIdle = whenIdle(() => {
 			import('./PebbleScene.svelte')
@@ -91,7 +99,7 @@
 	<div
 		class="absolute inset-0 transition-opacity duration-300 {ready ? 'opacity-0' : 'opacity-100'}"
 	>
-		<PebbleArt decorative class="h-full w-full" bob={!ready} />
+		<PebbleArt decorative class="h-full w-full" bob={!ready} {shell} />
 	</div>
 	{#if Scene && !failed}
 		<div
@@ -103,6 +111,7 @@
 				{follow}
 				{draggable}
 				active={inView && pageVisible}
+				{shell}
 				onready={() => (ready = true)}
 				oninteract={() => (interacted = true)}
 				onerror={() => {

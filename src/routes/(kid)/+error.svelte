@@ -4,21 +4,16 @@
 
 <svelte:head><title>Oops · TeamKid</title></svelte:head>
 
-<main
-	class="flex min-h-dvh flex-col items-center justify-center gap-6 bg-kid-background px-4 text-center"
->
+<section class="k-mint flex flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
 	<div
-		class="flex size-28 items-center justify-center rounded-full bg-pebble text-6xl"
+		class="k-float grid size-32 place-items-center rounded-[2.5rem] bg-[var(--k-sun-solid)] text-7xl shadow-[inset_0_-7px_0_var(--k-sun-edge),0_6px_0_oklch(0.86_0.035_205)]"
 		aria-hidden="true"
 	>
 		🐢
 	</div>
-	<h1 class="text-3xl font-bold">Oops! Pebble got a little lost.</h1>
-	<p class="text-lg text-muted-foreground">Let's go back home. (error {page.status})</p>
-	<a
-		href="/pebble"
-		class="flex h-16 items-center rounded-2xl bg-primary px-8 text-2xl font-bold text-primary-foreground"
-	>
-		Back to Pebble
+	<h1 class="k-display">Oops! Pebble got a little lost.</h1>
+	<p class="k-lead">Let's go back home. (error {page.status})</p>
+	<a href="/pebble" class="k-btn k-btn--lg">
+		<span class="k-btn__icon" aria-hidden="true">🏡</span> Back to Pebble
 	</a>
-</main>
+</section>
