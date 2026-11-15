@@ -79,9 +79,11 @@
 	Every card on this page (ours and the ones other workstreams drop in):
 	white, no outline, a soft shadow on the pastel page, and one "section
 	starter line" (fixed-height header row, soft divider, same title weight).
+	When a row makes a card taller than its content, the content spreads out
+	over the height (and a footer sits at the bottom) instead of leaving a gap.
 -->
 <div
-	class="space-y-6 sm:space-y-8 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:border-border/60 [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold [&_[data-slot=card]]:shadow-[0_1px_2px_oklch(0.45_0.05_180/0.06),0_6px_20px_oklch(0.45_0.05_180/0.07)] [&_[data-slot=card]]:ring-0"
+	class="space-y-6 sm:space-y-8 [&_[data-slot=card-content]]:flex [&_[data-slot=card-content]]:flex-1 [&_[data-slot=card-content]]:flex-col [&_[data-slot=card-content]]:justify-between [&_[data-slot=card-content]]:gap-4 [&_[data-slot=card-header]]:min-h-11 [&_[data-slot=card-header]]:border-b [&_[data-slot=card-header]]:border-border/60 [&_[data-slot=card-header]]:pb-3 [&_[data-slot=card-title]]:text-base [&_[data-slot=card-title]]:font-semibold [&_[data-slot=card]]:shadow-[0_1px_2px_oklch(0.45_0.05_180/0.06),0_6px_20px_oklch(0.45_0.05_180/0.07)] [&_[data-slot=card]]:ring-0"
 >
 	<!-- Header: greeting + the main shortcut -->
 	<div class="flex flex-wrap items-end justify-between gap-4">
@@ -192,25 +194,27 @@
 		{/if}
 
 		<!-- Row 5: money -->
-		<div class="min-w-0 lg:col-span-7 [&>section]:h-full">
+		<div class="min-w-0 lg:col-span-8 [&>section]:h-full">
 			<DashboardSlot name="spending" title="Spending" owner="Member 1">
 				<SpendingChart months={data.slots.chart} compact />
 			</DashboardSlot>
 		</div>
-		<div class="min-w-0 lg:col-span-5">
-			<DashCard
-				title="Balance"
-				icon="💰"
-				action={data.slots.balance.items > 0
-					? { href: '/expenses?status=approved', label: 'See them' }
-					: { href: '/expenses', label: 'Expenses' }}
-			>
-				<p class="text-lg leading-snug font-semibold">{data.slots.balance.text}</p>
-				<p class="mt-1 text-sm text-muted-foreground">
-					{data.slots.balance.items === 0
-						? 'Nothing outstanding.'
-						: `From ${data.slots.balance.items} approved expense${data.slots.balance.items === 1 ? '' : 's'} not reimbursed yet.`}
-				</p>
+		<div class="min-w-0 lg:col-span-4">
+			<DashCard title="Balance" icon="💰" action={{ href: '/expenses', label: 'Expenses' }}>
+				<div>
+					<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Right now</p>
+					<p class="mt-1 text-2xl leading-tight font-bold">{data.slots.balance.text}</p>
+				</div>
+				<div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-muted/60 p-3">
+					<p class="text-sm text-muted-foreground">
+						{data.slots.balance.items === 0
+							? 'Nothing outstanding.'
+							: `${data.slots.balance.items} approved expense${data.slots.balance.items === 1 ? '' : 's'} not reimbursed yet.`}
+					</p>
+					{#if data.slots.balance.items > 0}
+						<Button href="/expenses?status=approved" size="sm" variant="outline">See them</Button>
+					{/if}
+				</div>
 			</DashCard>
 		</div>
 	</div>
