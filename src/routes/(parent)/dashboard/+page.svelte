@@ -6,17 +6,16 @@
 	import InsightCard from '#lib/components/insights/InsightCard.svelte';
 	import BalanceCard from '#lib/components/expenses/BalanceCard.svelte';
 	import SafetyAlerts from '#lib/components/safety/SafetyAlerts.svelte';
-	import BriefingCard from '#lib/components/today/BriefingCard.svelte';
 	import DashboardSlot from '#lib/components/today/DashboardSlot.svelte';
 	import MoodToday from '#lib/components/today/MoodToday.svelte';
 	import NextHandover from '#lib/components/today/NextHandover.svelte';
 	import PendingSwapsCard from '#lib/components/today/PendingSwapsCard.svelte';
 	import TodayEvents from '#lib/components/today/TodayEvents.svelte';
 	import TodayHeader from '#lib/components/today/TodayHeader.svelte';
+	import TonightCard from '#lib/components/today/TonightCard.svelte';
 	import UnreadMessagesCard from '#lib/components/today/UnreadMessagesCard.svelte';
 	import WeekStrip from '#lib/components/today/WeekStrip.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Card from '#lib/components/ui/card/index.js';
 	import SwapRequestDialog from '#lib/components/calendar/SwapRequestDialog.svelte';
 	import { subscribeToEvents } from '#lib/components/calendar/subscribeToEvents.js';
 	import { subscribeToSharedMood } from '#lib/components/today/subscribeToSharedMood.js';
@@ -27,6 +26,8 @@
 	let swapOpen = $state(false);
 
 	const childName = $derived(data.child?.first_name ?? 'your child');
+	const tonight = $derived(data.strip.find((d) => d.isToday) ?? null);
+	const childActive = $derived(data.child?.status === 'active');
 
 	// Send the browser's time zone to the server once, then reload the data in it.
 	onMount(() => {
@@ -60,90 +61,126 @@
 
 <svelte:head><title>Today · TeamKid</title></svelte:head>
 
-<div class="space-y-6">
-	<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-		<TodayHeader {...data.header} />
-		{#if data.child?.status === 'active'}
-			<div class="md:w-80 md:shrink-0 lg:w-96">
-				<MoodToday {childName} mood={data.moodToday} />
-			</div>
+{#snippet notice(icon: string, title: string, text: string, href: string, label: string)}
+	<div
+		class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-pebble/60 bg-pebble/15 px-4 py-3 text-sm"
+	>
+		<span aria-hidden="true" class="text-lg">{icon}</span>
+		<p class="min-w-0 flex-1">
+			<span class="font-semibold">{title}</span>
+			<span class="text-muted-foreground"> · {text}</span>
+		</p>
+		<Button {href} size="sm" variant="outline">{label}</Button>
+	</div>
+{/snippet}
+
+<div class="space-y-6 sm:space-y-8">
+	<!-- Header: greeting + the main shortcut -->
+	<div class="flex flex-wrap items-end justify-between gap-4">
+		<TodayHeader {...data.header} custodyLine={null} />
+		{#if data.child}
+			<Button href="/calendar#plan" class="shrink-0">Plan this weekend</Button>
 		{/if}
 	</div>
 
 	<SafetyAlerts familyId={data.parent.family_id} {childName} />
 
-	{#if !data.child}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Add your child to get started</Card.Title>
-				<Card.Description
-					>Your child's calendar and Pebble appear once they're added.</Card.Description
-				>
-			</Card.Header>
-			<Card.Footer><Button href="/family">Go to Family</Button></Card.Footer>
-		</Card.Root>
-	{:else if data.child.status !== 'active'}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>{childName}'s account needs approval</Card.Title>
-				<Card.Description>Both parents approve before {childName} can use Pebble.</Card.Description>
-			</Card.Header>
-			<Card.Footer><Button href="/family" variant="outline">Review on Family</Button></Card.Footer>
-		</Card.Root>
+	<!-- Setup steps: compact one-line callouts -->
+	{#if !data.child || !childActive || !data.hasCoParent}
+		<div class="grid gap-2">
+			{#if !data.child}
+				{@render notice(
+					'👶',
+					'Add your child to get started',
+					"Their calendar and Pebble appear once they're added.",
+					'/family',
+					'Go to Family'
+				)}
+			{:else if !childActive}
+				{@render notice(
+					'✅',
+					`${childName}'s account needs approval`,
+					`Both parents approve before ${childName} can use Pebble.`,
+					'/family',
+					'Review'
+				)}
+			{/if}
+			{#if !data.hasCoParent}
+				{@render notice(
+					'🤝',
+					'Invite your co-parent',
+					'Swaps, messages and the week view work best with both parents.',
+					'/family',
+					'Invite'
+				)}
+			{/if}
+		</div>
 	{/if}
 
-	{#if !data.hasCoParent}
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Invite your co-parent to share the calendar</Card.Title>
-				<Card.Description
-					>Swaps, messages and the week view work best with both parents.</Card.Description
-				>
-			</Card.Header>
-			<Card.Footer><Button href="/family">Invite on Family</Button></Card.Footer>
-		</Card.Root>
-	{/if}
-
-	<BriefingCard briefing={data.briefing} />
+	<!-- 1. Today at a glance: tonight, next handover, today's events -->
+	<section aria-label="Today at a glance" class="grid items-start gap-4 lg:grid-cols-12">
+		<div class="lg:col-span-5">
+			<TonightCard
+				{childName}
+				mine={tonight?.mine ?? null}
+				withName={tonight?.label ?? null}
+				custodyLine={data.header.custodyLine}
+				briefing={data.briefing}
+			/>
+		</div>
+		<div class="grid items-start gap-4 sm:grid-cols-2 lg:col-span-7">
+			<NextHandover
+				handover={data.nextHandover}
+				{childName}
+				onRequestSwap={data.canSwap ? () => (swapOpen = true) : undefined}
+			/>
+			<TodayEvents events={data.todayEvents} />
+		</div>
+	</section>
 
 	<WeekStrip days={data.strip} />
 
-	<div class="grid gap-4 md:grid-cols-2">
-		<TodayEvents events={data.todayEvents} />
-		<NextHandover
-			handover={data.nextHandover}
-			{childName}
-			onRequestSwap={data.canSwap ? () => (swapOpen = true) : undefined}
-		/>
+	<!-- 2. Things to act on -->
+	<section aria-label="Swaps and messages" class="grid items-start gap-4 md:grid-cols-2">
 		<PendingSwapsCard swaps={data.swaps} otherName={data.otherName} window={data.swapWindow} />
 		<UnreadMessagesCard count={data.unread.count} threads={data.unread.threads} />
-	</div>
+	</section>
 
-	<div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4">
-		<p class="text-sm">Looking for ideas for your next weekend with {childName}?</p>
-		<Button href="/calendar#plan">Plan this weekend</Button>
-	</div>
+	<!-- 3. The child's week -->
+	{#if data.child}
+		<section aria-labelledby="child-week-title" class="space-y-4">
+			<div class="flex flex-wrap items-baseline justify-between gap-2">
+				<h2 id="child-week-title" class="text-lg font-semibold">{childName}'s week</h2>
+				<p class="text-xs text-muted-foreground">Only what {childName} chose to share</p>
+			</div>
+			<div class="grid items-start gap-4 lg:grid-cols-3">
+				<div class="min-w-0 lg:col-span-2">
+					<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
+						<InsightCard childId={data.child.id} {childName} familyId={data.parent.family_id} />
+					</DashboardSlot>
+				</div>
+				<div class="grid items-start gap-4">
+					{#if childActive}
+						<MoodToday {childName} mood={data.moodToday} />
+					{/if}
+					<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">
+						<MyTimeCard childId={data.child.id} {childName} />
+					</DashboardSlot>
+				</div>
+			</div>
+		</section>
+	{/if}
 
-	<div class="grid gap-4 md:grid-cols-2">
-		<DashboardSlot name="insights" title="{childName}'s week" owner="Member 2 (InsightCard)">
-			{#if data.child}
-				<InsightCard childId={data.child.id} {childName} familyId={data.parent.family_id} />
-			{/if}
-		</DashboardSlot>
-
-		<DashboardSlot name="spending" title="Spending" owner="Member 1">
-			<div class="grid gap-4">
+	<!-- 4. Money -->
+	<DashboardSlot name="spending" title="Spending" owner="Member 1">
+		<section aria-labelledby="money-title" class="space-y-4">
+			<h2 id="money-title" class="text-lg font-semibold">Money</h2>
+			<div class="grid items-start gap-4 md:grid-cols-2">
 				<SpendingChart months={data.slots.chart} compact />
 				<BalanceCard text={data.slots.balance.text} items={data.slots.balance.items} compact />
 			</div>
-		</DashboardSlot>
-
-		<DashboardSlot name="my-time" title="My time with {childName}" owner="Member 2 (P2)">
-			{#if data.child}
-				<MyTimeCard childId={data.child.id} {childName} />
-			{/if}
-		</DashboardSlot>
-	</div>
+		</section>
+	</DashboardSlot>
 </div>
 {#if data.canSwap}
 	<SwapRequestDialog

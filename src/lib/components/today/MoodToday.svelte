@@ -28,9 +28,7 @@
 	<section
 		aria-label="{childName}'s feeling today"
 		aria-live="polite"
-		class="flex w-full max-w-sm items-start gap-4 rounded-2xl border p-4 shadow-sm {TONE_CLASS[
-			mood.tone
-		]}"
+		class="flex w-full items-start gap-4 rounded-2xl border p-4 shadow-xs {TONE_CLASS[mood.tone]}"
 	>
 		<span
 			aria-hidden="true"
@@ -55,7 +53,7 @@
 	</section>
 {:else}
 	<p
-		class="flex w-full max-w-sm items-center gap-3 rounded-2xl border border-dashed p-4 text-sm text-muted-foreground"
+		class="flex w-full items-center gap-3 rounded-2xl border border-dashed bg-card px-4 py-3 text-sm text-muted-foreground"
 	>
 		<span aria-hidden="true" class="text-2xl">🐢</span>
 		No feeling shared today. {childName} decides what to share.

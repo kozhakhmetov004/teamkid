@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.js';
-	import * as Card from '#lib/components/ui/card/index.js';
+	import DashCard from './DashCard.svelte';
 
 	export interface HandoverInfo {
 		day: string;
@@ -25,29 +25,35 @@
 	} = $props();
 </script>
 
-<Card.Root>
-	<Card.Header>
-		<Card.Title>Next handover</Card.Title>
-	</Card.Header>
-	<Card.Content class="space-y-3 text-sm">
-		{#if handover}
-			<p class="text-lg font-semibold">
-				<span class="capitalize">{handover.day}</span>, {handover.time}
-			</p>
-			<p class="text-muted-foreground">
-				{handover.date}{handover.place ? ` · ${handover.place}` : ''}
-			</p>
-			<p>
-				{childName} goes from <strong>{handover.from}</strong> to <strong>{handover.to}</strong>.
-				{handover.youDropOff ? 'You drop off.' : `${handover.from} drops off.`}
-			</p>
-		{:else}
-			<p class="text-muted-foreground">No handover in the next two weeks.</p>
-		{/if}
+<DashCard
+	title="Next handover"
+	icon="🔁"
+	empty={handover ? undefined : 'None in the next two weeks.'}
+>
+	{#if handover}
+		<p class="text-xl leading-tight font-bold">
+			<span class="capitalize">{handover.day}</span>, {handover.time}
+		</p>
+		<p class="mt-1 text-sm text-muted-foreground">
+			{handover.date}{handover.place ? ` · ${handover.place}` : ''}
+		</p>
+		<p
+			class="mt-3 flex flex-wrap items-center gap-2 text-sm"
+			aria-label="{childName} goes from {handover.from} to {handover.to}"
+		>
+			<span class="rounded-full bg-muted px-2.5 py-1 font-medium">{handover.from}</span>
+			<span aria-hidden="true" class="text-muted-foreground">→</span>
+			<span class="rounded-full bg-accent px-2.5 py-1 font-medium">{handover.to}</span>
+			<span class="text-muted-foreground"
+				>· {handover.youDropOff ? 'You drop off' : `${handover.from} drops off`}</span
+			>
+		</p>
 		{#if onRequestSwap}
-			<Button variant="outline" onclick={onRequestSwap}>Request a swap</Button>
+			<Button variant="outline" size="sm" class="mt-4" onclick={onRequestSwap}
+				>Request a swap</Button
+			>
 		{:else}
-			<p class="text-xs text-muted-foreground">Swaps work once your co-parent has joined.</p>
+			<p class="mt-3 text-xs text-muted-foreground">Swaps work once your co-parent has joined.</p>
 		{/if}
-	</Card.Content>
-</Card.Root>
+	{/if}
+</DashCard>

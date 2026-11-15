@@ -21,9 +21,12 @@
 				: 'border-dashed border-border bg-muted';
 </script>
 
-<section aria-labelledby="week-strip-title" class="space-y-3">
+<section
+	aria-labelledby="week-strip-title"
+	class="min-w-0 space-y-3 rounded-2xl border bg-card p-4 shadow-xs sm:p-5"
+>
 	<div class="flex items-baseline justify-between gap-2">
-		<h2 id="week-strip-title" class="text-lg font-semibold">This week</h2>
+		<h2 id="week-strip-title" class="text-base font-semibold">This week</h2>
 		<p class="text-xs text-muted-foreground">Where the night is spent</p>
 	</div>
 	<ol class="grid grid-cols-7 gap-1.5 sm:gap-2">
@@ -31,7 +34,7 @@
 			<li>
 				<a
 					href="/calendar?date={day.date}"
-					class="flex h-full min-h-24 flex-col items-center justify-between gap-1 rounded-xl border p-1.5 text-center transition hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:p-2 {tone(
+					class="flex h-full min-h-20 flex-col items-center justify-between gap-1 rounded-xl border p-1.5 text-center transition hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:p-2 {tone(
 						day.mine
 					)} {day.isToday ? 'ring-2 ring-primary' : ''}"
 					aria-label="{day.isToday ? 'Today, ' : ''}{day.weekday} {day.dayOfMonth}: {day.mine ===
